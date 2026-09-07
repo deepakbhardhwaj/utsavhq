@@ -14714,75 +14714,6 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
         }
 
         // ITEM PANEL FUNCTIONS
-        function openQuoteItemPanel() {
-            let ipModal = document.getElementById('quoteItemPanel');
-            if (ipModal) ipModal.style.setProperty('z-index', '20000', 'important');
-            let eventSel = document.getElementById('qip_event');
-            let opts = '<option value="">-- Select Event --</option>';
-            quoteEventsData.forEach(ev => { opts += '<option value="' + ev.name + '">' + ev.name + '</option>'; });
-            eventSel.innerHTML = opts;
-            if (quoteEventsData.length > 0) eventSel.value = quoteEventsData[0].name;
-            let unitSel = document.getElementById('qip_unit');
-            if (unitSel) unitSel.innerHTML = getUnitOptions();
-            document.getElementById('qip_name').value = '';
-            document.getElementById('qip_qty').value = '1';
-            document.getElementById('qip_rate').value = '0';
-            document.getElementById('qip_desc').value = '';
-            renderQIPList(); updateQIPGross();
-            document.getElementById('quoteItemPanel').style.display = 'flex';
-        }
-        function closeQuoteItemPanel() {
-            document.getElementById('quoteItemPanel').style.display = 'none';
-            renderQuoteItems(); syncQuoteGrossFromItems();
-        }
-        function updateQIPGross() {
-            let qty = parseFloat(document.getElementById('qip_qty').value) || 0;
-            let rate = parseFloat(document.getElementById('qip_rate').value) || 0;
-            document.getElementById('qip_gross').innerText = '\u20B9' + (qty * rate).toLocaleString('en-IN');
-        }
-        function saveQuoteItem() {
-            let evName = document.getElementById('qip_event').value;
-            let name = document.getElementById('qip_name').value.trim();
-            if (!evName) { alert('Please select an event first!'); return; }
-            if (!name) { alert('Please enter item name!'); return; }
-            let qty = parseFloat(document.getElementById('qip_qty').value) || 0;
-            let rate = parseFloat(document.getElementById('qip_rate').value) || 0;
-            let unit = document.getElementById('qip_unit') ? document.getElementById('qip_unit').value : 'Pcs';
-            let desc = document.getElementById('qip_desc').value.trim();
-            let category = document.getElementById('qip_category') ? document.getElementById('qip_category').value.trim() : '';
-            if (!category) category = 'General';
-            quoteItemsData.push({ name: name, desc: desc, unit: unit, qty: qty, rate: rate, amount: qty * rate, event: evName, category: category });
-            document.getElementById('qip_name').value = '';
-            document.getElementById('qip_qty').value = '1';
-            document.getElementById('qip_rate').value = '0';
-            document.getElementById('qip_desc').value = '';
-            renderQIPList(); updateQIPGross();
-        }
-        function deleteQuoteItem(idx) {
-            quoteItemsData.splice(idx, 1);
-            renderQIPList();
-        }
-        function renderQIPList() {
-            let evName = document.getElementById('qip_event').value;
-            let items = quoteItemsData.filter(i => i.event === evName);
-            let html = '';
-            let gross = 0;
-            if (items.length === 0) { html = '<p style="font-size:11px; color:var(--text-secondary); text-align:center; padding:10px 0;">No items for ' + (evName || 'this event') + ' yet.</p>'; }
-            items.forEach((item) => {
-                let realIdx = quoteItemsData.indexOf(item);
-                gross += item.amount;
-                html += '<div style="background:var(--surface-color); border:1px solid var(--border-color); border-radius:8px; padding:10px 12px; margin-bottom:6px;">';
-                html += '<div style="display:flex; justify-content:space-between; align-items:flex-start;">';
-                html += '<div style="flex:1;"><strong style="font-size:12px; color:var(--text-primary);">' + item.name + '</strong>';
-                if (item.desc) html += '<div style="font-size:10px; color:var(--text-secondary); margin-top:2px;">' + item.desc + '</div>';
-                html += '<div style="font-size:10px; color:var(--text-secondary); margin-top:2px;">' + item.qty + ' ' + item.unit + ' \u00D7 \u20B9' + item.rate.toLocaleString('en-IN') + '</div></div>';
-                html += '<div style="text-align:right;"><div style="font-size:13px; font-weight:800; color:var(--text-primary);">\u20B9' + item.amount.toLocaleString('en-IN') + '</div>';
-                html += '<button onclick="deleteQuoteItem(' + realIdx + ')" style="background:var(--danger-light); border:1px solid #FECACA; color:var(--danger); border-radius:4px; padding:2px 8px; font-size:10px; cursor:pointer; margin-top:4px;">Delete</button></div>';
-                html += '</div></div>';
-            });
-            if (gross > 0) html += '<div style="text-align:right; font-size:12px; font-weight:800; color:var(--accent-color); padding:6px 4px;">Event Total: \u20B9' + gross.toLocaleString('en-IN') + '</div>';
-            document.getElementById('qip_items_list').innerHTML = html;
-        }
         function renderQuoteItems() {
             let container = document.getElementById('quote_items_container');
             let html = '<div style="border:1px solid var(--border-color); border-radius:8px; padding:12px; background:#F8FAFC; margin-bottom:12px;">';
@@ -21085,26 +21016,6 @@ function openPurchaseOrderModal() {
             modal.style.display = 'none';
         }
 
-        function saveEditedBank() {
-            let id = document.getElementById('edit_bank_id').value;
-            let b = bankDB[id];
-            let newName = document.getElementById('edit_bank_name').value;
-
-            if (!newName) return alert("Account Name is required!");
-
-            b.name = newName;
-
-            if (b.type === 'Bank') {
-                b.holder = document.getElementById('edit_bank_holder').value;
-                b.accNo = document.getElementById('edit_bank_acc').value;
-                b.ifsc = document.getElementById('edit_bank_ifsc').value;
-            }
-
-            updateDataAndUI();
-            document.getElementById('editBankModal').style.display = 'none';
-            openBankLedger(id);
-            alert("Account Updated!");
-        }
 
         // 🚀 ENGLISH FIX: Revert Event Status
 
@@ -21214,46 +21125,6 @@ function openPurchaseOrderModal() {
             }, 400);
         }
 
-        function saveCapitalData() {
-            let pId = document.getElementById('cap_party_id').value;
-            let type = document.getElementById('cap_tx_type').value;
-            let editId = document.getElementById('capitalModal').dataset.editId;
-            let amt = parseFloat(document.getElementById('cap_amount').value) || 0;
-            let date = document.getElementById('cap_date').value;
-            let mode = document.getElementById('cap_mode').value;
-            let remark = document.getElementById('cap_remark').value || (type === 'IN' ? 'Capital Introduced' : 'Capital Withdrawn');
-
-            if (amt <= 0 || !date || !mode) return alert("Fill required fields!");
-
-            if (editId && bankTxDB[editId]) {
-                let oldTx = bankTxDB[editId];
-                if (bankDB[oldTx.accountId]) {
-                    if (oldTx.type === 'IN') bankDB[oldTx.accountId].balance -= oldTx.amount;
-                    else bankDB[oldTx.accountId].balance += oldTx.amount;
-                }
-                if (partiesDB[pId]) {
-                    if (oldTx.type === 'IN') partiesDB[pId].balance += oldTx.amount;
-                    else partiesDB[pId].balance -= oldTx.amount;
-                }
-                delete bankTxDB[editId];
-            }
-
-            let id = editId || generateDocId('BankTx');
-
-            if (type === 'IN') {
-                bankTxDB[id] = { id, accountId: mode, amount: amt, type: 'IN', desc: `Capital In: ${remark}`, refId: pId, date };
-                bankDB[mode].balance += amt;
-                partiesDB[pId].balance -= amt; // Capital is a liability
-            } else {
-                bankTxDB[id] = { id, accountId: mode, amount: amt, type: 'OUT', desc: `Drawings: ${remark}`, refId: pId, date };
-                bankDB[mode].balance -= amt;
-                partiesDB[pId].balance += amt;
-            }
-
-            updateDataAndUI();
-            document.getElementById('capitalModal').style.display = 'none';
-            openPartyLedger(pId);
-        }
 
         function loadLendersIntoSelect(selectId, preFillId = null, filterTerm = "") {
             let sel = document.getElementById(selectId);
@@ -22784,18 +22655,6 @@ function openPurchaseOrderModal() {
             }
         }
 
-        function openBackupModal() {
-            if (typeof closeAllMenus === 'function') closeAllMenus();
-
-            // 1. Pehle Master Settings kholo
-            openSettingsModal();
-
-            // 2. Seedha Security & Backup wale Tab par jump karo
-            let tabs = document.querySelectorAll('.set-tab-btn');
-            if (tabs.length > 1) {
-                switchSetTab('set-sec', tabs[1]);
-            }
-        }
 
         function exportBackupData() {
             if (!currentUser) return alert("Please login first.");
@@ -23018,29 +22877,6 @@ function openPurchaseOrderModal() {
             waReview: "Hello [Client],\n\nWe hope you enjoyed our services at [Event]. Please share your experience by writing a short review for us:\n\n[Link]\n\nYour feedback means the world to us!\n\nBest Regards,\n[Company]" // 🚀 NAYA TEMPLATE
         };
 
-        function openSettingsModal() {
-            closeAllMenus();
-            // Form values bharna
-            document.getElementById('set_prefix_inv').value = appSettings.invPrefix;
-            document.getElementById('set_prefix_qt').value = appSettings.qtPrefix;
-            document.getElementById('set_def_gst').value = appSettings.defGst;
-            document.getElementById('set_show_bank').checked = appSettings.showBank;
-            document.getElementById('set_tnc').value = appSettings.tnc || '';
-            document.getElementById('set_app_pin').value = appSettings.appPin || "";
-            document.getElementById('set_wa_inv').value = appSettings.waInv || "";
-            document.getElementById('set_wa_qt').value = appSettings.waQt || "";
-            document.getElementById('set_wa_review').value = appSettings.waReview || "Hello [Client],\n\nWe hope you enjoyed our services at [Event]. Please share your experience by writing a short review for us:\n\n[Link]\n\nYour feedback means the world to us!\n\nBest Regards,\n[Company]";
-            
-            // 🚀 FIX: Load Inventory check state
-            if (document.getElementById('set_manage_inventory')) {
-                document.getElementById('set_manage_inventory').checked = appSettings.manageInventory || false;
-            }
-
-            // 🚀 Smart Fix: Set Default Tab visually using Class
-            switchSetTab('set-bill', document.getElementById('tab-btn-bill'));
-
-            document.getElementById('settingsModal').style.display = 'flex';
-        }
 
         function switchSetTab(tabId, btn) {
             // Remove active class from all tab buttons
@@ -24442,11 +24278,6 @@ function openPurchaseOrderModal() {
         // ==========================================
         // 🚀 SMART SEPARATE OTHER INCOME SECTION
         // ==========================================
-        function openOtherIncomeList() {
-            closeAllMenus();
-            renderOtherIncomeList();
-            document.getElementById('otherIncomeListModal').style.display = 'flex';
-        }
 
         function renderOtherIncomeList() {
             let container = document.getElementById('oi_list_container');
