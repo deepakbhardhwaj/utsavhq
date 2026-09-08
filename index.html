@@ -2698,6 +2698,14 @@
                 padding: 28px 32px;
             }
 
+            /* 🐛 FIX: modals were centering within the FULL viewport width (including
+               the space now covered by the sidebar), so they visually sat left of
+               where the content area's real center is — noticeable on wide monitors. */
+            .modal-overlay {
+                padding-left: 220px;
+                box-sizing: border-box;
+            }
+
             /* Full-height fixed sidebar, replacing the floating bottom pill */
             .nav-bar {
                 position: fixed;
@@ -2731,6 +2739,7 @@
             }
 
             .nav-btn {
+                flex: 0 0 auto;
                 flex-direction: row;
                 justify-content: flex-start;
                 align-items: center;
@@ -2787,6 +2796,13 @@
                 left: auto !important;
                 right: 40px !important;
                 transform: none !important;
+            }
+
+            /* 🐛 FIX: Reports Hub reserved 60px at the bottom for the mobile bottom
+               nav bar, which no longer exists on desktop (nav is a sidebar now) —
+               that left a dead empty strip at the bottom of the screen. */
+            #reports-hub.active-section {
+                height: 100vh;
             }
         }
 
@@ -17900,7 +17916,15 @@ function renderPBItemPopup(scrollToBottom) {
             let selectedEvents = poEventsData.filter(e => e._selected !== false);
             let grandTotal = poItemsData.reduce((s,i) => s + (i.amount||0), 0);
             let netTotal = grandTotal - discount;
-            let poId = 'PO-' + Date.now().toString().slice(-6);
+            // 🐛 FIX: same random-timestamp issue as printPBDocument — now shows the
+            // real (or real-preview) document number instead.
+            let poId;
+            if (typeof editingPurchaseId !== 'undefined' && editingPurchaseId) {
+                poId = editingPurchaseId;
+            } else {
+                let poEventCodeStr = evId && leadsDB[evId] ? createEventCode(leadsDB[evId].name, leadsDB[evId].func, leadsDB[evId].date) : null;
+                poId = generateDocId('PO', poEventCodeStr);
+            }
             let printWin = window.open('', '_blank');
             let html = '<html><head><title>Purchase Order - ' + partyName + '</title>';
             html += '<style>';
@@ -18034,7 +18058,17 @@ function renderPBItemPopup(scrollToBottom) {
             let taxAmount = Math.round(afterDiscount * gstPercent / 100);
             let finalTotal = afterDiscount + taxAmount;
             let balanceDue = finalTotal - advance;
-            let pbId = 'PB-' + Date.now().toString().slice(-6);
+            // 🐛 FIX: previously showed a random-looking timestamp number (e.g. #193989)
+            // since this prints BEFORE the bill is saved. Now shows the exact document
+            // number that will actually be assigned — the existing one if editing, or
+            // a proper preview of the next PB number (with event prefix) if new.
+            let pbId;
+            if (typeof editingPurchaseId !== 'undefined' && editingPurchaseId) {
+                pbId = editingPurchaseId;
+            } else {
+                let pbEventCodeStr = evId && leadsDB[evId] ? createEventCode(leadsDB[evId].name, leadsDB[evId].func, leadsDB[evId].date) : null;
+                pbId = generateDocId('PB', pbEventCodeStr);
+            }
             let printWin = window.open('', '_blank');
             let html = '<html><head><title>Purchase Bill - ' + partyName + '</title>';
             html += '<style>';
