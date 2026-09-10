@@ -16695,7 +16695,7 @@ function openPOItemPreviewView(evIdx) {
                 if (manuallyEnteredAdvance > 0) { 
                     party.balance -= manuallyEnteredAdvance; 
                     let recId = generateDocId('Receipt'); 
-                    salesDB[recId] = { id: recId, type: 'Receipt', partyId: partyId, amount: manuallyEnteredAdvance, usedAmount: manuallyEnteredAdvance, availableAmount: 0, mode: payMode, date: date, ref: `Advance for ${id}`, linkedInvoices: [id] }; 
+                    salesDB[recId] = { id: recId, type: 'Receipt', partyId: partyId, amount: manuallyEnteredAdvance, usedAmount: manuallyEnteredAdvance, availableAmount: 0, mode: payMode, date: date, ref: `Advance Payment`, linkedInvoices: [id] }; 
                     // 🚀 CA FIX: Bank/Cash ledger me paisa exactly Inflow (IN) hoga
                     if (typeof logBankTransaction === 'function') {
                         logBankTransaction(payMode, manuallyEnteredAdvance, 'IN', `Advance against Invoice ${id}`, recId, date);
@@ -18718,7 +18718,7 @@ function openPurchaseOrderModal() {
                     if (manuallyEnteredAdvance > 0) { 
                         party.balance += manuallyEnteredAdvance; 
                         let payId = generateDocId('PaymentOut'); 
-                        purchaseDB[payId] = { id: payId, type: 'PaymentOut', partyId: vendorId, amount: manuallyEnteredAdvance, usedAmount: manuallyEnteredAdvance, availableAmount: 0, mode: payMode, date, ref: `Advance for Asset ${id}`, linkedInvoices: [id] }; 
+                        purchaseDB[payId] = { id: payId, type: 'PaymentOut', partyId: vendorId, amount: manuallyEnteredAdvance, usedAmount: manuallyEnteredAdvance, availableAmount: 0, mode: payMode, date, ref: `Advance for Asset Purchase`, linkedInvoices: [id] }; 
                         if(typeof logBankTransaction === 'function') logBankTransaction(payMode, manuallyEnteredAdvance, 'OUT', `Asset Payment: ${mainEventStr}`, payId, date); 
                     } 
                 } 
@@ -18768,7 +18768,7 @@ function openPurchaseOrderModal() {
             if (convertingPOId && purchaseDB[convertingPOId]) { purchaseDB[convertingPOId].status = 'Invoiced'; }
             if (!editingPurchaseId) {
                 if (paymentOutToUpdate) { paymentOutToUpdate.usedAmount += oldAdvanceAmount; paymentOutToUpdate.availableAmount -= oldAdvanceAmount; if (!paymentOutToUpdate.linkedInvoices) paymentOutToUpdate.linkedInvoices = []; paymentOutToUpdate.linkedInvoices.push(id); }
-                if (manuallyEnteredAdvance > 0) { party.balance += manuallyEnteredAdvance; let payId = generateDocId('PaymentOut'); purchaseDB[payId] = { id: payId, type: 'PaymentOut', partyId, amount: manuallyEnteredAdvance, usedAmount: manuallyEnteredAdvance, availableAmount: 0, mode: payMode, date, ref: `Advance for ${id}`, linkedInvoices: [id] }; logBankTransaction(payMode, manuallyEnteredAdvance, 'OUT', `Payment for Vendor Bill ${id}`, payId, date); }
+                if (manuallyEnteredAdvance > 0) { party.balance += manuallyEnteredAdvance; let payId = generateDocId('PaymentOut'); purchaseDB[payId] = { id: payId, type: 'PaymentOut', partyId, amount: manuallyEnteredAdvance, usedAmount: manuallyEnteredAdvance, availableAmount: 0, mode: payMode, date, ref: `Advance for Vendor Bill`, linkedInvoices: [id] }; logBankTransaction(payMode, manuallyEnteredAdvance, 'OUT', `Payment for Vendor Bill ${id}`, payId, date); }
             }
             tempEventIdForPurchase = null; convertingPOId = null; editingPurchaseId = null;
             updateDataAndUI(); document.getElementById('purchaseBillModal').style.display = 'none';
@@ -19386,7 +19386,7 @@ function openPurchaseOrderModal() {
                 let themeColor = isOut ? 'var(--danger)' : 'var(--success)';
                 let themeBg = isOut ? '#FEF2F2' : '#F0FDF4'; let themeBorder = isOut ? '#FCA5A5' : '#BBF7D0';
 
-                bodyHtml = `<div style="margin-bottom: 15px;"><strong>${isOut ? 'Paid To' : 'Received From'}:</strong> ${sanitize(partyName)}<br><strong>Date:</strong> ${formattedDate}<br><strong>Mode:</strong> ${bankDB[record.mode] ? bankDB[record.mode].name : record.mode}<br><strong>Ref/Notes:</strong> ${record.ref || 'N/A'}</div>
+                bodyHtml = `<div style="margin-bottom: 15px;"><strong>${isOut ? 'Voucher No' : 'Receipt No'}:</strong> ${sanitize(record.id)}<br><strong>${isOut ? 'Paid To' : 'Received From'}:</strong> ${sanitize(partyName)}<br><strong>Date:</strong> ${formattedDate}<br><strong>Mode:</strong> ${bankDB[record.mode] ? bankDB[record.mode].name : record.mode}<br><strong>Ref/Notes:</strong> ${record.ref || 'N/A'}</div>
                 <div style="background: ${themeBg}; border: 1px solid ${themeBorder}; padding: 12px; border-radius: 6px; text-align: center; margin-bottom:10px;">
                     <div style="font-size: 11px; color: ${themeColor}; font-weight: 700; margin-bottom: 2px; text-transform: uppercase;">Total ${isOut ? 'Paid' : 'Received'}</div>
                     <div style="font-size: 24px; font-weight: 800; color: ${themeColor};">₹${record.amount.toLocaleString('en-IN')}</div>
@@ -19814,6 +19814,7 @@ function openPurchaseOrderModal() {
                     </div>
                     <div>
                         <span class="section-label">Payment Info</span>
+                        <div style="margin-bottom:5px;"><strong>${isOut ? 'Voucher No:' : 'Receipt No:'}</strong> ${sanitize(record.id)}</div>
                         <div style="margin-bottom:5px;"><strong>Pay Mode:</strong> ${record.mode ? (bankDB[record.mode] ? bankDB[record.mode].name : record.mode) : '-'}</div>
                         <div><strong>Ref/Notes:</strong> ${record.ref || 'N/A'}</div>
                     </div>
@@ -19838,7 +19839,6 @@ function openPurchaseOrderModal() {
                     <div>
                         <span class="section-label">${record.type === 'Quotation' && record.eventTitle ? 'Event Title' : 'Event / Subject'}</span>
                         <div style="font-size:14px; font-weight:700;">${record.type === 'Quotation' && record.eventTitle ? record.eventTitle : (record.event || 'General')}</div>
-                        ${record.eventId ? `<div style="font-size:11px; font-weight:600; color:#2563eb; margin-top:4px;">ID: ${record.eventId}</div>` : ''}
                         ${record.ref ? `<div style="font-size:12px; font-weight:600; color:#475569; margin-top:4px;">Bill No: ${sanitize(record.ref)}</div>` : ''}
                     </div>
                 </div>`;
@@ -20101,19 +20101,30 @@ function openPurchaseOrderModal() {
                 </div>`;
             }
 
-            // 🚀 SIGNATURE LOGIC ADDED HERE
-            let sigImgHtml = (typeof profileDB !== 'undefined' && profileDB.signature) ? `<img loading="lazy" src="${profileDB.signature}" style="height: 45px; object-fit:contain; margin-bottom: 5px; display: block; margin-left: auto; margin-right: auto;">` : `<div style="height: 45px; margin-bottom: 5px;"></div>`;
+            // 🚀 SIGNATURE LOGIC — 🐛 FIX: Client Signature now lives here on page 1
+            // alongside Authorized Signatory (it used to only appear on the LAST page,
+            // by itself, which is why it looked like it was missing from page 1). Both
+            // boxes are also a bit more compact now so the pair doesn't look oversized.
+            let sigImgHtml = (typeof profileDB !== 'undefined' && profileDB.signature) ? `<img loading="lazy" src="${profileDB.signature}" style="height: 32px; object-fit:contain; margin-bottom: 4px; display: block; margin-left: auto; margin-right: auto;">` : `<div style="height: 32px; margin-bottom: 4px;"></div>`;
 
             html += `</div>
-                    <div style="width: 180px; text-align: center;">
-                        <div style="font-size:12px; margin-bottom: 5px; color: #475569;">For <strong style="color:#0f172a;">${cName}</strong></div>
-                        ${sigImgHtml}
-                        <div style="border-top: 1.5px solid #0f172a; padding-top: 6px; font-weight: 800; font-size: 12px; color: #0f172a;">Authorized Signatory</div>
-                        <div style="font-size: 9px; color: #94a3b8; margin-top: 15px;">Generated via UTSAVhq ERP</div>
+                    <div style="display:flex; gap:14px; align-items:flex-end;">
+                        <div style="width: 130px; text-align: center;">
+                            <div style="height: 36px;"></div>
+                            <div style="border-top: 1.2px solid #0f172a; padding-top: 5px; font-weight: 800; font-size: 10.5px; color: #0f172a;">Client Signature</div>
+                            <div style="font-size: 8.5px; color: #94a3b8; margin-top: 2px;">${sanitize(partyName || '')}</div>
+                        </div>
+                        <div style="width: 130px; text-align: center;">
+                            <div style="font-size: 10px; margin-bottom: 3px; color: #475569;">For <strong style="color: #0f172a;">${cName}</strong></div>
+                            ${sigImgHtml}
+                            <div style="border-top: 1.2px solid #0f172a; padding-top: 5px; font-weight: 800; font-size: 10.5px; color: #0f172a;">Authorized Signatory</div>
+                        </div>
                     </div>
                 </div>
+                <div style="text-align:right; font-size: 8px; color: #94a3b8; margin-top: 6px;">Generated via UTSAVhq ERP</div>
             </div>
             </div> `;
+
 
             // Iske baad aage ka Photos / Collage wala logic waisa hi rahega jaisa purane code mein tha...
 
@@ -20204,25 +20215,9 @@ function openPurchaseOrderModal() {
                     }
                     html += '</div>';
                 });
-                // Single footer + Client signature section at the end of all event detail pages
-                html += '<div style="padding:25px; max-width:800px; margin:0 auto; break-inside:avoid;">';
-                html += '<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:30px;">';
-                // Client signature (left)
-                html += '<div style="text-align:center; width:200px;">';
-                html += '<div style="height:50px;"></div>';
-                html += '<div style="border-top:1.5px solid #0f172a; padding-top:6px; font-weight:800; font-size:12px; color:#0f172a;">Client Signature</div>';
-                html += '<div style="font-size:10px; color:#94a3b8; margin-top:3px;">' + sanitize(partyName || '') + '</div>';
-                html += '</div>';
-                // Company signature (right)
-                let sigImgHtml2 = (typeof profileDB !== 'undefined' && profileDB.signature) ? '<img loading="lazy" src="' + profileDB.signature + '" style="height:45px; object-fit:contain; margin-bottom:5px; display:block; margin:0 auto;">' : '<div style="height:45px; margin-bottom:5px;"></div>';
-                html += '<div style="text-align:center; width:200px;">';
-                html += '<div style="font-size:12px; margin-bottom:5px; color:#475569;">For <strong style="color:#0f172a;">' + cName + '</strong></div>';
-                html += sigImgHtml2;
-                html += '<div style="border-top:1.5px solid #0f172a; padding-top:6px; font-weight:800; font-size:12px; color:#0f172a;">Authorized Signatory</div>';
-                html += '</div>';
-                html += '</div>';
-                html += '<div style="margin-top:20px; display:flex; justify-content:space-between; font-size:10px; font-weight:600; color:#64748b; border-top:1px solid #e2e8f0; padding-top:10px;"><div>' + cName + '</div><div>UTSAVhq ERP</div></div>';
-                html += '</div>';
+                // 🐛 FIX: signatures (Client + Authorized) used to also print again here,
+                // on the last page, on top of already being on page 1 — removed so they
+                // only ever appear once, on page 1, as requested.
             }
             // OLD PHOTO COLLAGE FOR INVOICES — 🐛 FIX: only used as a FALLBACK now.
             // Previously this fired unconditionally for any Invoice with a linked event,
