@@ -2698,6 +2698,27 @@
                 padding: 28px 32px;
             }
 
+            /* 🐛 FIX: the hamburger menu (☰) lives inside a global .header bar that
+               sits OUTSIDE .content, at the very top of the page, shared across every
+               tab — so it never got pushed right along with everything else, and the
+               new sidebar (which sits on top, z-index 9000) was covering it completely.
+               This drawer also holds things the 5-button sidebar doesn't (Reports,
+               Team & Staff, Settings, Sign Out, etc.), so it still needs to stay
+               reachable — just moved clear of the sidebar instead of hidden under it. */
+            .header {
+                margin-left: 220px;
+                width: calc(100% - 220px);
+                box-sizing: border-box;
+            }
+
+            /* 🐛 FIX: the hamburger's drawer panel also anchors to left:0 with a lower
+               z-index than the new sidebar (2000 vs 9000) — so even after fixing the
+               button itself, opening the drawer would show it hidden behind the
+               sidebar too. It now opens just to the right of the sidebar instead. */
+            .sidebar {
+                left: 220px;
+            }
+
             /* 🐛 FIX: modals were centering within the FULL viewport width (including
                the space now covered by the sidebar), so they visually sat left of
                where the content area's real center is — noticeable on wide monitors. */
@@ -14750,7 +14771,7 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
                 html += '<div style="border:1px solid var(--border-color); border-radius:6px; margin-bottom:6px; overflow:hidden;">';
                 html += '<div style="display:flex; justify-content:space-between; align-items:center;">';
                 html += '<div style="background:' + evColor + '; color:' + textColor + '; padding:5px 10px; font-size:11px; font-weight:700; flex:1;">' + ev.name + ' <span style="font-size:9px; opacity:0.8;">(' + evItems.length + ' items)</span></div>';
-                html += '<input type="number" value="' + evDisplayTotal + '" oninput="updateEventManualGross(' + evIdx + ', this.value)" placeholder="' + evTotal + '" style="width:80px; padding:5px 6px; font-size:12px; font-weight:800; color:var(--text-primary); background:var(--surface-color); border:none; border-left:1px solid var(--border-color); text-align:right;">';
+                html += '<input type="number" id="qEvGross_' + evIdx + '" value="' + evDisplayTotal + '" oninput="updateEventManualGross(' + evIdx + ', this.value)" placeholder="' + evTotal + '" style="width:80px; padding:5px 6px; font-size:12px; font-weight:800; color:var(--text-primary); background:var(--surface-color); border:none; border-left:1px solid var(--border-color); text-align:right;">';
                 html += '<button type="button" onclick="openQuoteItemViewPanel(' + evIdx + ')" style="background:var(--accent-light); border:none; border-left:1px solid var(--border-color); color:var(--accent-color); padding:5px 12px; font-size:10px; font-weight:700; cursor:pointer;">Add</button>';
                 html += '</div>';
                 // Category breakdown within this event
@@ -14762,9 +14783,9 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
                         html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:3px 10px 3px 20px; background:var(--surface-color); border-top:1px solid var(--bg-color);">';
                         html += '<div style="font-size:10px; font-weight:700; color:#1E40AF;">\u00B7 ' + sanitize(catName) + ' <span style="font-size:9px; color:#3B82F6;">(' + catItems.length + ')</span></div>';
                         if (catDisplayTotal > 0) {
-                            html += '<input type="number" value="' + catDisplayTotal + '" oninput="updateCategoryAmount(' + evIdx + ', \'' + catName.replace(/'/g, "\\'") + '\', this.value)" style="width:70px; padding:2px 4px; font-size:10px; font-weight:700; color:#1E40AF; background:var(--surface-color); border:1px solid #BFDBFE; border-radius:3px; text-align:right;">';
+                            html += '<input type="number" id="qcat_' + evIdx + '_' + catName.replace(/[^a-zA-Z0-9]/g, '') + '" value="' + catDisplayTotal + '" oninput="updateCategoryAmount(' + evIdx + ', \'' + catName.replace(/'/g, "\\'") + '\', this.value)" style="width:70px; padding:2px 4px; font-size:10px; font-weight:700; color:#1E40AF; background:var(--surface-color); border:1px solid #BFDBFE; border-radius:3px; text-align:right;">';
                         } else {
-                            html += '<input type="number" value="" placeholder="Enter Amount" oninput="updateCategoryAmount(' + evIdx + ', \'' + catName.replace(/'/g, "\\'") + '\', this.value)" style="width:70px; padding:2px 4px; font-size:9px; font-weight:600; color:#94A3B8; background:var(--surface-color); border:1px dashed #3B82F6; border-radius:3px; text-align:right;">';
+                            html += '<input type="number" id="qcat_' + evIdx + '_' + catName.replace(/[^a-zA-Z0-9]/g, '') + '" value="" placeholder="Enter Amount" oninput="updateCategoryAmount(' + evIdx + ', \'' + catName.replace(/'/g, "\\'") + '\', this.value)" style="width:70px; padding:2px 4px; font-size:9px; font-weight:600; color:#94A3B8; background:var(--surface-color); border:1px dashed #3B82F6; border-radius:3px; text-align:right;">';
                         }
                         html += '</div>';
                     });
@@ -15224,8 +15245,13 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
             return catItems.reduce((s,i) => s + (i.amount||0), 0);
         }
         // Update a category's override amount
-        // Debounced version — prevents re-render while user is typing
-        let _updateCategoryTimer = null;
+        // 🐛 FIX: this used to debounce a FULL re-render of the whole item list after
+        // 400ms — which rebuilt this very input from scratch. If the user cleared the
+        // field to type a new number and paused even briefly, the rebuild fired and
+        // replaced the (now empty) input with the old/fallback value, making it look
+        // like the field could never be cleared. Now it only patches the one other
+        // display that needs updating (the event's total) directly, and never rebuilds
+        // any input the user might be typing into.
         function updateCategoryAmount(evIdx, catName, val) {
             let ev = quoteEventsData[evIdx];
             if (!ev) return;
@@ -15246,9 +15272,12 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
             ev.manualGross = totalFromCats;
             // Immediately update gross + net totals
             syncQuoteGrossFromItems();
-            // Debounced re-render of compact summary (avoids focus loss while typing)
-            clearTimeout(_updateCategoryTimer);
-            _updateCategoryTimer = setTimeout(function() { renderQuoteItems(); }, 400);
+            // Surgically patch the event-level total input's value — but never while
+            // the user is actively focused on it themselves (e.g. editing it directly).
+            let evGrossInput = document.getElementById('qEvGross_' + evIdx);
+            if (evGrossInput && document.activeElement !== evGrossInput) {
+                evGrossInput.value = ev.manualGross > 0 ? ev.manualGross : '';
+            }
         }
 
         // PREVIEW SCREEN
