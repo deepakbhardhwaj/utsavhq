@@ -8578,7 +8578,18 @@
             function attachFade(el) {
                 if (!el || el.dataset.fadeAttached) return;
                 el.dataset.fadeAttached = '1';
-                let wasVisible = false;
+                // 🐛 FIX: panels appended with display already set via style.cssText
+                // (e.g. the event workspace "+ Add Function" panel, PO and PB event
+                // panels) never fire a style mutation AFTER this observer attaches,
+                // so they stayed stuck at the base .modal-overlay opacity:0 — present
+                // in the DOM but completely invisible, blocking all clicks under them.
+                // Check visibility once at attach time and fade those in as well.
+                let wasVisible = (el.style.display === 'flex' || el.style.display === 'block');
+                if (wasVisible) {
+                    requestAnimationFrame(function() {
+                        requestAnimationFrame(function() { el.classList.add('overlay-fade-in'); });
+                    });
+                }
                 new MutationObserver(function() {
                     let isVisible = el.style.display === 'flex' || el.style.display === 'block';
                     if (isVisible && !wasVisible) {
@@ -10473,9 +10484,12 @@ function openTeamModal() {
             let name = document.getElementById('lev_name').value.trim();
             if (!name) { alert('Please enter function name!'); return; }
             let userColor = document.getElementById('lev_color') ? document.getElementById('lev_color').value : '';
-            let ev = { name: name, date: document.getElementById('lev_date').value, time: document.getElementById('lev_time').value, venue: document.getElementById('lev_venue').value.trim(), guests: parseInt(document.getElementById('lev_guests').value) || 0, color: userColor || '', photos: [] };
-            if (editingLeadEventIdx >= 0) { ev.photos = leadEventsData[editingLeadEventIdx].photos || []; leadEventsData[editingLeadEventIdx] = ev; editingLeadEventIdx = -1; }
-            else { leadEventsData.push(ev); }
+            let formFields = { name: name, date: document.getElementById('lev_date').value, time: document.getElementById('lev_time').value, venue: document.getElementById('lev_venue').value.trim(), guests: parseInt(document.getElementById('lev_guests').value) || 0, color: userColor || '' };
+            // 🐛 FIX: editing used to swap in a brand-new object built only from the
+            // panel fields, silently dropping any fields not shown in the panel
+            // (photos etc.). Merge into the existing object so saved data survives.
+            if (editingLeadEventIdx >= 0) { Object.assign(leadEventsData[editingLeadEventIdx], formFields); editingLeadEventIdx = -1; }
+            else { leadEventsData.push(Object.assign({ photos: [] }, formFields)); }
             leadEventsData.sort((a,b) => (a.date || '9999') > (b.date || '9999') ? 1 : -1);
             document.getElementById('lev_name').value = ''; document.getElementById('lev_date').value = ''; document.getElementById('lev_time').value = ''; document.getElementById('lev_venue').value = '';
             document.getElementById('lev_guests').value = '';
@@ -12210,7 +12224,14 @@ function openTeamModal() {
             if (!ev.dates) ev.dates = [];
             let f = { name: document.getElementById('wsf_name').value.trim(), date: document.getElementById('wsf_date').value, time: document.getElementById('wsf_time').value, venue: document.getElementById('wsf_venue').value.trim(), guests: document.getElementById('wsf_guests') ? document.getElementById('wsf_guests').value : '', color: document.getElementById('wsf_color') ? document.getElementById('wsf_color').value : '#3B82F6' };
             if (!f.name) { alert('Please enter function name!'); return; }
-            if (idx >= 0) { ev.events[idx] = f; if (ev.dates[idx]) ev.dates[idx] = { name: f.name, date: f.date, time: f.time, venue: f.venue }; }
+            if (idx >= 0) {
+                // 🐛 FIX: editing a function from the event workspace used to replace
+                // the stored event object with the bare form object, wiping the
+                // function's saved reference photos. Merge into the stored object so
+                // photos and any other saved data survive an edit.
+                ev.events[idx] = Object.assign({}, ev.events[idx], f);
+                if (ev.dates[idx]) ev.dates[idx] = Object.assign({}, ev.dates[idx], { name: f.name, date: f.date, time: f.time, venue: f.venue });
+            }
             else { ev.events.push(f); ev.dates.push({ name: f.name, date: f.date, time: f.time, venue: f.venue }); }
             ev.events.sort((a,b) => (a.date||'9999') > (b.date||'9999') ? 1 : -1);
             ev.dates.sort((a,b) => (a.date||'9999') > (b.date||'9999') ? 1 : -1);
@@ -14662,9 +14683,15 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
             let name = document.getElementById('qev_name').value.trim();
             if (!name) { alert('Please enter event name!'); return; }
             let userColor = document.getElementById('qev_color') ? document.getElementById('qev_color').value : '';
-            let ev = { name: name, date: document.getElementById('qev_date').value, time: document.getElementById('qev_time').value, venue: document.getElementById('qev_venue').value.trim(), guests: parseInt(document.getElementById('qev_guests').value) || 0, color: userColor || '', photos: [] };
-            if (editingQuoteEventIdx >= 0) { ev.photos = quoteEventsData[editingQuoteEventIdx].photos || []; quoteEventsData[editingQuoteEventIdx] = ev; editingQuoteEventIdx = -1; }
-            else { quoteEventsData.push(ev); }
+            let formFields = { name: name, date: document.getElementById('qev_date').value, time: document.getElementById('qev_time').value, venue: document.getElementById('qev_venue').value.trim(), guests: parseInt(document.getElementById('qev_guests').value) || 0, color: userColor || '' };
+            // 🐛 FIX: editing used to swap in a brand-new object built only from the
+            // panel fields, silently dropping manualGross and catOverrides — the
+            // manually entered category-wise / event-wise amounts. After any function
+            // edit the record fell back to the auto-calculated item totals, so the
+            // old amount came back after re-editing. Merge in place so every saved
+            // field survives an edit.
+            if (editingQuoteEventIdx >= 0) { Object.assign(quoteEventsData[editingQuoteEventIdx], formFields); editingQuoteEventIdx = -1; }
+            else { quoteEventsData.push(Object.assign({ photos: [] }, formFields)); }
             quoteEventsData.sort((a,b) => (a.date || '9999') > (b.date || '9999') ? 1 : -1);
             document.getElementById('qev_name').value = ''; document.getElementById('qev_date').value = ''; document.getElementById('qev_time').value = ''; document.getElementById('qev_venue').value = '';
             document.getElementById('qev_guests').value = '';
@@ -15547,9 +15574,12 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
             let name = document.getElementById('iev_name').value.trim();
             if (!name) { alert('Please enter event name!'); return; }
             let userColor = document.getElementById('iev_color') ? document.getElementById('iev_color').value : '';
-            let ev = { name: name, date: document.getElementById('iev_date').value, time: document.getElementById('iev_time').value, venue: document.getElementById('iev_venue').value.trim(), guests: parseInt(document.getElementById('iev_guests').value) || 0, color: userColor || '', photos: [] };
-            if (editingInvEventIdx >= 0) { ev.photos = invEventsData[editingInvEventIdx].photos || []; invEventsData[editingInvEventIdx] = ev; editingInvEventIdx = -1; }
-            else { invEventsData.push(ev); }
+            let formFields = { name: name, date: document.getElementById('iev_date').value, time: document.getElementById('iev_time').value, venue: document.getElementById('iev_venue').value.trim(), guests: parseInt(document.getElementById('iev_guests').value) || 0, color: userColor || '' };
+            // 🐛 FIX: same object-replacement bug as the quotation form — editing a
+            // function here silently dropped manualGross / catOverrides, so manually
+            // saved amounts reverted to the auto-calculated item totals after an edit.
+            if (editingInvEventIdx >= 0) { Object.assign(invEventsData[editingInvEventIdx], formFields); editingInvEventIdx = -1; }
+            else { invEventsData.push(Object.assign({ photos: [] }, formFields)); }
             invEventsData.sort((a,b) => (a.date || '9999') > (b.date || '9999') ? 1 : -1);
             document.getElementById('iev_name').value = ''; document.getElementById('iev_date').value = ''; document.getElementById('iev_time').value = ''; document.getElementById('iev_venue').value = '';
             document.getElementById('iev_guests').value = '';
@@ -17022,9 +17052,12 @@ function openPOItemPreviewView(evIdx) {
         function savePOEvent() {
             let name = document.getElementById('poev_name').value.trim();
             if (!name) { alert('Please enter function name!'); return; }
-            let ev = { name: name, date: document.getElementById('poev_date').value, time: document.getElementById('poev_time').value, venue: document.getElementById('poev_venue').value.trim(), guests: document.getElementById('poev_guests') ? (parseInt(document.getElementById('poev_guests').value) || 0) : 0, color: document.getElementById('poev_color') ? document.getElementById('poev_color').value : '', _selected: true };
-            if (editingPOEventIdx >= 0) { ev._selected = poEventsData[editingPOEventIdx]._selected; poEventsData[editingPOEventIdx] = ev; editingPOEventIdx = -1; }
-            else { poEventsData.push(ev); }
+            let formFields = { name: name, date: document.getElementById('poev_date').value, time: document.getElementById('poev_time').value, venue: document.getElementById('poev_venue').value.trim(), guests: document.getElementById('poev_guests') ? (parseInt(document.getElementById('poev_guests').value) || 0) : 0, color: document.getElementById('poev_color') ? document.getElementById('poev_color').value : '' };
+            // 🐛 FIX: editing used to swap in a brand-new object built only from the
+            // panel fields, silently dropping manualGross, catOverrides AND the
+            // function's reference photos. Merge in place so saved data survives.
+            if (editingPOEventIdx >= 0) { Object.assign(poEventsData[editingPOEventIdx], formFields); editingPOEventIdx = -1; }
+            else { poEventsData.push(Object.assign({ _selected: true }, formFields)); }
             poEventsData.sort((a,b) => (a.date || '9999') > (b.date || '9999') ? 1 : -1);
             document.getElementById('poEventPanel').remove();
             renderPOEvents(); renderPOItems();
@@ -17414,9 +17447,11 @@ function getPOEventCategories(evName) {
         function savePBEvent() {
             let name = document.getElementById('pbev_name').value.trim();
             if (!name) { alert('Enter function name!'); return; }
-            let ev = { name: name, date: document.getElementById('pbev_date').value, time: document.getElementById('pbev_time').value, venue: document.getElementById('pbev_venue').value.trim(), guests: document.getElementById('pbev_guests')?(parseInt(document.getElementById('pbev_guests').value)||0):0, color: document.getElementById('pbev_color')?document.getElementById('pbev_color').value:'', _selected: true };
-            if (editingPBEventIdx >= 0) { ev._selected = pbEventsData[editingPBEventIdx]._selected; pbEventsData[editingPBEventIdx] = ev; editingPBEventIdx = -1; }
-            else { pbEventsData.push(ev); }
+            let formFields = { name: name, date: document.getElementById('pbev_date').value, time: document.getElementById('pbev_time').value, venue: document.getElementById('pbev_venue').value.trim(), guests: document.getElementById('pbev_guests')?(parseInt(document.getElementById('pbev_guests').value)||0):0, color: document.getElementById('pbev_color')?document.getElementById('pbev_color').value:'' };
+            // 🐛 FIX: same object-replacement bug — editing a function here silently
+            // dropped manualGross, catOverrides and reference photos. Merge in place.
+            if (editingPBEventIdx >= 0) { Object.assign(pbEventsData[editingPBEventIdx], formFields); editingPBEventIdx = -1; }
+            else { pbEventsData.push(Object.assign({ _selected: true }, formFields)); }
             pbEventsData.sort((a,b) => (a.date||'9999') > (b.date||'9999') ? 1 : -1);
             document.getElementById('pbEventPanel').remove(); renderPBEvents(); renderPBItems();
         }
