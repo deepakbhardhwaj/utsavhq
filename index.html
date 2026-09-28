@@ -19805,13 +19805,26 @@ function openPurchaseOrderModal() {
                 
                 .summary-container { display: flex; justify-content: space-between; margin-top: 10px; gap: 20px; }
                 .history-table { width: 60%; font-size: 11px; }
-                .totals-box { width: 30%; margin-left: auto; background: ${pt.totalsBg}; border: 1px solid ${pt.tableBorder}; padding: 10px; border-radius: ${pt.radius}; font-size: 11px; }
+                .totals-box { background: ${pt.totalsBg}; border: 1px solid ${pt.tableBorder}; padding: 12px; border-radius: ${pt.radius}; font-size: 11px; box-sizing: border-box; }
+                .bank-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: ${pt.radius}; box-sizing: border-box; }
+                /* 🚀 PAGE NUMBERS: rendered by paged.js (paged media polyfill) so every
+                   printed page carries "Page X of Y" in the bottom-right corner. */
+                @page { size: A4; margin: 12mm 10mm 16mm 10mm; @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9px; color: #94a3b8; font-family: 'Inter', sans-serif; } }
+                /* 🐛 FIX (paged.js): the paginator only reads break rules from
+                   STYLESHEETS — the same rules written as inline styles are silently
+                   ignored, which made function sections run into the previous page
+                   instead of starting a fresh one. Classes below carry those rules. */
+                .force-page-break { break-before: page; page-break-before: always; }
+                .avoid-break { break-inside: avoid; page-break-inside: avoid; }
                 .grand-total { font-size: 13px; font-weight: 800; border-top: 2px solid ${pt.accent}; padding-top: 6px; margin-top: 6px; color: ${pt.accent}; }
                 
                 .status-stamp { position:absolute; top: 150px; right: 50px; font-size: 40px; font-weight: 900; opacity: 0.1; text-transform: uppercase; transform: rotate(-15deg); border: 5px solid; padding: 10px 20px; border-radius: 10px; }
                 .stamp-Paid { color: #166534; border-color: #166534; } .stamp-Partial { color: #b45309; border-color: #b45309; } .stamp-Due { color: #dc2626; border-color: #dc2626; }
 
-                @media print { #mobile-print-btn { display:none !important; } body { background:white !important; } .receipt-box { border:none; box-shadow:none; padding:0; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } thead { display: table-header-group; } img { page-break-inside: avoid; } }
+                @media print { #mobile-print-btn { display:none !important; } body { background:white !important; padding:0 !important; margin:0 !important; } .receipt-box { border:none; box-shadow:none; padding:0; } * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } thead { display: table-header-group; } img { page-break-inside: avoid; } }
+                /* 🐛 FIX (paged.js): with pagination active every .pagedjs_sheet is an
+                   exact A4 page. Any body padding would shift the sheets and inject a
+                   blank page between printed pages — reset it for print. */
             </style></head><body>
             <div class="receipt-box">`;
 
@@ -19836,6 +19849,14 @@ function openPurchaseOrderModal() {
                     <div>${cLogo}<div class="comp-name">${cName}</div>${cAddressHtml}${cPhoneHtml}${cEmailHtml}</div>
                     <div style="text-align:right;"><div class="doc-title">${docTitle}</div><div style="font-weight:800; font-size:15px;">#${record.id}</div><div style="font-weight:600; color:#64748b; font-size:13px;">Date: ${dateStr}</div></div>
                 </div>`;
+
+            // ==========================================
+            // 🚀 TOTALS CAPTURE: the bottom block (bank details + totals + T&C +
+            // signatures) is assembled at the END in one piece so it always moves
+            // to the next page as a single unit. Expense/Receipt branches leave
+            // this null and keep their own inline totals.
+            // ==========================================
+            let totalsBoxHtml = null;
 
             // ==========================================
             // CONDITIONAL SECTIONS BASED ON VOUCHER TYPE
@@ -20085,34 +20106,43 @@ function openPurchaseOrderModal() {
 
                 } // end else skipFlatItems
                 // Right: Totals Box
-                html += `<div class="summary-container" style="justify-content: flex-end;"><div class="totals-box" style="margin-left:auto;">`;
+                // 🐛 FIX (layout): the totals box used to be wrapped in its own nested
+                // summary-container here, while bank details and signatures lived in
+                // a separate footer block below. On long invoices that split the bottom
+                // across pages: the totals box stayed alone at the end of page 1 (its
+                // left side empty) while bank details, T&C and signatures orphaned onto
+                // page 2. The totals content is now captured into totalsBoxHtml and
+                // assembled below in ONE page-break-avoid block, with the bank details
+                // box sitting to its LEFT, so the whole bottom moves together.
+                html += `</div>`;
+                totalsBoxHtml = `<div class="totals-box" style="flex: 1;">`;
                 if (record.type === 'Quotation' || record.type === 'PO') {
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Gross Amount:</span> <span>₹${(record.gross || subtotal).toLocaleString('en-IN')}</span></div>`;
-                    if (record.transport && record.transport > 0) html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Transport Charge:</span> <span>+₹${(record.transport || 0).toLocaleString('en-IN')}</span></div>`;
-                    if (record.discount && record.discount > 0) html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; color:#dc2626;"><span>Discount:</span> <span>-₹${(record.discount || 0).toLocaleString('en-IN')}</span></div>`;
-                    html += `<div class="grand-total" style="display:flex; justify-content:space-between;"><span>Estimate Total:</span> <span>₹${(record.total || 0).toLocaleString('en-IN')}</span></div>`;
+                    totalsBoxHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Gross Amount:</span> <span>₹${(record.gross || subtotal).toLocaleString('en-IN')}</span></div>`;
+                    if (record.transport && record.transport > 0) totalsBoxHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Transport Charge:</span> <span>+₹${(record.transport || 0).toLocaleString('en-IN')}</span></div>`;
+                    if (record.discount && record.discount > 0) totalsBoxHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; color:#dc2626;"><span>Discount:</span> <span>-₹${(record.discount || 0).toLocaleString('en-IN')}</span></div>`;
+                    totalsBoxHtml += `<div class="grand-total" style="display:flex; justify-content:space-between;"><span>Estimate Total:</span> <span>₹${(record.total || 0).toLocaleString('en-IN')}</span></div>`;
                 } else {
                     let printSubtotal = (record.total || 0) + (record.discount || 0);
                     if (record.labour || record.transport) {
                         printSubtotal = printSubtotal - (record.labour || 0) - (record.transport || 0);
                     }
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Subtotal:</span> <span>₹${printSubtotal.toLocaleString('en-IN')}</span></div>`;
+                    totalsBoxHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Subtotal:</span> <span>₹${printSubtotal.toLocaleString('en-IN')}</span></div>`;
                     if (record.labour && record.labour > 0) {
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Labour Charge:</span> <span>₹${(record.labour || 0).toLocaleString('en-IN')}</span></div>`;
+                        totalsBoxHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Labour Charge:</span> <span>₹${(record.labour || 0).toLocaleString('en-IN')}</span></div>`;
                     }
                     if (record.transport && record.transport > 0) {
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Transport Charge:</span> <span>₹${(record.transport || 0).toLocaleString('en-IN')}</span></div>`;
+                        totalsBoxHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Transport Charge:</span> <span>₹${(record.transport || 0).toLocaleString('en-IN')}</span></div>`;
                     }
                     if (record.discount && record.discount > 0) {
-                        html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; color:#dc2626;"><span>Discount:</span> <span>-₹${record.discount.toLocaleString('en-IN')}</span></div>`;
+                        totalsBoxHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px; color:#dc2626;"><span>Discount:</span> <span>-₹${record.discount.toLocaleString('en-IN')}</span></div>`;
                     }
-                    html += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Base Total:</span> <span>₹${(record.total || 0).toLocaleString('en-IN')}</span></div>
+                    totalsBoxHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Base Total:</span> <span>₹${(record.total || 0).toLocaleString('en-IN')}</span></div>
                              ${record.taxAmount ? `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>GST (${record.gstPercent}%):</span> <span>₹${record.taxAmount.toLocaleString('en-IN')}</span></div>` : ''}
                              <div class="grand-total" style="display:flex; justify-content:space-between;"><span>Grand Total:</span> <span>₹${(record.finalTotal || 0).toLocaleString('en-IN')}</span></div>
                              <div style="display:flex; justify-content:space-between; color:#166534; font-weight:700; margin-bottom:5px;"><span>Paid / Advance:</span> <span>₹${(record.advance || 0).toLocaleString('en-IN')}</span></div>
                              <div style="display:flex; justify-content:space-between; color:#dc2626; font-weight:900;"><span>Balance Due:</span> <span>₹${(record.balanceDue || 0).toLocaleString('en-IN')}</span></div>`;
                 }
-                html += `</div></div>`; // End Totals Box & Summary Container
+                totalsBoxHtml += `</div>`; // End Totals Box
             } // END OF ELSE (Invoices, Quotations, PO, PB, Asset)
 
             // ==========================================
@@ -20134,60 +20164,87 @@ function openPurchaseOrderModal() {
                 }
             }
 
-            html += `<div style="page-break-inside: avoid; break-inside: avoid; margin-top: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 2px solid #0f172a; padding-top: 8px;">
-                    <div style="flex: 1; padding-right: 20px;">`;
+            // ==========================================
+            // 🚀 UNIFIED BOTTOM BLOCK (SINGLE PAGE-BREAK LOCK)
+            // Bank details box now sits LEFT of the totals box (that side always
+            // stayed empty before), both boxes the same size. T&C below them, then
+            // signatures — client on the LEFT, authorized signatory on the RIGHT.
+            // The whole block always stays together: if it does not fit at the bottom
+            // of page 1, it moves to page 2 as ONE unit (the totals box is never
+            // stranded alone on page 1 again).
+            // ==========================================
+            html += `<div class="avoid-break" style="margin-top: 12px;">`;
 
-            if (record.type === 'Invoice' || record.type === 'Quotation') {
-                // 🚀 SMART FIX: Bank details sirf tabhi aayenge jab settings me ON hoga
-                if (defBank && appSettings.showBank) {
-                    html += `<div class="bank-details" style="background: #eff6ff; padding: 12px 15px; border-radius: 6px; border: 1px solid #bfdbfe; margin-bottom: 12px; display: inline-block; min-width: 250px;">
-                        <div style="font-size: 10px; font-weight: 800; color: #2563eb; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Bank Details for Payment</div>
-                        <div style="display:grid; grid-template-columns: auto auto; gap: 4px 15px; color: #334155;">
-                            <div><span style="color:#64748b;">Name:</span> <strong style="color:#0f172a;">${defBank.holder}</strong></div>
-                            <div><span style="color:#64748b;">Bank:</span> <strong style="color:#0f172a;">${defBank.name}</strong></div>
-                            <div><span style="color:#64748b;">A/c No:</span> <strong style="color:#0f172a;">${defBank.accNo}</strong></div>
-                            <div><span style="color:#64748b;">IFSC:</span> <strong style="color:#0f172a;">${defBank.ifsc || '-'}</strong></div>
+            // Row 1: [Bank Details (left) | Totals (right)] — equal size boxes
+            if (totalsBoxHtml) {
+                let hasBankBox = (record.type === 'Invoice' || record.type === 'Quotation') && defBank && appSettings.showBank;
+                html += `<div style="display: flex; gap: 15px; align-items: stretch;">`;
+                if (hasBankBox) {
+                    // 🐛 FIX (alignment): stacked label/value rows instead of the old
+                    // 2-column grid — long account-holder names used to wrap inside the
+                    // grid cells and made the box look broken/uneven. Both boxes sit in
+                    // identical padding-free shells (flex: 1 1 0) so their widths are
+                    // EXACTLY equal — padding lives inside the boxes, not on the shells.
+                    html += `<div style="flex: 1 1 0; min-width: 0; display: flex;">
+                        <div class="bank-box" style="flex: 1; padding: 12px 15px;">
+                            <div style="font-size: 10px; font-weight: 800; color: #2563eb; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">Bank Details for Payment</div>
+                            <div style="font-size: 11px; color: #334155; line-height: 2;">
+                                <div><span style="color:#64748b;">Account Name:</span> <strong style="color:#0f172a;">${defBank.holder}</strong></div>
+                                <div><span style="color:#64748b;">Bank:</span> <strong style="color:#0f172a;">${defBank.name}</strong></div>
+                                <div><span style="color:#64748b;">A/c No:</span> <strong style="color:#0f172a;">${defBank.accNo}</strong></div>
+                                <div><span style="color:#64748b;">IFSC:</span> <strong style="color:#0f172a;">${defBank.ifsc || '-'}</strong></div>
+                            </div>
                         </div>
                     </div>`;
+                    html += `<div style="flex: 1 1 0; min-width: 0; display: flex;">${totalsBoxHtml}</div>`;
+                } else {
+                    html += `<div style="flex: 1 1 0;"></div><div style="flex: 1 1 0; display: flex;">${totalsBoxHtml}</div>`;
                 }
+                html += `</div>`;
+            }
 
-                // 🚀 SMART FIX: Custom T&C from settings
+            // Row 2: Terms & Conditions (full width)
+            if (record.type === 'Invoice' || record.type === 'Quotation') {
                 // 🐛 AUDIT FIX: same crash class as appSettings.waQt/waInv earlier —
                 // purane workspaces (jinki settings T&C field aane se pehle save hui
                 // thi) mein appSettings.tnc undefined ho sakta hai, jisse invoice print
                 // karte hi crash hota. Ab default fallback lagaya hai.
                 let defaultTnc = "1. 50% advance payment required to confirm booking.\n2. Advance amount is non-refundable on cancellation.\n3. Damage to property will be charged to the client.\n4. Full payment must be settled before the final function.\n5. Subject to local jurisdiction.";
                 let tncFormatted = (appSettings.tnc || defaultTnc).replace(/\n/g, '<br>');
-                html += `<div class="tc-box" style="font-size: 9px; color: #64748b; line-height: 1.4;">
+                html += `<div class="tc-box" style="font-size: 9px; color: #64748b; line-height: 1.4; margin-top: 10px;">
                     <strong style="color:#475569;">Terms & Conditions:</strong><br>
                     ${tncFormatted}
                 </div>`;
             }
 
-            // 🚀 SIGNATURE LOGIC — 🐛 FIX: Client Signature now lives here on page 1
-            // alongside Authorized Signatory (it used to only appear on the LAST page,
-            // by itself, which is why it looked like it was missing from page 1). Both
-            // boxes are also a bit more compact now so the pair doesn't look oversized.
-            let sigImgHtml = (typeof profileDB !== 'undefined' && profileDB.signature) ? `<img loading="lazy" src="${profileDB.signature}" style="height: 32px; object-fit:contain; margin-bottom: 4px; display: block; margin-left: auto; margin-right: auto;">` : `<div style="height: 32px; margin-bottom: 4px;"></div>`;
+            // 🚀 SIGNATURE ROW — both sides now use the EXACT same structure
+            // (fixed-height signature space, then the line, then the label, then a
+            // small sub-line) so the two lines always sit at the same height and
+            // the pair looks symmetric: Client Signature on the LEFT, Authorized
+            // Signatory on the RIGHT.
+            // 🛡️ PROTECTION (signature): uploaded signatures can be VERY wide
+            // (long cursive scribbles) — with only height fixed, a wide image would
+            // spill out of the 200px signature box and overlap the client block.
+            // max-width: 100% keeps it inside the box; object-fit: contain keeps the
+            // aspect ratio intact; onerror hides a broken/unreachable image so a
+            // failed Cloudinary load prints as a clean empty signing space instead
+            // of a broken-image icon.
+            let sigImgHtml = (typeof profileDB !== 'undefined' && profileDB.signature) ? `<img src="${profileDB.signature}" style="height: 32px; max-width: 100%; object-fit: contain;" onerror="this.style.display='none'">` : ``;
 
-            html += `</div>
-                    <div style="display:flex; gap:14px; align-items:flex-end;">
-                        <div style="width: 130px; text-align: center;">
-                            <div style="height: 36px;"></div>
+            html += `<div style="display: flex; justify-content: space-between; border-top: 2px solid #0f172a; padding-top: 10px; margin-top: 14px;">
+                        <div style="width: 200px; text-align: center;">
+                            <div style="height: 42px; display: flex; align-items: flex-end; justify-content: center;"></div>
                             <div style="border-top: 1.2px solid #0f172a; padding-top: 5px; font-weight: 800; font-size: 10.5px; color: #0f172a;">Client Signature</div>
                             <div style="font-size: 8.5px; color: #94a3b8; margin-top: 2px;">${sanitize(partyName || '')}</div>
                         </div>
-                        <div style="width: 130px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 3px; color: #475569;">For <strong style="color: #0f172a;">${cName}</strong></div>
-                            ${sigImgHtml}
+                        <div style="width: 200px; text-align: center;">
+                            <div style="height: 42px; display: flex; align-items: flex-end; justify-content: center;">${sigImgHtml}</div>
                             <div style="border-top: 1.2px solid #0f172a; padding-top: 5px; font-weight: 800; font-size: 10.5px; color: #0f172a;">Authorized Signatory</div>
+                            <div style="font-size: 8.5px; color: #94a3b8; margin-top: 2px;">For ${cName}</div>
                         </div>
                     </div>
-                </div>
                 <div style="text-align:right; font-size: 8px; color: #94a3b8; margin-top: 6px;">Generated via UTSAVhq ERP</div>
-            </div>
-            </div> `;
+            </div>`;
 
 
             // Iske baad aage ka Photos / Collage wala logic waisa hi rahega jaisa purane code mein tha...
@@ -20218,8 +20275,9 @@ function openPurchaseOrderModal() {
                     // Previously only the FIRST function got page-break-before, so later
                     // functions (e.g. Mehndi after Haldi) just ran on wherever there was
                     // room instead of always starting a clean new page.
-                    let breakStyle = 'page-break-before: always;';
-                    html += '<div style="' + breakStyle + ' padding: 25px; background: white; max-width: 800px; margin: auto; box-sizing:border-box;">';
+                    // 🐛 FIX (paged.js): the forced break lives in the .force-page-break
+                    // CLASS now — paged.js ignores break rules written as inline styles.
+                    html += '<div class="force-page-break" style="padding: 25px; background: white; max-width: 800px; margin: auto; box-sizing:border-box;">';
 
                     // EVENT HEADER
                     html += '<div style="background:' + evColor + '; color:' + textColor + '; padding:15px 20px; border-radius:8px; margin-bottom:15px; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;">';
@@ -20264,7 +20322,7 @@ function openPurchaseOrderModal() {
                         let photoCount = evPhotos.length;
                         let layout = getPrintPhotoLayout(photoCount, evItems.length);
                         let gridCols = layout.gridCols, imgHeight = layout.imgHeight;
-                        html += '<div style="margin-top:10px; break-inside: avoid; page-break-inside: avoid;">';
+                        html += '<div class="avoid-break" style="margin-top:10px;">';
                         html += '<div style="font-size:11px; font-weight:800; color:#475569; text-transform:uppercase; margin-bottom:6px; border-bottom:2px solid ' + evColor + '; padding-bottom:3px;">' + sanitize(ev.name) + ' — Reference Photos (' + photoCount + ')</div>';
                         html += '<div style="display:grid; grid-template-columns:' + gridCols + '; gap:8px;">';
                         evPhotos.forEach(photo => {
@@ -20312,7 +20370,7 @@ function openPurchaseOrderModal() {
 
                 chunks.forEach((chunk, pageIndex) => {
                     html += `
-                    <div style="page-break-before: always; padding: 25px; background: white; max-width: 800px; margin: auto; border:1px solid #e2e8f0; margin-top:20px; box-sizing:border-box;">
+                    <div class="force-page-break" style="padding: 25px; background: white; max-width: 800px; margin: auto; border:1px solid #e2e8f0; margin-top:20px; box-sizing:border-box;">
                         <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #0f172a; padding-bottom: 10px;">
                             <h3 style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing:1px;">${collageTitle}</h3>
                             <p style="margin: 4px 0 0 0; font-size: 13px; font-weight: 700; color: var(--accent-color);">${record.event} - Page ${pageIndex + 1}</p>
@@ -20341,13 +20399,6 @@ function openPurchaseOrderModal() {
                 });
             }
 
-            // SHARE PDF BUTTON SCRIPT
-            html += `<div id="mobile-print-btn" style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; width:90%; max-width:350px;">
-                <button onclick="window.print()" style="width:100%; background:#2563EB; color:white; border:none; padding:16px; border-radius:12px; font-weight:900; font-size:16px; box-shadow:0 8px 20px rgba(37,99,235,0.4); cursor:pointer;">🖨️ Save PDF to Share</button>
-            </div>
-            <script>setTimeout(function(){ window.print(); }, 1000);<\/script>
-            `;
-            
             /* FUNCTION-WISE PAGES FOR PO/PB */
             if ((record.type === 'PO' || record.type === 'PB') && record.events && record.events.length > 0) {
                 let isPO = record.type === 'PO';
@@ -20358,8 +20409,13 @@ function openPurchaseOrderModal() {
                     let evItems = (record.items || []).filter(i => i.event === ev.name);
                     let evPhotosCheck = getLeadEventPhotos(record, ev.name, ev.photos);
                     if (evItems.length === 0 && evPhotosCheck.length === 0) return;
-                    html += '<div style="page-break-after: always;"></div>';
-                    html += '<div style="margin-top:20px;"><h2 style="font-size:16px; color:' + pt.accent + '; border-bottom:2px solid ' + pt.accent + '; padding-bottom:6px; margin-bottom:12px;">' + (ev.name||'Function') + (evItems.length > 0 ? ' - Items' : ' - Reference Photos') + '</h2>';
+                    // 🐛 FIX (layout): PO/PB function pages used an empty
+                    // page-break-after spacer div and had no page padding/width,
+                    // so they looked different from the Quotation/Invoice function
+                    // pages. Same wrapper style now — every function starts a fresh
+                    // page with the same margins.
+                    html += '<div class="force-page-break" style="padding: 25px; background: white; max-width: 800px; margin: auto; box-sizing:border-box;">';
+                    html += '<h2 style="font-size:16px; color:' + pt.accent + '; border-bottom:2px solid ' + pt.accent + '; padding-bottom:6px; margin-bottom:12px;">' + (ev.name||'Function') + (evItems.length > 0 ? ' - Items' : ' - Reference Photos') + '</h2>';
                     // Group by category
                     let categories = [];
                     evItems.forEach(i => { let c = (i.category||'General').trim()||'General'; if(!categories.includes(c)) categories.push(c); });
@@ -20381,7 +20437,7 @@ function openPurchaseOrderModal() {
                         let fpCount = funcPhotos.length;
                         let fpLayout = getPrintPhotoLayout(fpCount, evItems.length);
                         let fpCols = fpLayout.gridCols, fpHeight = fpLayout.imgHeight;
-                        html += '<div style="margin-top:12px; break-inside:avoid; page-break-inside:avoid;"><div style="font-size:11px; font-weight:800; color:' + pt.accent + '; text-transform:uppercase; margin-bottom:6px; border-bottom:2px solid ' + pt.accent + '; padding-bottom:3px;">' + (ev.name||'Function') + ' — Reference Photos (' + fpCount + ')</div><div style="display:grid; grid-template-columns:' + fpCols + '; gap:8px;">';
+                        html += '<div class="avoid-break" style="margin-top:12px;"><div style="font-size:11px; font-weight:800; color:' + pt.accent + '; text-transform:uppercase; margin-bottom:6px; border-bottom:2px solid ' + pt.accent + '; padding-bottom:3px;">' + (ev.name||'Function') + ' — Reference Photos (' + fpCount + ')</div><div style="display:grid; grid-template-columns:' + fpCols + '; gap:8px;">';
                         funcPhotos.forEach(p => {
                             let url = typeof p === 'object' ? (p.url||p) : p;
                             let label = typeof p === 'object' ? (p.label||'') : '';
@@ -20397,6 +20453,30 @@ function openPurchaseOrderModal() {
                 });
             }
             
+            // ==========================================
+            // 🚀 SHARE PDF BUTTON + PAGE-NUMBER SCRIPT — kept at the very END of the
+            // document so the fixed button never lands between content pages when
+            // the paginator re-flows the document.
+            // ==========================================
+            html += `<div id="mobile-print-btn" style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; width:90%; max-width:350px;">
+                <button onclick="window.print()" style="width:100%; background:#2563EB; color:white; border:none; padding:16px; border-radius:12px; font-weight:900; font-size:16px; box-shadow:0 8px 20px rgba(37,99,235,0.4); cursor:pointer;">🖨️ Save PDF to Share</button>
+            </div>
+            <script>
+            // 🚀 PAGE NUMBERING + PRINT: paged.js re-lays the voucher out into real A4
+            // pages, which lets the @page @bottom-right rule stamp "Page X of Y" on
+            // every printed page. Printing waits for pagination to finish; if the
+            // polyfill cannot load (offline / blocked CDN) a fallback timer still
+            // opens the print dialog so the voucher is never stuck.
+            window.__pagedDone = false;
+            window.PagedConfig = { auto: true, after: function() { window.__pagedDone = true; setTimeout(function() { window.print(); }, 400); } };
+            setTimeout(function() { if (!window.__pagedDone) window.print(); }, 5000);
+            // paged.js measures content as it paginates — lazy images would still be
+            // unloaded at that point and break the page math. Force eager loading.
+            document.querySelectorAll('img[loading="lazy"]').forEach(function(img) { img.removeAttribute('loading'); });
+            <\/script>
+            <script src="https://cdn.jsdelivr.net/npm/pagedjs@0.4.3/dist/paged.polyfill.js"><\/script>
+            `;
+
             html += '</body></html>';
 
             printWin.document.open();
