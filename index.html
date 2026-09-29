@@ -3126,6 +3126,14 @@
            ============================================================ */
         #nexa-fab { position: fixed; left: 16px; bottom: 92px; z-index: 8600; width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer; background: linear-gradient(135deg, #1D4ED8, #7C3AED); color: white; font-size: 23px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(29, 78, 216, 0.4); transition: transform .2s ease, box-shadow .2s; }
         #nexa-fab:hover { transform: scale(1.08); box-shadow: 0 10px 28px rgba(29, 78, 216, 0.5); }
+        #nexa-fab svg, .nexa-avatar svg { display: block; }
+        /* NEXA ADVANCED AI (free Gemini tier) */
+        .nexa-gear { border: none; background: rgba(255,255,255,.15); color: #fff; width: 32px; height: 32px; border-radius: 9px; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; margin-right: 6px; flex: none; }
+        .nexa-gear:hover { background: rgba(255,255,255,.3); }
+        .nexa-ai-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #94A3B8; margin-left: 6px; vertical-align: middle; }
+        .nexa-ai-dot.on { background: #10B981; box-shadow: 0 0 6px #10B981; }
+        .nexa-ai-src { font-size: 10px; color: #94A3B8; margin-top: 7px; letter-spacing: .3px; }
+        #nexaSetupModal .panel-body { padding: 0 18px 18px 18px; background: #fff; border-radius: 0 0 16px 16px; }
         #nexa-panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9600; height: 80vh; background: var(--bg-color); border-radius: 20px 20px 0 0; box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.25); display: none; flex-direction: column; overflow: hidden; }
         #nexa-panel.open { display: flex; animation: nexaSlideUp .3s cubic-bezier(.16, 1, .3, 1); }
         @keyframes nexaSlideUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -28720,20 +28728,46 @@ Please use a different name or edit the existing item.`);
         };
     </script>
     <!-- ================= 🤖 NEXA BOT (AI Data Assistant) ================= -->
-    <button id="nexa-fab" onclick="toggleNexa()" title="Nexa Bot" aria-label="Open Nexa Bot">🤖</button>
+    <button id="nexa-fab" onclick="toggleNexa()" title="Nexa Bot" aria-label="Open Nexa Bot"><svg viewBox="0 0 24 24" width="27" height="27" fill="currentColor" aria-hidden="true"><path d="M11 2.2l1.95 5.85 5.85 1.95-5.85 1.95L11 17.8l-1.95-5.85L3.2 10l5.85-1.95L11 2.2z"/><path d="M18.4 12.9l.85 2.55 2.55.85-2.55.85-.85 2.55-.85-2.55-2.55-.85 2.55-.85.85-2.55z"/></svg></button>
     <div id="nexa-panel" role="dialog" aria-label="Nexa Bot chat">
         <div class="nexa-head">
-            <div class="nexa-avatar">🤖</div>
+            <div class="nexa-avatar"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M11 2.2l1.95 5.85 5.85 1.95-5.85 1.95L11 17.8l-1.95-5.85L3.2 10l5.85-1.95L11 2.2z"/><path d="M18.4 12.9l.85 2.55 2.55.85-2.55.85-.85 2.55-.85-2.55-2.55-.85 2.55-.85.85-2.55z"/></svg></div>
             <div>
-                <div class="nexa-title">Nexa Bot</div>
+                <div class="nexa-title">Nexa Bot <span class="nexa-ai-dot" id="nexa-ai-dot" title="AI status"></span></div>
                 <div class="nexa-sub">Your AI data assistant — always free</div>
             </div>
+            <button class="nexa-gear" onclick="nexaOpenSetup()" title="Advanced AI settings" aria-label="Advanced AI settings">⚙</button>
             <button class="nexa-close" onclick="toggleNexa(false)" aria-label="Close chat">✕</button>
         </div>
         <div class="nexa-msgs" id="nexa-msgs"></div>
         <div class="nexa-input-row">
-            <input id="nexa-input" class="nexa-input" placeholder="Ask about events, clients, dues, expenses..." onkeydown="if(event.key==='Enter') nexaSend()">
+            <input id="nexa-input" class="nexa-input" placeholder="Ask anything — events, profit, clients..." onkeydown="if(event.key==='Enter') nexaSend()">
             <button class="nexa-send" onclick="nexaSend()" aria-label="Send">➤</button>
+        </div>
+    </div>
+
+    <!-- NEXA ADVANCED AI SETUP — free Gemini API key (stored per-device,
+         per-workspace in localStorage only; never synced to the cloud DB) -->
+    <div id="nexaSetupModal" class="modal-overlay" style="display:none; z-index:9200;">
+        <div class="modal-content" style="max-width:470px;">
+            <div class="modal-header">
+                <h3>✨ Nexa Advanced AI</h3>
+                <button class="modal-close" onclick="nexaCloseSetup()">&times;</button>
+            </div>
+            <div class="panel-body">
+                <div style="font-size:13px; color:#475569; line-height:1.6;">
+                    <b>Step 1.</b> Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with your Google account.<br>
+                    <b>Step 2.</b> Click <b>"Create API key"</b> — it is <b>100% FREE</b> (no card needed).<br>
+                    <b>Step 3.</b> Copy the key (starts with <code>AIza...</code>) and paste below.
+                </div>
+                <input type="password" id="nexaKeyInput" placeholder="Paste your free Gemini API key here..." autocomplete="off"
+                    style="width:100%; margin:14px 0 4px 0; padding:11px 12px; border:1.5px solid #CBD5E1; border-radius:10px; font-size:13px; box-sizing:border-box;">
+                <div style="font-size:11px; color:#94A3B8; margin-bottom:12px;">Your key stays on this device only. Works on this browser for this workspace.</div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="nexaSaveSetup()" style="flex:1; background:linear-gradient(135deg,#1D4ED8,#7C3AED); color:#fff; border:none; border-radius:10px; padding:11px; font-weight:700; font-size:14px; cursor:pointer;">Save & Activate</button>
+                    <button onclick="nexaCloseSetup()" style="border:1.5px solid #CBD5E1; background:#fff; color:#475569; border-radius:10px; padding:11px 16px; font-weight:600; font-size:14px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -28751,12 +28785,13 @@ Please use a different name or edit the existing item.`);
             let shouldOpen = (typeof force === 'boolean') ? force : !isOpen;
             if (shouldOpen) {
                 panel.classList.add('open');
+                if (typeof nexaUpdateAIDot === 'function') nexaUpdateAIDot();
                 if (!panel.dataset.welcomed) {
                     panel.dataset.welcomed = '1';
                     nexaBotSay(
-                        "Hi Deepak! I'm <b>Nexa Bot</b> 🤖 — your AI data assistant.<br>Ask me anything about your <b>events, clients, invoices, dues, expenses or tasks</b> — in <b>English, Hindi/Hinglish or Gujarati</b> (English letters). I understand them all.",
+                        "Hi Deepak! I'm <b>Nexa Bot</b> 🤖 — your AI data assistant.<br>Ask me anything about your <b>events, clients, invoices, dues, expenses, tasks, profit & loss or reports</b> — in <b>English, Hindi/Hinglish or Gujarati</b> (English letters). I understand them all.",
                         [],
-                        ["When is Payal's event?", "Unpaid invoices", "Today's events", "Total revenue this month", "Pending tasks"]
+                        ["P&L status", "When is Payal's event?", "Unpaid invoices", "Total revenue this month", "Pending tasks"]
                     );
                 }
                 setTimeout(function () { let inp = document.getElementById('nexa-input'); if (inp) inp.focus(); }, 250);
@@ -28783,6 +28818,18 @@ Please use a different name or edit the existing item.`);
             msgs.scrollTop = msgs.scrollHeight;
             setTimeout(function () {
                 let ans = nexaThink(q);
+                // 🤖 HYBRID AI: when the local rules can't understand
+                // the question, hand it to Gemini (free tier) along with a
+                // compact snapshot of the workspace data. Without a key we
+                // nudge the user to the one-time free setup instead.
+                if (ans && ans.fallback) {
+                    if (nexaGetApiKey()) { nexaAskAI(q, t); return; }
+                    ans = {
+                        html: ans.html + '<br><br>✨ <b>Tip:</b> turn on <b>Advanced AI</b> (free) and I can answer <i>any</i> question — profit analysis, comparisons, suggestions — anything about your business.',
+                        actions: [{ label: '⚙️ Enable Advanced AI — Free', type: 'setup', primary: true }],
+                        chips: ans.chips
+                    };
+                }
                 t.innerHTML = ans.html;
                 if (ans.actions && ans.actions.length) {
                     let acts = document.createElement('div');
@@ -28820,8 +28867,17 @@ Please use a different name or edit the existing item.`);
                 if (type === 'viewEvent' && typeof openPanel === 'function') { openTab('crm', null); setTimeout(function () { openPanel(a); }, 120); return; }
                 if (type === 'viewDoc' && typeof viewDetails === 'function') { viewDetails(a, b || 'sales'); return; }
                 if (type === 'tab' && typeof openTab === 'function') { openTab(a, null); return; }
+                if (type === 'report' && typeof openTab === 'function') {
+                    openTab('reports-hub', null);
+                    // The result screen slides in a tick later, once the
+                    // Reports tab DOM is visible, then auto-selects the
+                    // requested report type (P&L, Day Book, etc.).
+                    setTimeout(function () { if (typeof selectReportType === 'function') selectReportType(a, null); }, 220);
+                    return;
+                }
                 if (type === 'call') { window.location.href = 'tel:' + a; return; }
                 if (type === 'wa') { window.open('https://wa.me/91' + String(a).replace(/\D/g, '').slice(-10), '_blank'); return; }
+                if (type === 'setup') { if (typeof nexaOpenSetup === 'function') nexaOpenSetup(); return; }
                 if (type === 'ask') { window.toggleNexa(true); window.nexaSend(a); return; }
             } catch (e) { console.warn('Nexa action failed:', e); }
         };
@@ -28924,7 +28980,7 @@ Please use a different name or edit the existing item.`);
             // 2. Help
             if (/(help|kya kar sakte|what can you do|madad|features|shu kari shak|su kari shak)/.test(q)) {
                 return {
-                    html: "Here's what I can answer:<br>📅 <b>Events</b> — “Payal ka event kab hai?”, “Payal no event kyare chhe?”, “aaj ke events”, “upcoming events”<br>👤 <b>Clients</b> — “Rahul ka number”, “kitne pending hai”<br>🧾 <b>Invoices</b> — “unpaid invoices”, “total revenue this month”<br>💸 <b>Expenses</b> — “is month ka kharcha”<br>✅ <b>Tasks</b> — “pending tasks”",
+                    html: "Here's what I can answer:<br>📅 <b>Events</b> — “Payal ka event kab hai?”, “Payal no event kyare chhe?”, “aaj ke events”, “upcoming events”<br>👤 <b>Clients</b> — “Rahul ka number”, “kitne pending hai”<br>🧾 <b>Invoices</b> — “unpaid invoices”, “total revenue this month”<br>💸 <b>Expenses</b> — “is month ka kharcha”<br>📈 <b>Profit & Loss</b> — “profit and loss status”, “net profit this month”, “munafa kitna hua”<br>📊 <b>Reports</b> — “P&L report dikhao”, “daybook”, “balance sheet dikhao”<br>✅ <b>Tasks</b> — “pending tasks”",
                     actions: [], chips: ["Today's events", "Unpaid invoices", "This month's expenses"]
                 };
             }
@@ -28958,7 +29014,7 @@ Please use a different name or edit the existing item.`);
             }
 
             // 5. Party pending/due ("X ka kitna pending/baaki hai")
-            if (/(pending|baaki|baki|bakki|due|udhar|udhaar|bacha|kitna paisa|ketlu|ketla|balance)/.test(q) && entity) {
+            if (/(pending|baaki|baki|bakki|due|udhar|udhaar|bacha|kitna paisa|ketlu|ketla|balance)/.test(q) && entity && !/(balance sheet|bal sheet|b\/s)/.test(q)) {
                 if (!nexaAllowed('sales')) return { html: "⛔ You don't have permission to view billing data.", actions: [], chips: [] };
                 let pid = entity.id;
                 let billed = 0, due = 0, n = 0;
@@ -29033,6 +29089,80 @@ Please use a different name or edit the existing item.`);
                     html: '📅 <b>Upcoming events (' + evs.length + '):</b><br><br>' + rows,
                     actions: [{ label: '📅 Open Events', type: 'tab', a: 'events', primary: true }],
                     chips: ["Today's events", "Unpaid invoices"]
+                };
+            }
+
+            // 7.5 REPORTS — open any report directly ("P&L report dikhao", "daybook", "balance sheet dikhao")
+            // Maps the question to a report type and auto-opens the Reports hub
+            // on that report, so the user lands straight on the right screen.
+            let nexaRep = null;
+            if (/day ?book/.test(q)) nexaRep = 'daybook';
+            else if (/(balance sheet|bal sheet|b\/s)/.test(q)) nexaRep = 'bs';
+            else if (/(stock report|inventory report|godown report)/.test(q)) nexaRep = 'inventory';
+            else if (/(crm report|crm analytics)/.test(q)) nexaRep = 'crm';
+            else if (/(sales report|sale report)/.test(q)) nexaRep = 'sales';
+            else if (/(expense report|kharcha report|kharch report|kharach report)/.test(q)) nexaRep = 'expense';
+            else if (/(ledger report|party ledger report)/.test(q)) nexaRep = 'ledger';
+            else if (/(profit|loss|munafa|munaf|faayda|fayda|nuksan|labh|nunafa|nunafu|ghaat|p ?& ?l|pnl)/.test(q) && /(report|dikhao|dikha|show|open|kholo|banao|batao|dekh)/.test(q)) nexaRep = 'pl';
+            else if (/report/.test(q) && /(dikhao|dikha|show|open|kholo|khol|banao|chalu|dekh)/.test(q)) nexaRep = 'hub';
+            if (nexaRep) {
+                if (!nexaAllowed('rep')) return { html: "⛔ You don't have permission to open Reports.", actions: [], chips: [] };
+                let repNames = { pl: 'Profit & Loss', bs: 'Balance Sheet', daybook: 'Day Book', sales: 'Sales Report', expense: 'Expense Report', crm: 'CRM Analytics', inventory: 'Stock Report', ledger: 'Party Ledger', hub: 'Reports Hub' };
+                let repNm = repNames[nexaRep] || 'Report';
+                // Auto-open after a short beat so the user first sees the
+                // reply; the chat closes itself on action (same as buttons).
+                setTimeout(function () { window.nexaAction(nexaRep === 'hub' ? 'tab' : 'report', nexaRep === 'hub' ? 'reports-hub' : nexaRep); }, 650);
+                return {
+                    html: '📊 Opening <b>' + repNm + '</b> — set the date range there and tap Generate.',
+                    actions: [{ label: '📊 Open ' + repNm, type: nexaRep === 'hub' ? 'tab' : 'report', a: nexaRep === 'hub' ? 'reports-hub' : nexaRep, primary: true }],
+                    chips: ['P&L status', 'Total revenue', "This month's expenses"]
+                };
+            }
+
+            // 7.6 PROFIT & LOSS STATUS — live mini P&L answered right in chat.
+            // Uses the SAME math as the Reports P&L (direct = event-linked,
+            // indirect = general) so the bot always matches the official report.
+            if (/(profit|loss|munafa|munaf|faayda|fayda|nuksan|labh|nunafa|nunafu|ghaat|ghatano|p ?& ?l|p ?and ?l|pnl)/.test(q)) {
+                if (!nexaAllowed('sales') || !nexaAllowed('purch') || !nexaAllowed('exp')) {
+                    return { html: "⛔ You don't have permission to view P&L data.", actions: [], chips: [] };
+                }
+                let incSales = 0, nInv = 0, otherInc = 0;
+                Object.values(salesDB).forEach(function (s) {
+                    if (!nexaInPeriod(s.date, period)) return;
+                    if (s.type === 'Invoice') { incSales += s.finalTotal || 0; nInv++; }
+                    if (s.type === 'OtherIncome' && !s.isFundAdd) otherInc += s.amount || 0;
+                });
+                let dirPurch = 0, indirPurch = 0;
+                Object.values(purchaseDB).forEach(function (p) {
+                    if (p.type === 'PB' && nexaInPeriod(p.date, period)) {
+                        if (p.eventId) dirPurch += p.finalTotal || 0; else indirPurch += p.finalTotal || 0;
+                    }
+                });
+                let dirExp = 0, indirExp = 0;
+                Object.values(expenseDB).forEach(function (e) {
+                    if (!nexaInPeriod(e.date, period)) return;
+                    if (e.eventId) dirExp += e.amount || 0; else indirExp += e.amount || 0;
+                });
+                let totalDir = dirPurch + dirExp, totalIndir = indirPurch + indirExp;
+                let gp = incSales - totalDir;
+                let np = gp + otherInc - totalIndir;
+                let fmt = function (v) { return '₹' + Math.abs(v).toLocaleString('en-IN'); };
+                let plLabel = period ? period.label : 'all time';
+                let plHtml = '📈 <b>Profit & Loss — ' + plLabel + ':</b><br>' +
+                    '💰 Sales (' + nInv + ' invoice' + (nInv === 1 ? '' : 's') + '): <b>' + fmt(incSales) + '</b><br>' +
+                    '📦 Direct expenses (event-linked): <b>₹' + totalDir.toLocaleString('en-IN') + '</b><br>' +
+                    '📊 Gross profit: <b style="color:' + (gp >= 0 ? '#059669' : '#DC2626') + '">' + fmt(gp) + '</b><br>' +
+                    '🏢 Indirect expenses (office/general): <b>₹' + totalIndir.toLocaleString('en-IN') + '</b>' +
+                    (otherInc ? '<br>➕ Other income: <b>' + fmt(otherInc) + '</b>' : '') +
+                    '<br>━━━━━━━━<br>' +
+                    (np >= 0 ? '✅ Net profit: <b style="color:#059669">' : '🔴 Net loss: <b style="color:#DC2626">') + fmt(np) + '</b>';
+                return {
+                    html: plHtml,
+                    actions: [
+                        { label: '📈 Open P&L Report', type: 'report', a: 'pl', primary: true },
+                        { label: '📊 Reports Hub', type: 'tab', a: 'reports-hub' }
+                    ],
+                    chips: ['Total revenue', "This month's expenses"]
                 };
             }
 
@@ -29124,13 +29254,167 @@ Please use a different name or edit the existing item.`);
                 };
             }
 
-            // 13. Fallback
+            // 13. Fallback (flagged so nexaSend can route it to Gemini AI)
             return {
-                html: "🤔 I didn't quite get that. I understand <b>English, Hindi/Hinglish and Gujarati</b> (in English letters). Try:<br>📅 <b>Events</b> — “Payal ka event kab hai?” / “Payal no event kyare chhe?”<br>📞 <b>Clients</b> — “Rahul ka number” / “Rahul no nambhar”<br>🧾 <b>Dues</b> — “unpaid invoices” / “ketlu baki chhe?”<br>💰 <b>Revenue & expenses</b> — “total revenue this month”",
+                fallback: true,
+                html: "🤔 I didn't quite get that. I understand <b>English, Hindi/Hinglish and Gujarati</b> (in English letters). Try:<br>📅 <b>Events</b> — “Payal ka event kab hai?” / “Payal no event kyare chhe?”<br>📞 <b>Clients</b> — “Rahul ka number” / “Rahul no nambhar”<br>🧾 <b>Dues</b> — “unpaid invoices” / “ketlu baki chhe?”<br>💰 <b>Revenue & expenses</b> — “total revenue this month”<br>📈 <b>Profit & Loss</b> — “profit and loss status”, “net profit this month”<br>📊 <b>Reports</b> — “P&L report dikhao”, “daybook”, “balance sheet dikhao”",
                 actions: [],
                 chips: ["When is Payal's event?", "Unpaid invoices", "Total revenue", "Pending tasks"]
             };
         }
+
+
+        /* ================================================================
+           ✨ NEXA ADVANCED AI — hybrid brain (Gemini, free tier).
+           The local rule engine answers instantly & offline; anything it
+           can't parse goes here with a compact snapshot of the workspace.
+           The API key lives ONLY in localStorage (per device, per
+           workspace) — it is never written to Firestore.
+           ================================================================ */
+        window.nexaGetApiKey = function () {
+            try { return (localStorage.getItem('utsav_nexa_ai_' + currentWorkspaceId) || '').trim(); } catch (e) { return ''; }
+        };
+
+        window.nexaSetApiKey = function (k) {
+            try { localStorage.setItem('utsav_nexa_ai_' + currentWorkspaceId, String(k || '').trim()); } catch (e) {}
+            if (typeof nexaUpdateAIDot === 'function') nexaUpdateAIDot();
+        };
+
+        window.nexaUpdateAIDot = function () {
+            let d = document.getElementById('nexa-ai-dot');
+            if (d) d.classList.toggle('on', !!nexaGetApiKey());
+        };
+
+        window.nexaOpenSetup = function () {
+            let m = document.getElementById('nexaSetupModal');
+            if (!m) return;
+            let inp = document.getElementById('nexaKeyInput');
+            if (inp) inp.value = nexaGetApiKey();
+            m.style.display = 'flex';
+            setTimeout(function () { if (inp) inp.focus(); }, 150);
+        };
+
+        window.nexaCloseSetup = function () {
+            let m = document.getElementById('nexaSetupModal');
+            if (m) m.style.display = 'none';
+        };
+
+        window.nexaSaveSetup = function () {
+            let inp = document.getElementById('nexaKeyInput');
+            let k = (inp && inp.value || '').trim();
+            if (!k) { showToast('Please paste your Gemini API key first.', 'error'); return; }
+            if (k.indexOf('AIza') !== 0) { showToast('That does not look like a Gemini API key \u2014 it should start with "AIza".', 'error'); return; }
+            nexaSetApiKey(k);
+            nexaCloseSetup();
+            showToast('Advanced AI activated!', 'success');
+            // Friendly confirmation inside the chat so the next step is obvious
+            if (document.getElementById('nexa-panel') && document.getElementById('nexa-panel').classList.contains('open')) {
+                nexaBotSay('✨ <b>Advanced AI is ON!</b> Now ask me <i>anything</i> — in Hinglish, English or Gujarati. I will answer in the same language you use.', [], ['Which client owes the most?', 'Top expenses this month', 'Profit this year']);
+            }
+        };
+
+        // Compact snapshot of the workspace sent with every AI question.
+        // Kept deliberately small: names, key figures and statuses only.
+        function nexaBuildAIContext() {
+            let out = [];
+            out.push('TODAY: ' + new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }));
+            let nm = function (v) { return sanitize(String(v == null ? '' : v)); };
+            let rupee = function (v) { return Math.round(Number(v) || 0).toLocaleString('en-IN'); };
+
+            let evs = Object.values(leadsDB || {});
+            out.push('\nEVENTS/LEADS (' + evs.length + '):');
+            evs.slice(0, 50).forEach(function (l) {
+                let dates = (l.dates && l.dates.length ? l.dates : (l.events || []));
+                let ds = dates.map(function (d) { return (d.date || '?') + (d.name ? ' (' + nm(d.name) + ')' : ''); }).join(', ');
+                out.push('- ' + nm(l.name) + ' | ' + nm(l.func || l.eventTitle || 'Event') + ' | status: ' + nm(l.status || 'Lead') +
+                    (l.phone ? ' | ph: ' + nm(l.phone) : '') + (l.budget ? ' | budget: ' + rupee(l.budget) : '') + ' | dates: ' + (ds || 'none'));
+            });
+
+            let pts = Object.values(partiesDB || {});
+            out.push('\nPARTIES (' + pts.length + '):');
+            pts.slice(0, 60).forEach(function (p) {
+                out.push('- ' + nm(p.name) + (p.type ? ' (' + nm(p.type) + ')' : '') + (p.phone ? ' | ph: ' + nm(p.phone) : ''));
+            });
+
+            let invs = Object.values(salesDB || {}).filter(function (s) { return s.type === 'Invoice'; });
+            out.push('\nINVOICES (' + invs.length + '):');
+            invs.slice(0, 100).forEach(function (s) {
+                let cn = (partiesDB[s.partyId] && partiesDB[s.partyId].name) || s.event || 'Client';
+                out.push('- ' + nm(s.id) + ' | client: ' + nm(cn) + ' | date: ' + nm(s.date) + ' | total: ' + rupee(s.finalTotal) + ' | due: ' + rupee(s.balanceDue) + (s.eventId ? ' | event-linked' : ''));
+            });
+
+            let pbs = Object.values(purchaseDB || {}).filter(function (p) { return p.type === 'PB'; });
+            out.push('\nVENDOR BILLS (' + pbs.length + '):');
+            pbs.slice(0, 80).forEach(function (p) {
+                let vn = (partiesDB[p.partyId] && partiesDB[p.partyId].name) || 'Vendor';
+                out.push('- ' + nm(p.id) + ' | vendor: ' + nm(vn) + ' | date: ' + nm(p.date) + ' | total: ' + rupee(p.finalTotal) + ' | due: ' + rupee(p.balanceDue) + (p.eventId ? ' | event-linked' : ' | general'));
+            });
+
+            let exps = Object.values(expenseDB || {});
+            out.push('\nEXPENSES (' + exps.length + '):');
+            exps.slice(0, 100).forEach(function (e) {
+                out.push('- ' + nm(e.id) + ' | ' + nm(e.cat || e.category || 'Expense') + ' | date: ' + nm(e.date) + ' | amount: ' + rupee(e.amount) + (e.eventId ? ' | event-linked' : ' | general') + (e.balanceDue > 0 ? ' | unpaid: ' + rupee(e.balanceDue) : ''));
+            });
+
+            let banks = Object.values(bankDB || {});
+            out.push('\nCASH/BANK ACCOUNTS (' + banks.length + '):');
+            banks.forEach(function (b) { out.push('- ' + nm(b.name) + ' (' + nm(b.type) + ') | balance: ' + rupee(b.balance)); });
+
+            let tks = Object.values(globalTasksDB || {}).filter(function (t) { return !t.status || t.status === 'Pending'; });
+            out.push('\nPENDING TASKS (' + tks.length + '):');
+            tks.slice(0, 30).forEach(function (t) {
+                out.push('- ' + nm(t.title) + (t.due ? ' | due: ' + nm(t.due) : '') + (t.assignedTo ? ' | assigned: ' + nm(t.assignedTo) : ''));
+            });
+            return out.join('\n');
+        }
+
+        // Ask Gemini. Renders into the existing typing bubble so the chat
+        // stays visually identical to local answers.
+        window.nexaAskAI = function (q, t) {
+            let key = nexaGetApiKey();
+            let sys = 'You are "Nexa Bot", the built-in assistant of UTSAVhq, an Indian event-management ERP. The user is the business owner. You are given a snapshot of their workspace data below.\n' +
+                'RULES:\n' +
+                '1. Reply in the SAME language the user asked in: Hinglish (Roman Hindi + English mix) gets Hinglish, Gujarati in Roman letters gets Gujarati Roman, English gets English, Devanagari gets Devanagari.\n' +
+                '2. Keep it short and scannable (2-6 lines). Money in \u20B9 with Indian digit grouping (e.g. \u20B91,50,000). Dates as dd MMM yyyy.\n' +
+                '3. Base every number ONLY on the provided data. Never invent clients, events, amounts or dates. If the data does not contain the answer, say so plainly.\n' +
+                '4. For actions (open report, call, WhatsApp) just tell the user where to go in the app.\n' +
+                '5. No markdown headings; simple text, hyphens and short bold (**text**) only.';
+            let body = {
+                systemInstruction: { parts: [{ text: sys }] },
+                contents: [{ role: 'user', parts: [{ text: 'WORKSPACE DATA SNAPSHOT:\n' + nexaBuildAIContext() + '\n\nUSER QUESTION: ' + q }] }],
+                generationConfig: { temperature: 0.3, maxOutputTokens: 700 }
+            };
+            fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }).then(function (r) {
+                return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; });
+            }).then(function (res) {
+                let c = res.j && res.j.candidates && res.j.candidates[0];
+                let txt = c && c.content && c.content.parts ? c.content.parts.map(function (p) { return p.text || ''; }).join('') : '';
+                if (res.ok && txt) {
+                    // 🪱 SECURITY: model output is untrusted text — sanitize
+                    // before it touches innerHTML, then allow simple bold only.
+                    let safe = sanitize(txt).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                    t.innerHTML = safe + '<div class="nexa-ai-src">\u2728 answered by Gemini · free tier</div>';
+                } else if (res.status === 400 || res.status === 401 || res.status === 403) {
+                    t.innerHTML = '⚠️ <b>API key problem.</b> Please check your Gemini key in settings.';
+                    let acts = document.createElement('div'); acts.className = 'nexa-actions';
+                    let b = document.createElement('button'); b.className = 'nexa-act primary'; b.innerText = '⚙️ Fix API Key';
+                    b.onclick = function () { window.nexaOpenSetup(); };
+                    acts.appendChild(b); t.appendChild(acts);
+                } else if (res.status === 429) {
+                    t.innerHTML = '⏳ Free-tier limit reached for a moment — please ask again in a minute.';
+                } else {
+                    t.innerHTML = '⚠️ Advanced AI could not answer right now. Try again in a moment.';
+                }
+                let msgs = document.getElementById('nexa-msgs'); if (msgs) msgs.scrollTop = msgs.scrollHeight;
+            }).catch(function () {
+                t.innerHTML = '📡 You seem offline — Advanced AI needs internet. Local answers still work!';
+                let msgs = document.getElementById('nexa-msgs'); if (msgs) msgs.scrollTop = msgs.scrollHeight;
+            });
+        };
 
         // Renders a bot message directly (welcome message etc.)
         function nexaBotSay(html, actions, chips) {
