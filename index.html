@@ -684,25 +684,81 @@
             transition: opacity 0.5s ease;
         }
 
+        /* 🐛 FIX: the splash logo used an infinite "pulse" (bump-bump-bump)
+           animation which looked unprofessional. It is now a single smooth
+           entrance: the logo fades in, rises and settles once — no looping. */
         .splash-logo {
-            animation: pulse 1.5s infinite;
+            animation: splashIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
             filter: drop-shadow(0 10px 25px rgba(37, 99, 235, 0.3));
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        @keyframes pulse {
+        @keyframes splashIn {
             0% {
-                transform: scale(0.95);
-            }
-
-            50% {
-                transform: scale(1.05);
+                opacity: 0;
+                transform: translateY(14px) scale(0.94);
             }
 
             100% {
-                transform: scale(0.95);
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Brand name + tagline under the logo — subtle, one-shot fade-up */
+        .splash-name {
+            margin-top: 18px;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: -0.4px;
+            color: var(--text-primary);
+            animation: splashIn 0.8s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        .splash-tagline {
+            margin-top: 5px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 3.5px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            animation: splashIn 0.8s 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        /* Slim indeterminate loading bar — communicates "app is loading"
+            professionally, replacing the pulsing logo as the only motion. */
+        .splash-loader {
+            margin-top: 34px;
+            width: 150px;
+            height: 3px;
+            border-radius: 99px;
+            background: rgba(148, 163, 184, 0.25);
+            overflow: hidden;
+            position: relative;
+            animation: splashIn 0.8s 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        .splash-loader::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 40%;
+            border-radius: 99px;
+            background: var(--accent-color, #1D4ED8);
+            animation: splashSlide 1.15s ease-in-out infinite;
+        }
+
+        @keyframes splashSlide {
+            0% {
+                transform: translateX(-110%);
+            }
+
+            100% {
+                transform: translateX(360%);
             }
         }
 
@@ -2834,6 +2890,130 @@
             }
         }
 
+        /* ============================================================
+           🚀 DESKTOP EXPERIENCE UPGRADE — professional desktop polish.
+           Appended last so it wins the cascade; phones are untouched.
+           Goals: use the wide screen (multi-column card grids), stop
+           stretched full-width inputs, and add desktop-grade finishing
+           (scrim blur, slim scrollbars, crisper text).
+           ============================================================ */
+        @media (min-width: 1024px) {
+            /* Slightly wider canvas so wide monitors show more data per row */
+            .content {
+                max-width: 1180px;
+            }
+
+            /* CRM leads: two-column card grid instead of one stretched column.
+               :has() guard = grid only applies when cards are actually present,
+               so empty states and headers keep their natural layout. */
+            #crm-leads-list:has(.crm-card-v3) {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
+                gap: 10px 14px;
+                align-items: start;
+            }
+
+            #crm-leads-list .crm-card-v3 {
+                margin: 0;
+            }
+
+            /* Tasks: multi-column grid on wide screens */
+            #task-dash-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+                gap: 12px;
+                align-items: start;
+            }
+
+            /* A search bar should never span a 1440px monitor */
+            .content .search-input {
+                max-width: 540px;
+            }
+
+            /* Dashboard calendar: constrain width so day cells stay scannable */
+            .content .cal-wrapper {
+                max-width: 940px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            /* Wider document preview (invoice/quotation view) on desktop */
+            #quoteViewModal .modal-content {
+                max-width: 920px;
+            }
+
+            /* Professional scrim behind modals: dim + gentle blur */
+            .modal-overlay {
+                background: rgba(15, 23, 42, 0.5);
+                backdrop-filter: blur(3px);
+                -webkit-backdrop-filter: blur(3px);
+            }
+
+            /* Slim, modern scrollbars (desktop idiom) */
+            ::-webkit-scrollbar {
+                width: 10px;
+                height: 10px;
+            }
+
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: #CBD5E1;
+                border-radius: 8px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #94A3B8;
+            }
+
+            /* Crisper text rendering on desktop monitors */
+            body {
+                -webkit-font-smoothing: antialiased;
+                text-rendering: optimizeLegibility;
+            }
+        }
+
+        /* ============================================================
+           🚀 SKELETON LOADING SYSTEM — shimmer placeholders shown while the
+           workspace data is still arriving (fresh device / new login /
+           company switch with no local cache). The skeletons are replaced by
+           the real render automatically as soon as data hydrates. Static,
+           accessible gray bars remain for users with reduced-motion enabled.
+           ============================================================ */
+        @keyframes skelShimmer {
+            0% { background-position: -400px 0; }
+            100% { background-position: 400px 0; }
+        }
+
+        .skel {
+            background: linear-gradient(90deg, #E9EEF4 25%, #F6F9FC 37%, #E9EEF4 63%);
+            background-size: 800px 100%;
+            animation: skelShimmer 1.25s ease-in-out infinite;
+            border-radius: 6px;
+        }
+
+        .skel-bar { margin-bottom: 8px; }
+
+        .skel-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            margin-bottom: 0;
+        }
+
+        .skel-shell {
+            background: #FFFFFF;
+            border: 1.5px solid #EDF1F6;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+
     </style>
 
     <div id="global-loader">
@@ -2850,7 +3030,10 @@
         <div class="splash-logo">
             <img loading="lazy" src="logo.png" alt="UTSAVhq Logo" onerror="this.style.display='none'"
                 style="max-height: 80px; object-fit: contain;">
+            <div class="splash-name">UTSAVhq</div>
+            <div class="splash-tagline">Enterprise ERP</div>
         </div>
+        <div class="splash-loader" aria-hidden="true"></div>
     </div>
 
     <div id="auth-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; overflow-y: auto;">
@@ -9184,6 +9367,47 @@
 
         function closeAllOverlays() { document.querySelectorAll('.modal-overlay, .side-panel-overlay').forEach(m => m.style.display = 'none'); document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('open')); closeNav(); }
 
+        // 🚀 SKELETON LOADING: fills the main list containers with shimmer
+        // placeholders. Used while the workspace data is still arriving
+        // (fresh device / new login / switched company with no local cache) —
+        // before this, those lists painted permanent-looking "empty" states
+        // for data that was simply still loading.
+        window.__skeletonHtml = function (type, count) {
+            let out = '';
+            for (let i = 0; i < count; i++) {
+                if (type === 'card') {
+                    out += '<div class="skel-shell">' +
+                           '<div class="skel skel-bar" style="width:55%; height:10px;"></div>' +
+                           '<div class="skel skel-bar" style="width:85%; height:14px;"></div>' +
+                           '<div class="skel skel-bar" style="width:40%; height:10px;"></div>' +
+                           '</div>';
+                } else {
+                    out += '<div class="skel-shell" style="display:flex; align-items:center; gap:12px;">' +
+                           '<div class="skel skel-avatar"></div>' +
+                           '<div style="flex:1;">' +
+                           '<div class="skel skel-bar" style="width:70%; height:12px; margin-bottom:6px;"></div>' +
+                           '<div class="skel skel-bar" style="width:45%; height:10px; margin-bottom:0;"></div>' +
+                           '</div></div>';
+                }
+            }
+            return out;
+        };
+
+        window.showSkeletons = function () {
+            // Main list containers across the app hubs; type matches the card
+            // shape each list really renders (cards vs list rows).
+            let targets = [
+                ['crm-leads-list', 'card'], ['events-list', 'card'], ['task-dash-container', 'card'],
+                ['home-hot-leads', 'card'], ['party-list-container', 'row'], ['sales-list-container', 'row'],
+                ['purchase-list-container', 'row'], ['expense-list-container', 'row'], ['bank-list-container', 'row']
+            ];
+            for (let i = 0; i < targets.length; i++) {
+                let el = document.getElementById(targets[i][0]);
+                if (!el) continue;
+                el.innerHTML = window.__skeletonHtml(targets[i][1], 5);
+            }
+        };
+
         // 🚀 UX: FORM-FROM-PREVIEW FLOW — previously, clicking an action button
         // inside a preview (document view / event balance sheet) opened the target
         // form underneath the still-open preview, so it looked like the button did
@@ -10147,6 +10371,10 @@ function openTeamModal() {
         // loadLocalData() aur saveDataLocally() dono isi function se DB variables
         // ko sync mein rakhte hain, taaki logic ek hi jagah ho.
         function applyWorkspaceDataToMemory(data) {
+            // 🚀 SKELETON LOADING: real data (or a confirmed-empty snapshot) has
+            // arrived — mark the workspace as hydrated so list renders take over
+            // from the skeleton placeholders.
+            window.__workspaceHydrated = true;
             if (data) {
                 leadsDB = data.leads || {}; partiesDB = data.parties || {}; salesDB = data.sales || {};
                 purchaseDB = data.purchase || {}; expenseDB = data.expense || {}; globalTasksDB = data.globalTasks || {};
@@ -10176,6 +10404,14 @@ function openTeamModal() {
         function loadLocalData() {
             // 🚀 SMART FIX: Load instantly from Local Storage before Cloud Sync
             let localBackup = JSON.parse(localStorage.getItem('utsav_erp_data_' + currentWorkspaceId)) || {};
+            // 🚀 SKELETON LOADING: if this workspace has no local cache (fresh
+            // device, new login, or a company switch with nothing saved yet),
+            // paint shimmer skeletons into the list containers NOW — the cloud
+            // snapshot will replace them via the normal render as it arrives.
+            window.__workspaceHydrated = (localBackup && Object.keys(localBackup).length > 0);
+            if (!window.__workspaceHydrated && typeof window.showSkeletons === 'function') {
+                try { window.showSkeletons(); } catch (e) { /* skeleton paint must never break startup */ }
+            }
             leadsDB = localBackup.leads || {}; 
             partiesDB = localBackup.parties || {}; 
             salesDB = localBackup.sales || {}; 
@@ -10239,6 +10475,11 @@ function openTeamModal() {
             }, (error) => {
                 console.error("Cloud Sync Error:", error);
                 if (typeof window.showToast === 'function') window.showToast("Could not load data from the cloud. Please check your connection.", "error", 5000);
+                // 🚀 SKELETON LOADING: cloud failed — stop waiting, mark hydrated
+                // and render the real (possibly empty) lists instead of showing
+                // skeletons forever on a device with no local cache.
+                window.__workspaceHydrated = true;
+                if (typeof updateDataAndUI === 'function') updateDataAndUI(true);
             });
 
             // ☁️ 2. COMPANY & STAFF LISTENER (Real-time Team updates)
@@ -24473,6 +24714,21 @@ function openPurchaseOrderModal() {
         }
 
         function updateDataAndUI(fromCloud = false) {
+            // 🚀 SKELETON LOADING: while the workspace data has not arrived yet
+            // AND the databases are still completely empty (fresh device /
+            // new login), the renderers below would paint permanent-looking
+            // empty states for data that is simply still loading. Show shimmer
+            // skeletons instead and skip this render — the real render happens
+            // on the next updateDataAndUI once data hydrates. The all-DBs-empty
+            // check guarantees anything the user creates locally still renders
+            // immediately instead of being swallowed by skeletons.
+            if (!window.__workspaceHydrated &&
+                Object.keys(leadsDB).length === 0 && Object.keys(partiesDB).length === 0 &&
+                Object.keys(salesDB).length === 0 && Object.keys(purchaseDB).length === 0 &&
+                Object.keys(expenseDB).length === 0) {
+                if (typeof window.showSkeletons === 'function') { try { window.showSkeletons(); } catch (e) { /* skeleton paint must never break the app */ } }
+                return;
+            }
             
             // 🐛 PERF/GLITCH FIX: dropdown menus khulte waqt <body> mein temporarily
             // move ho jaate hain (positioning fix ke liye). Agar isi waqt real-time
