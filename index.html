@@ -28758,7 +28758,7 @@ Please use a different name or edit the existing item.`);
                 <div style="font-size:13px; color:#475569; line-height:1.6;">
                     <b>Step 1.</b> Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> and sign in with your Google account.<br>
                     <b>Step 2.</b> Click <b>"Create API key"</b> — it is <b>100% FREE</b> (no card needed).<br>
-                    <b>Step 3.</b> Copy the key (starts with <code>AIza...</code>) and paste below.
+                    <b>Step 3.</b> Copy the key (new keys start with <code>AQ.</code> — older ones with <code>AIza</code>) and paste below.
                 </div>
                 <input type="password" id="nexaKeyInput" placeholder="Paste your free Gemini API key here..." autocomplete="off"
                     style="width:100%; margin:14px 0 4px 0; padding:11px 12px; border:1.5px solid #CBD5E1; border-radius:10px; font-size:13px; box-sizing:border-box;">
@@ -29303,7 +29303,13 @@ Please use a different name or edit the existing item.`);
             let inp = document.getElementById('nexaKeyInput');
             let k = (inp && inp.value || '').trim();
             if (!k) { showToast('Please paste your Gemini API key first.', 'error'); return; }
-            if (k.indexOf('AIza') !== 0) { showToast('That does not look like a Gemini API key \u2014 it should start with "AIza".', 'error'); return; }
+            // 🐛 FIX: Google moved to new "AQ." Auth keys (June 2026+);
+            // legacy "AIza" keys are being retired. Accept both, and only warn
+            // (not block) on unknown prefixes so future format changes don't
+            // lock the user out — the API itself gives the final verdict.
+            if (k.indexOf('AQ.') !== 0 && k.indexOf('AIza') !== 0) {
+                showToast('Key saved — but it does not start with "AQ." or "AIza". If it fails, re-copy it from AI Studio.', 'error');
+            }
             nexaSetApiKey(k);
             nexaCloseSetup();
             showToast('Advanced AI activated!', 'success');
@@ -29370,8 +29376,23 @@ Please use a different name or edit the existing item.`);
 
         // Ask Gemini. Renders into the existing typing bubble so the chat
         // stays visually identical to local answers.
-        window.nexaAskAI = function (q, t) {
+        // 🐛 FIX (Sept 2026): key goes in the x-goog-api-key header
+        // (works with BOTH the new "AQ." Auth keys and legacy "AIza" keys),
+        // and a model fallback chain keeps the bot alive even if Google
+        // renames or deprecates a model — the winning model is cached.
+        window.nexaAIModels = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+
+        window.nexaAskAI = function (q, t, modelIdx) {
             let key = nexaGetApiKey();
+            // Prefer the model that worked last time (cached per workspace).
+            let models = window.nexaAIModels.slice();
+            try {
+                let cached = localStorage.getItem('utsav_nexa_model_' + currentWorkspaceId);
+                if (cached && models.indexOf(cached) > 0) models = [cached].concat(models.filter(function (m) { return m !== cached; }));
+            } catch (e) {}
+            let mi = (typeof modelIdx === 'number') ? modelIdx : 0;
+            let model = models[mi];
+            if (!model) return;
             let sys = 'You are "Nexa Bot", the built-in assistant of UTSAVhq, an Indian event-management ERP. The user is the business owner. You are given a snapshot of their workspace data below.\n' +
                 'RULES:\n' +
                 '1. Reply in the SAME language the user asked in: Hinglish (Roman Hindi + English mix) gets Hinglish, Gujarati in Roman letters gets Gujarati Roman, English gets English, Devanagari gets Devanagari.\n' +
@@ -29384,16 +29405,23 @@ Please use a different name or edit the existing item.`);
                 contents: [{ role: 'user', parts: [{ text: 'WORKSPACE DATA SNAPSHOT:\n' + nexaBuildAIContext() + '\n\nUSER QUESTION: ' + q }] }],
                 generationConfig: { temperature: 0.3, maxOutputTokens: 700 }
             };
-            fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key), {
+            fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
                 body: JSON.stringify(body)
             }).then(function (r) {
                 return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; });
             }).then(function (res) {
                 let c = res.j && res.j.candidates && res.j.candidates[0];
                 let txt = c && c.content && c.content.parts ? c.content.parts.map(function (p) { return p.text || ''; }).join('') : '';
+                // Model unavailable/renamed -> silently try the next candidate;
+                // only if every candidate fails do we surface an error.
+                if (!res.ok && (res.status === 404 || res.status === 400) && mi + 1 < models.length) {
+                    window.nexaAskAI(q, t, mi + 1);
+                    return;
+                }
                 if (res.ok && txt) {
+                    try { localStorage.setItem('utsav_nexa_model_' + currentWorkspaceId, model); } catch (e) {}
                     // 🪱 SECURITY: model output is untrusted text — sanitize
                     // before it touches innerHTML, then allow simple bold only.
                     let safe = sanitize(txt).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
