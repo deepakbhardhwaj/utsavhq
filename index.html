@@ -9184,6 +9184,35 @@
 
         function closeAllOverlays() { document.querySelectorAll('.modal-overlay, .side-panel-overlay').forEach(m => m.style.display = 'none'); document.querySelectorAll('.side-panel').forEach(p => p.classList.remove('open')); closeNav(); }
 
+        // 🚀 UX: FORM-FROM-PREVIEW FLOW — previously, clicking an action button
+        // inside a preview (document view / event balance sheet) opened the target
+        // form underneath the still-open preview, so it looked like the button did
+        // nothing. Now any action button clicked inside a preview closes that
+        // preview first (capture phase, so the button's own onclick still runs
+        // afterwards and opens the target form on a clean screen).
+        // The skip-list keeps interactions that belong to the preview itself:
+        // menus, document/photo viewer, inline quotation item editing,
+        // WhatsApp share links, printing, and the preview's own close logic.
+        document.addEventListener('click', function (ev) {
+            let viewIds = ['quoteViewModal', 'eventBalanceSheetModal'];
+            let view = null;
+            for (let vi = 0; vi < viewIds.length; vi++) {
+                let v = document.getElementById(viewIds[vi]);
+                if (v && v.style.display !== 'none' && v.contains(ev.target)) { view = v; break; }
+            }
+            if (!view) return;
+            let btn = ev.target.closest('[onclick]');
+            if (!btn || !view.contains(btn)) return;
+            let oc = btn.getAttribute('onclick') || '';
+            if (!oc.includes('(')) return;
+            if (oc.includes('toggleMenu') || oc.includes('openDocViewer') ||
+                oc.includes('openQuoteItemReadOnlyView') || oc.includes('saveQuoteItemFromView') ||
+                oc.includes('deleteQuoteItemFromView') || oc.includes('window.open') ||
+                oc.includes('printVoucher') || oc.includes('printEventSheet') ||
+                oc.includes(view.id)) return;
+            view.style.display = 'none';
+        }, true);
+
         // 🚀 SCROLL LAG FIX: Scroll event ko debounce kar diya, har ms par check nahi karega
         let scrollTimeoutMenu;
         window.addEventListener('scroll', function () {
@@ -12458,12 +12487,17 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
             html += `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:14px; align-items:start; margin-top:15px;">`;
 
             // Helper: find receipts linked to an invoice, or payment-outs linked to a PB/expense
+            // 🐛 FIX: the mode column showed the RAW payment mode. When a receipt was
+            // received through a bank account, r.mode holds the account ID (e.g.
+            // "ACC1790598091681") which printed as a huge ugly number. Now it resolves
+            // the account's name from bankDB, and falls back to "Bank A/C" if the
+            // account was deleted. Plain modes (Cash/UPI/Cheque) still show as-is.
             let findLinkedReceipts = (invId) => Object.values(salesDB).filter(r => r.type === 'Receipt' && r.linkedInvoices && r.linkedInvoices.includes(invId));
             let findLinkedPayouts  = (billId) => Object.values(purchaseDB).filter(p => p.type === 'PaymentOut' && p.linkedInvoices && p.linkedInvoices.includes(billId));
             let linkedRowHtml = (list, verb, context) => {
                 if (!list || list.length === 0) return '';
                 return list.map(r => `<div onclick="event.stopPropagation(); viewDetails('${r.id}', '${context}');" style="display:flex; justify-content:space-between; align-items:center; font-size:10px; font-weight:600; color:#475569; background:rgba(255,255,255,0.6); border:1px dashed #CBD5E1; border-radius:6px; padding:4px 8px; margin-top:5px; cursor:pointer;">
-                            <span>&#x21B3; ${verb} ${r.date ? new Date(r.date).toLocaleDateString('en-IN', {day:'2-digit', month:'short'}) : ''} &middot; ${r.mode || ''}</span>
+                            <span>&#x21B3; ${verb} ${r.date ? new Date(r.date).toLocaleDateString('en-IN', {day:'2-digit', month:'short'}) : ''} &middot; ${r.mode ? (bankDB[r.mode] ? bankDB[r.mode].name : (String(r.mode).startsWith('ACC') ? 'Bank A/C' : r.mode)) : ''}</span>
                             <span style="font-weight:800; color:#0F172A;">&#x20B9;${(r.amount||r.usedAmount||0).toLocaleString('en-IN')}</span>
                         </div>`).join('');
             };
@@ -12554,6 +12588,10 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
             pList.forEach(p => {
                 totPurch += p.finalTotal;
                 let pPaid = p.advance || 0; let pDue = p.balanceDue || 0;
+                // 🚀 STATUS BADGE: match the invoice rows — vendor bills now also
+                // show a Paid / Partial / Due badge. Older records may not have a
+                // status field, so it is derived from advance/balanceDue as fallback.
+                let pStat = (p.status === 'Paid' || p.status === 'Partial' || p.status === 'Due') ? p.status : (pDue > 0 ? (pPaid > 0 ? 'Partial' : 'Due') : 'Paid');
                 totExpPaid += pPaid; totExpDue += pDue;
                 let payouts = findLinkedPayouts(p.id);
                 html += `<div style="padding:9px 10px; border:1px solid #FECACA; border-radius:8px; margin-bottom:7px; background:#FEF2F2; cursor:pointer;" onclick="viewDetails('${p.id}', 'purchase');">
@@ -12566,6 +12604,7 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
                                 <div style="text-align:right;">
                                     <div style="font-weight:800; font-size:13px; color:var(--danger);">-&#x20B9;${p.finalTotal.toLocaleString('en-IN')}</div>
                                     ${pDue > 0 ? `<span style="font-size:8px; font-weight:800; color:var(--danger);">DUE &#x20B9;${pDue.toLocaleString('en-IN')}</span>` : ''}
+                                    ${getStatusBadge(pStat)}
                                 </div>
                             </div>
                             ${linkedRowHtml(payouts, 'Paid', 'purchase')}
@@ -12574,6 +12613,9 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
             eList.forEach(e => {
                 totExp += e.amount;
                 let ePaid = e.amountPaid || e.amount; let eDue = e.balanceDue || 0;
+                // 🚀 STATUS BADGE: expenses now show Paid / Partial / Due like
+                // invoices. Derived from status field with paid/balanceDue fallback.
+                let eStat = (e.status === 'Paid' || e.status === 'Partial' || e.status === 'Due') ? e.status : (eDue > 0 ? ((e.paid || 0) > 0 ? 'Partial' : 'Due') : 'Paid');
                 totExpPaid += ePaid; totExpDue += eDue;
                 let payouts = findLinkedPayouts(e.id);
                 html += `<div style="padding:9px 10px; border:1px solid #E9D5FF; border-radius:8px; margin-bottom:7px; background:#FAF5FF; cursor:pointer;" onclick="viewDetails('${e.id}', 'expense');">
@@ -12586,6 +12628,7 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
                                 <div style="text-align:right;">
                                     <div style="font-weight:800; font-size:13px; color:var(--purple);">-&#x20B9;${e.amount.toLocaleString('en-IN')}</div>
                                     ${eDue > 0 ? `<span style="font-size:8px; font-weight:800; color:var(--danger);">DUE &#x20B9;${eDue.toLocaleString('en-IN')}</span>` : ''}
+                                    ${getStatusBadge(eStat)}
                                 </div>
                             </div>
                             ${linkedRowHtml(payouts, 'Paid', 'purchase')}
@@ -15047,19 +15090,27 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
         // When a function has many items (items already fill/spill the page), photos
         // shrink back down since there isn't much room left before the next page.
         function getPrintPhotoLayout(photoCount, itemCount) {
+            // 🐛 FIX: previous sizing made single photos HUGE (up to 588px tall).
+            // When a function's item table left ~500px free at the bottom of the
+            // page, the oversized photo block still did not fit and jumped to a
+            // fresh page — leaving a big blank gap under the item details (exactly
+            // what users reported: plenty of space, yet the photo shifted to a
+            // new page). Sizes are now calibrated to typical leftover space, so
+            // photos share the function's page whenever possible and only flow to
+            // the next page when there genuinely isn't room.
             let baseHeight;
             let gridCols;
-            if (photoCount === 1) { gridCols = '1fr'; baseHeight = 420; }
-            else if (photoCount === 2) { gridCols = 'repeat(2, 1fr)'; baseHeight = 320; }
-            else if (photoCount <= 4) { gridCols = 'repeat(2, 1fr)'; baseHeight = 240; }
-            else { gridCols = 'repeat(3, 1fr)'; baseHeight = 170; }
+            if (photoCount === 1) { gridCols = '1fr'; baseHeight = 300; }
+            else if (photoCount === 2) { gridCols = 'repeat(2, 1fr)'; baseHeight = 250; }
+            else if (photoCount <= 4) { gridCols = 'repeat(2, 1fr)'; baseHeight = 200; }
+            else { gridCols = 'repeat(3, 1fr)'; baseHeight = 150; }
             let scale;
-            if (itemCount <= 5) scale = 1.4;
-            else if (itemCount <= 15) scale = 1.15;
-            else if (itemCount <= 30) scale = 0.95;
-            else scale = 0.75;
+            if (itemCount <= 5) scale = 1.15;
+            else if (itemCount <= 15) scale = 1.0;
+            else if (itemCount <= 30) scale = 0.85;
+            else scale = 0.7;
             let finalHeight = Math.round(baseHeight * scale);
-            if (finalHeight > 600) finalHeight = 600; // safety cap — stays within one printable page
+            if (finalHeight > 450) finalHeight = 450; // safety cap — stays within one printable page
             if (finalHeight < 110) finalHeight = 110;
             return { gridCols: gridCols, imgHeight: finalHeight + 'px' };
         }
