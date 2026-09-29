@@ -9194,6 +9194,9 @@
         // menus, document/photo viewer, inline quotation item editing,
         // WhatsApp share links, printing, and the preview's own close logic.
         document.addEventListener('click', function (ev) {
+            // 🚀 PREVIEW-REOPEN: clicking a close (✕) button anywhere abandons a
+            // pending preview-reopen (the form was cancelled without saving).
+            if (ev.target.closest && ev.target.closest('.modal-close')) { window.__pendingReopen = null; }
             let viewIds = ['quoteViewModal', 'eventBalanceSheetModal'];
             let view = null;
             for (let vi = 0; vi < viewIds.length; vi++) {
@@ -9210,8 +9213,38 @@
                 oc.includes('deleteQuoteItemFromView') || oc.includes('window.open') ||
                 oc.includes('printVoucher') || oc.includes('printEventSheet') ||
                 oc.includes(view.id)) return;
+            // 🚀 PREVIEW-REOPEN: remember the closing preview so it can be restored
+            // with fresh data once the launched form saves (see reopenPendingPreview).
+            if (window.__lastPreview && window.__lastPreview.modalId === view.id) {
+                window.__pendingReopen = Object.assign({}, window.__lastPreview);
+            }
             view.style.display = 'none';
         }, true);
+
+        // 🚀 PREVIEW-REOPEN: restores the preview that was closed by an action
+        // button, AFTER that action's form saved successfully. The preview is
+        // re-rendered from the live databases, so it always shows the latest
+        // state (Paid / Partial / Due status, newly linked payments, etc.).
+        // Example flow: invoice preview -> Receive Payment -> save receipt ->
+        // invoice preview reopens already showing the updated status.
+        // Returns true when a preview was restored, so save handlers can skip
+        // their "jump to hub" navigation when the user came from a preview.
+        function reopenPendingPreview() {
+            let p = window.__pendingReopen || null;
+            window.__pendingReopen = null;
+            if (!p) return false;
+            try {
+                if (p.modalId === 'eventBalanceSheetModal') {
+                    if (typeof openEventBalanceSheet === 'function') { openEventBalanceSheet(p.evId); return true; }
+                    return false;
+                }
+                if (p.modalId === 'quoteViewModal' && typeof viewDetails === 'function') {
+                    viewDetails(p.id, p.context || 'sales');
+                    return true;
+                }
+            } catch (e) { console.warn('Preview reopen failed:', e); }
+            return false;
+        }
 
         // 🚀 SCROLL LAG FIX: Scroll event ko debounce kar diya, har ms par check nahi karega
         let scrollTimeoutMenu;
@@ -10875,6 +10908,8 @@ function openTeamModal() {
             leadsDB[id] = leadObj;
             updateDataAndUI(); 
             document.getElementById('leadModal').style.display = 'none';
+            // 🚀 PREVIEW-REOPEN: restore the preview this form was launched from.
+            if (typeof reopenPendingPreview === 'function') reopenPendingPreview();
             editingLeadId = null;
             console.log("✅ Lead securely saved to Workspace!");
         }
@@ -12428,6 +12463,10 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
         }
 
         function openEventBalanceSheet(evId) {
+            // 🚀 PREVIEW-REOPEN: the balance sheet is also a restorable preview — when
+            // an action button inside it launches a form that saves, reopen it fresh.
+            window.__pendingReopen = null;
+            window.__lastPreview = { modalId: 'eventBalanceSheetModal', evId: evId };
             let ev = leadsDB[evId]; document.getElementById('ebs-modal-title').innerText = "Balance Sheet: " + ev.func;
             let html = ""; let totSales = 0; let totPurch = 0; let totExp = 0; let totQuot = 0;
 
@@ -15503,11 +15542,15 @@ function openPoPbChoiceModal(id) { tempEventIdForPurchase = id; document.getElem
             updateDataAndUI();
             document.getElementById('quotePreviewModal').style.display = 'none';
             document.getElementById('quotationModal').style.display = 'none';
+            // 🚀 PREVIEW-REOPEN: if this quotation form was launched from a preview's
+            // action button, restore that preview after saving (fresh data).
+            var __previewReopened = (typeof reopenPendingPreview === 'function') && reopenPendingPreview();
             smartShowNav();
             let savedSourceLeadId = currentQuoteSourceLeadId;
             currentQuoteSourceLeadId = null;
             let activeTab = document.querySelector('.active-section');
-            if (activeTab && activeTab.id === 'crm' && savedSourceLeadId) { openPanel(savedSourceLeadId); }
+            if (__previewReopened) { /* preview restored — no tab jump needed */ }
+            else if (activeTab && activeTab.id === 'crm' && savedSourceLeadId) { openPanel(savedSourceLeadId); }
             else { setSalesTab('Quotation', document.getElementById('st-quotations')); }
             if (typeof showToast === 'function') showToast('Quotation saved successfully!', 'success', 3000);
         }
@@ -16392,7 +16435,11 @@ function openPOItemPreviewView(evIdx) {
             document.getElementById('paymentModal').style.display = 'none';
             // 🐛 FIX: return straight to the event workspace when that's where this
             // payment was opened from, instead of always flashing Sales Hub first.
-            if (typeof activeWorkspaceEventId !== 'undefined' && activeWorkspaceEventId) { renderWorkspace(activeWorkspaceEventId); }
+            // 🚀 PREVIEW-REOPEN: if this form was launched from a preview's action
+            // button, restore that preview now (fresh data, e.g. updated payment
+            // status) and skip the hub/workspace navigation jump.
+            if (typeof reopenPendingPreview === 'function' && reopenPendingPreview()) { /* preview restored */ }
+            else if (typeof activeWorkspaceEventId !== 'undefined' && activeWorkspaceEventId) { renderWorkspace(activeWorkspaceEventId); }
             else { setSalesTab('Receipt', document.getElementById('st-receipts')); openTab('sales-hub', null); }
             alert(usedAmount > 0 ? "Payment Saved & Bills Updated Automatically!" : "Payment Saved Successfully!");
         }
@@ -18501,6 +18548,7 @@ function openPurchaseOrderModal() {
             // when this was actually opened from the event panel — now matches PB's
             // smarter behaviour of returning straight to the workspace when relevant.
             if (typeof activeWorkspaceEventId !== 'undefined' && activeWorkspaceEventId) { renderWorkspace(activeWorkspaceEventId); }
+            else if (typeof reopenPendingPreview === 'function' && reopenPendingPreview()) { /* preview restored — skip hub jump */ }
             else { setPurchaseTab('PO', document.getElementById('pt-orders')); openTab('purchase-hub', null); }
             tempEventIdForPurchase = null;
         }
@@ -18903,6 +18951,7 @@ function openPurchaseOrderModal() {
             tempEventIdForPurchase = null; convertingPOId = null; editingPurchaseId = null;
             updateDataAndUI(); document.getElementById('purchaseBillModal').style.display = 'none';
             if (typeof activeWorkspaceEventId !== 'undefined' && activeWorkspaceEventId) { renderWorkspace(activeWorkspaceEventId); }
+            else if (typeof reopenPendingPreview === 'function' && reopenPendingPreview()) { /* preview restored — skip hub jump */ }
             else { setPurchaseTab('PB', document.getElementById('pt-bills')); openTab('purchase-hub', null); }
         }
 
@@ -19251,6 +19300,8 @@ function openPurchaseOrderModal() {
             editingPurchaseId = null;
             updateDataAndUI();
             document.getElementById('paymentOutModal').style.display = 'none';
+            // 🚀 PREVIEW-REOPEN: restore the preview this form was launched from.
+            if (typeof reopenPendingPreview === 'function') reopenPendingPreview();
             alert("Payment Updated & Linked Records Synced!");
         }
         function openConvertPOModal(poId) {
@@ -19470,6 +19521,12 @@ function openPurchaseOrderModal() {
         // ==========================================
         function viewDetails(id, context = 'sales') {
             hideNavAndFabs();
+            // 🚀 PREVIEW-REOPEN: remember what this preview is showing. When an action
+            // button closes this preview and its form later saves, the preview is
+            // restored automatically with fresh data (latest status). Opening any
+            // new preview also clears a stale pending-reopen from an abandoned flow.
+            window.__pendingReopen = null;
+            window.__lastPreview = { modalId: 'quoteViewModal', id: id, context: context };
             let vModal = document.getElementById('quoteViewModal');
             if (vModal) vModal.style.setProperty('z-index', '20000', 'important');
             let record = null;
@@ -22400,6 +22457,8 @@ function openPurchaseOrderModal() {
 
             updateDataAndUI();
             document.getElementById('expenseModal').style.display = 'none';
+            // 🚀 PREVIEW-REOPEN: restore the preview this form was launched from.
+            if (typeof reopenPendingPreview === 'function') reopenPendingPreview();
             alert(due > 0 ? "Expense Saved & Added to Payables!" : "Expense Saved & Paid Successfully!");
         }
 
@@ -28072,6 +28131,17 @@ Please use a different name or edit the existing item.`);
                 }
             }
             if(oldSaveDirectInvoiceData) oldSaveDirectInvoiceData();
+            // 🚀 PREVIEW-REOPEN: when this invoice form was opened from a preview's
+            // action button (e.g. Edit from the document view), restore that preview
+            // after a successful save. "Form modal closed" is the success signal —
+            // validation errors keep the form open, and cancelling clears the
+            // pending reopen via the ✕ button handler, so no false reopens.
+            if (window.__pendingReopen) {
+                let diM = document.getElementById('directInvoiceModal');
+                if (diM && diM.style.display === 'none') {
+                    if (typeof reopenPendingPreview === 'function') reopenPendingPreview();
+                }
+            }
         };
         // 🚀 CALENDAR AUTO-LOAD FIX (Page khulte hi data layega)
         setTimeout(() => {
