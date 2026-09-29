@@ -3120,6 +3120,50 @@
             margin-bottom: 10px;
         }
 
+
+        /* ============================================================
+           🤖 NEXA BOT — AI data assistant (local engine, zero cost)
+           ============================================================ */
+        #nexa-fab { position: fixed; left: 16px; bottom: 92px; z-index: 8600; width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer; background: linear-gradient(135deg, #1D4ED8, #7C3AED); color: white; font-size: 23px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(29, 78, 216, 0.4); transition: transform .2s ease, box-shadow .2s; }
+        #nexa-fab:hover { transform: scale(1.08); box-shadow: 0 10px 28px rgba(29, 78, 216, 0.5); }
+        #nexa-panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9600; height: 80vh; background: var(--bg-color); border-radius: 20px 20px 0 0; box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.25); display: none; flex-direction: column; overflow: hidden; }
+        #nexa-panel.open { display: flex; animation: nexaSlideUp .3s cubic-bezier(.16, 1, .3, 1); }
+        @keyframes nexaSlideUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+        .nexa-head { background: linear-gradient(135deg, #1D4ED8, #7C3AED); color: white; padding: 14px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .nexa-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .nexa-title { font-weight: 800; font-size: 15px; }
+        .nexa-sub { font-size: 10.5px; opacity: .85; font-weight: 600; }
+        .nexa-close { margin-left: auto; background: rgba(255,255,255,.15); border: none; color: white; width: 30px; height: 30px; border-radius: 8px; font-size: 15px; cursor: pointer; }
+        .nexa-close:hover { background: rgba(255,255,255,.3); }
+        .nexa-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+        .nexa-bubble { max-width: 88%; padding: 10px 13px; border-radius: 14px; font-size: 13px; line-height: 1.55; word-wrap: break-word; }
+        .nexa-bot { background: white; border: 1px solid var(--border-color); border-bottom-left-radius: 4px; align-self: flex-start; box-shadow: 0 2px 8px rgba(15,23,42,.05); }
+        .nexa-user { background: linear-gradient(135deg, #1D4ED8, #2563EB); color: white; border-bottom-right-radius: 4px; align-self: flex-end; }
+        .nexa-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .nexa-act { background: var(--accent-light, #EFF6FF); color: var(--accent-color, #1D4ED8); border: 1px solid #BFDBFE; border-radius: 8px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: .15s; }
+        .nexa-act:hover { background: #DBEAFE; }
+        .nexa-act.primary { background: var(--accent-color, #1D4ED8); color: white; border-color: transparent; }
+        .nexa-act.primary:hover { background: var(--accent-hover, #1E40AF); }
+        .nexa-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .nexa-chip { background: white; border: 1px dashed #CBD5E1; color: #475569; border-radius: 99px; padding: 5px 11px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .nexa-chip:hover { border-color: var(--accent-color, #1D4ED8); color: var(--accent-color, #1D4ED8); }
+        .nexa-typing { display: inline-flex; gap: 4px; align-items: center; padding: 4px 0; }
+        .nexa-typing span { width: 7px; height: 7px; background: #94A3B8; border-radius: 50%; animation: nexaDot 1s infinite; }
+        .nexa-typing span:nth-child(2) { animation-delay: .15s; }
+        .nexa-typing span:nth-child(3) { animation-delay: .3s; }
+        @keyframes nexaDot { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+        .nexa-input-row { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border-color); background: white; flex-shrink: 0; }
+        .nexa-input { flex: 1; border: 1.5px solid var(--border-color); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-family: inherit; outline: none; background: var(--bg-color); }
+        .nexa-input:focus { border-color: var(--accent-color, #1D4ED8); }
+        .nexa-send { background: linear-gradient(135deg, #1D4ED8, #7C3AED); color: white; border: none; border-radius: 10px; width: 44px; cursor: pointer; font-size: 16px; }
+        .nexa-send:hover { opacity: .92; }
+        /* Desktop: floating bot stays clear of the sidebar, chat becomes a
+           fixed side card — website-style support widget. */
+        @media (min-width: 1024px) {
+            #nexa-fab { left: 246px; bottom: 24px; }
+            #nexa-panel { left: auto; right: 24px; bottom: 24px; width: 400px; height: 600px; max-height: calc(100vh - 120px); border-radius: 16px; border: 1px solid var(--border-color); }
+        }
+
     </style>
 
     <div id="global-loader">
@@ -28675,6 +28719,432 @@ Please use a different name or edit the existing item.`);
             if (printWin) { printWin.document.open(); printWin.document.write(html); printWin.document.close(); }
         };
     </script>
+    <!-- ================= 🤖 NEXA BOT (AI Data Assistant) ================= -->
+    <button id="nexa-fab" onclick="toggleNexa()" title="Nexa Bot" aria-label="Open Nexa Bot">🤖</button>
+    <div id="nexa-panel" role="dialog" aria-label="Nexa Bot chat">
+        <div class="nexa-head">
+            <div class="nexa-avatar">🤖</div>
+            <div>
+                <div class="nexa-title">Nexa Bot</div>
+                <div class="nexa-sub">Your AI data assistant — always free</div>
+            </div>
+            <button class="nexa-close" onclick="toggleNexa(false)" aria-label="Close chat">✕</button>
+        </div>
+        <div class="nexa-msgs" id="nexa-msgs"></div>
+        <div class="nexa-input-row">
+            <input id="nexa-input" class="nexa-input" placeholder="Ask about events, clients, dues, expenses..." onkeydown="if(event.key==='Enter') nexaSend()">
+            <button class="nexa-send" onclick="nexaSend()" aria-label="Send">➤</button>
+        </div>
+    </div>
+
+    <script>
+        /* ================================================================
+           🤖 NEXA BOT — local AI-style data assistant.
+           100% FREE: no external API, no API key, no data ever leaves the
+           device. Parses Hinglish/English questions and answers from the
+           LIVE workspace data (leads, parties, invoices, payments,
+           expenses, tasks). Works offline (PWA) too.
+           ================================================================ */
+        window.toggleNexa = function (force) {
+            let panel = document.getElementById('nexa-panel');
+            let isOpen = panel.classList.contains('open');
+            let shouldOpen = (typeof force === 'boolean') ? force : !isOpen;
+            if (shouldOpen) {
+                panel.classList.add('open');
+                if (!panel.dataset.welcomed) {
+                    panel.dataset.welcomed = '1';
+                    nexaBotSay(
+                        "Hi Deepak! I'm <b>Nexa Bot</b> 🤖 — your AI data assistant.<br>Ask me anything about your <b>events, clients, invoices, dues, expenses or tasks</b> — in <b>English, Hindi/Hinglish or Gujarati</b> (English letters). I understand them all.",
+                        [],
+                        ["When is Payal's event?", "Unpaid invoices", "Today's events", "Total revenue this month", "Pending tasks"]
+                    );
+                }
+                setTimeout(function () { let inp = document.getElementById('nexa-input'); if (inp) inp.focus(); }, 250);
+            } else {
+                panel.classList.remove('open');
+            }
+        };
+
+        window.nexaSend = function (presetText) {
+            let inp = document.getElementById('nexa-input');
+            let q = (presetText || inp.value || '').trim();
+            if (!q) return;
+            if (inp) inp.value = '';
+            let msgs = document.getElementById('nexa-msgs');
+            let u = document.createElement('div');
+            u.className = 'nexa-bubble nexa-user';
+            u.innerText = q;
+            msgs.appendChild(u);
+            // typing indicator
+            let t = document.createElement('div');
+            t.className = 'nexa-bubble nexa-bot';
+            t.innerHTML = '<span class="nexa-typing"><span></span><span></span><span></span></span>';
+            msgs.appendChild(t);
+            msgs.scrollTop = msgs.scrollHeight;
+            setTimeout(function () {
+                let ans = nexaThink(q);
+                t.innerHTML = ans.html;
+                if (ans.actions && ans.actions.length) {
+                    let acts = document.createElement('div');
+                    acts.className = 'nexa-actions';
+                    ans.actions.forEach(function (a) {
+                        let b = document.createElement('button');
+                        b.className = 'nexa-act' + (a.primary ? ' primary' : '');
+                        b.innerText = a.label;
+                        b.onclick = function () { window.nexaAction(a.type, a.a, a.b); };
+                        acts.appendChild(b);
+                    });
+                    t.appendChild(acts);
+                }
+                if (ans.chips && ans.chips.length) {
+                    let ch = document.createElement('div');
+                    ch.className = 'nexa-chips';
+                    ans.chips.forEach(function (c) {
+                        let s = document.createElement('button');
+                        s.className = 'nexa-chip';
+                        s.innerText = c;
+                        s.onclick = function () { window.nexaSend(c); };
+                        ch.appendChild(s);
+                    });
+                    t.appendChild(ch);
+                }
+                msgs.scrollTop = msgs.scrollHeight;
+            }, 420);
+        };
+
+        // Central dispatcher for the bot's action buttons — closes the chat
+        // first so the target screen opens clean (same UX as preview buttons).
+        window.nexaAction = function (type, a, b) {
+            window.toggleNexa(false);
+            try {
+                if (type === 'viewEvent' && typeof openPanel === 'function') { openTab('crm', null); setTimeout(function () { openPanel(a); }, 120); return; }
+                if (type === 'viewDoc' && typeof viewDetails === 'function') { viewDetails(a, b || 'sales'); return; }
+                if (type === 'tab' && typeof openTab === 'function') { openTab(a, null); return; }
+                if (type === 'call') { window.location.href = 'tel:' + a; return; }
+                if (type === 'wa') { window.open('https://wa.me/91' + String(a).replace(/\D/g, '').slice(-10), '_blank'); return; }
+                if (type === 'ask') { window.toggleNexa(true); window.nexaSend(a); return; }
+            } catch (e) { console.warn('Nexa action failed:', e); }
+        };
+
+        function nexaBubbleWrap(inner) { return inner; }
+
+        function nexaAllowed(mod) {
+            try {
+                if (typeof currentPermissions === 'undefined' || !currentPermissions || !currentPermissions.modules) return true;
+                return !!currentPermissions.modules[mod];
+            } catch (e) { return true; }
+        }
+
+        function nexaFmtDate(d) {
+            if (!d) return '—';
+            let dt = new Date(d);
+            if (isNaN(dt.getTime())) return '—';
+            return dt.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        // Fuzzy entity matcher: finds the best client/party whose name is
+        // mentioned in the question (full name > single word >= 3 chars).
+        function nexaFindEntity(q) {
+            let best = null, bestScore = 0;
+            function consider(id, name, source, rec) {
+                let n = String(name || '').toLowerCase().trim();
+                if (!n || n === 'unknown') return;
+                let score = 0;
+                if (n.length >= 3 && q.includes(n)) score = n.length + 5;
+                else {
+                    let words = n.split(/\s+/);
+                    for (let i = 0; i < words.length; i++) {
+                        let w = words[i];
+                        if (w.length >= 3 && q.includes(w)) score = Math.max(score, w.length);
+                    }
+                }
+                if (score > bestScore) { bestScore = score; best = { id: id, source: source, rec: rec }; }
+            }
+            Object.values(leadsDB).forEach(function (l) { consider(l.id, l.name, 'lead', l); });
+            Object.values(partiesDB).forEach(function (p) { consider(p.id, p.name, 'party', p); });
+            return bestScore >= 3 ? best : null;
+        }
+
+        // Date-range filter parsed from the question (null = all time).
+        function nexaPeriod(q) {
+            let now = new Date();
+            function dayStart(d) { let x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+            if (/\b(aaj|aaje|today)\b/.test(q)) { let s = dayStart(now); return { label: 'today', from: s, to: new Date(s.getTime() + 86400000 - 1) }; }
+            if (/\b(kal|kaale|tomorrow)\b/.test(q)) { let s = dayStart(now.getTime() + 86400000); return { label: 'tomorrow', from: s, to: new Date(s.getTime() + 86400000 - 1) }; }
+            if (/(is hafte|is week|this week|aa athvadi|aa hafta)/.test(q)) { let s = dayStart(now.getTime() - ((now.getDay() + 6) % 7) * 86400000); return { label: 'this week', from: s, to: new Date(s.getTime() + 7 * 86400000 - 1) }; }
+            if (/(is mahine|is month|this month|month ka|mahine ka|aa mahino|aa mahina)/.test(q)) { let s = new Date(now.getFullYear(), now.getMonth(), 1); return { label: 'this month', from: s, to: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59) }; }
+            return null;
+        }
+
+        function nexaInPeriod(dateStr, period) {
+            if (!period) return true;
+            if (!dateStr) return false;
+            let d = new Date(dateStr);
+            return !isNaN(d.getTime()) && d >= period.from && d <= period.to;
+        }
+
+        function nexaEventCardHtml(l) {
+            let dates = (l.dates && l.dates.length ? l.dates : (l.events || []));
+            let rows = '';
+            if (dates.length) {
+                rows = dates.map(function (d) {
+                    return '📅 <b>' + sanitize(d.name || l.func || 'Event') + '</b> — ' + nexaFmtDate(d.date) +
+                        (d.time ? ' · ⏰ ' + sanitize(d.time) : '') +
+                        (d.venue ? '<br>📍 ' + sanitize(d.venue) : '');
+                }).join('<hr style="border:none;border-top:1px dashed #E2E8F0;margin:7px 0">');
+            } else {
+                rows = '📅 ' + sanitize(l.func || 'Event') + ' — date not set yet';
+            }
+            let html = '🎂 <b>' + sanitize(l.name) + '</b>' + (l.eventTitle ? ' — ' + sanitize(l.eventTitle) : (l.func ? ' — ' + sanitize(l.func) : '')) + '<br>' + rows;
+            html += '<br>👤 Status: <b>' + sanitize(l.status || 'Lead') + '</b>' + (l.phone ? ' · 📞 +91 ' + sanitize(String(l.phone)) : '');
+            if (l.budget) html += '<br>💰 Budget: ₹' + Number(l.budget).toLocaleString('en-IN');
+            return html;
+        }
+
+        // ---------------- THE BRAIN ----------------
+        function nexaThink(rawQ) {
+            let q = String(rawQ || '').toLowerCase().trim().replace(/[?!.,]/g, ' ');
+            let entity = nexaFindEntity(q);
+            let period = nexaPeriod(q);
+            let actions = [], chips = [];
+
+            // Data still loading?
+            if (!window.__workspaceHydrated) {
+                return { html: '⏳ Data is still loading — please ask me again in a moment.', actions: [], chips: [] };
+            }
+
+            // 1. Greetings
+            if (/^(hi|hii+|hello|hey|namaste|hlo|yo|good (morning|evening|afternoon))\b/.test(q) || /kaise ho|how are you|kem cho|kem chho/.test(q)) {
+                return {
+                    html: "Hello! 👋 I'm <b>Nexa Bot</b>. I can look up <b>events, clients, phone numbers, invoices, pending dues, expenses, revenue and tasks</b> from your workspace.<br>Try: <i>“Payal ka event kab hai?”</i> or <i>“unpaid invoices”</i>.",
+                    actions: [], chips: ["When is Payal's event?", "Unpaid invoices", "Total revenue", "Pending tasks"]
+                };
+            }
+
+            // 2. Help
+            if (/(help|kya kar sakte|what can you do|madad|features|shu kari shak|su kari shak)/.test(q)) {
+                return {
+                    html: "Here's what I can answer:<br>📅 <b>Events</b> — “Payal ka event kab hai?”, “Payal no event kyare chhe?”, “aaj ke events”, “upcoming events”<br>👤 <b>Clients</b> — “Rahul ka number”, “kitne pending hai”<br>🧾 <b>Invoices</b> — “unpaid invoices”, “total revenue this month”<br>💸 <b>Expenses</b> — “is month ka kharcha”<br>✅ <b>Tasks</b> — “pending tasks”",
+                    actions: [], chips: ["Today's events", "Unpaid invoices", "This month's expenses"]
+                };
+            }
+
+            // 3. Phone number of a person
+            if (/(number|phone|mobile|contact|nambhar|no kya)/.test(q) && entity) {
+                let p = entity.rec.phone;
+                if (!p && entity.source === 'party') {
+                    // try a lead with the same name
+                    let l = Object.values(leadsDB).find(function (x) { return (x.name || '').toLowerCase() === String(entity.rec.name || '').toLowerCase(); });
+                    if (l) p = l.phone;
+                }
+                if (!p) return { html: "I couldn't find a phone number for <b>" + sanitize(entity.rec.name) + "</b>.", actions: [], chips: [] };
+                return {
+                    html: '📞 <b>' + sanitize(entity.rec.name) + '</b> — +91 ' + sanitize(String(p)),
+                    actions: [
+                        { label: '📞 Call', type: 'call', a: p },
+                        { label: '💬 WhatsApp', type: 'wa', a: p },
+                        { label: 'View Event', type: 'viewEvent', a: entity.source === 'lead' ? entity.id : null, primary: true }
+                    ].filter(function (a) { return a.a; }),
+                    chips: []
+                };
+            }
+
+            // 4. Event date of a person ("X ka event kab hai")
+            if (/(event|function|program|yaad|date|kyare|tare|tarih)/.test(q) && entity && entity.source === 'lead') {
+                let l = entity.rec;
+                let acts = [{ label: '👁️ View Event', type: 'viewEvent', a: entity.id, primary: true }];
+                if (l.phone) acts.push({ label: '📞 Call', type: 'call', a: l.phone });
+                return { html: nexaEventCardHtml(l), actions: acts, chips: ["Unpaid invoices", "Today's events"] };
+            }
+
+            // 5. Party pending/due ("X ka kitna pending/baaki hai")
+            if (/(pending|baaki|baki|bakki|due|udhar|udhaar|bacha|kitna paisa|ketlu|ketla|balance)/.test(q) && entity) {
+                if (!nexaAllowed('sales')) return { html: "⛔ You don't have permission to view billing data.", actions: [], chips: [] };
+                let pid = entity.id;
+                let billed = 0, due = 0, n = 0;
+                Object.values(salesDB).forEach(function (s) {
+                    if (s.type === 'Invoice' && (s.partyId === pid || (entity.source === 'lead' && s.eventId === pid))) { billed += s.finalTotal || 0; due += s.balanceDue || 0; n++; }
+                });
+                let received = billed - due;
+                let vendorDue = 0;
+                Object.values(purchaseDB).forEach(function (p) { if (p.type === 'PB' && p.partyId === pid) vendorDue += p.balanceDue || 0; });
+                let html = '👤 <b>' + sanitize(entity.rec.name) + '</b><br>🧾 Invoices: <b>' + n + '</b> · Billed: ₹' + billed.toLocaleString('en-IN') +
+                    '<br>✅ Received: <b style="color:#059669">₹' + received.toLocaleString('en-IN') + '</b>' +
+                    (due > 0 ? '<br>🔴 Pending: <b style="color:#DC2626">₹' + due.toLocaleString('en-IN') + '</b>' : '<br>🟢 Fully paid — no pending dues');
+                if (vendorDue > 0) html += '<br>📦 We also owe them (vendor): ₹' + vendorDue.toLocaleString('en-IN');
+                return {
+                    html: html,
+                    actions: [{ label: '👁️ View Event', type: 'viewEvent', a: entity.source === 'lead' ? entity.id : null, primary: true }, { label: '🧾 Invoices', type: 'tab', a: 'sales-hub' }].filter(function (a) { return a.a; }),
+                    chips: ['Unpaid invoices']
+                };
+            }
+
+            // 6. Unpaid invoices list
+            if (/(unpaid|pending invoice|due invoice|baaki bill|pending bill|kitne invoice|ketla invoice|pending payment|receivable|bill baki)/.test(q)) {
+                if (!nexaAllowed('sales')) return { html: "⛔ You don't have permission to view Sales data.", actions: [], chips: [] };
+                let invs = Object.values(salesDB).filter(function (s) { return s.type === 'Invoice' && (s.balanceDue || 0) > 0; }).sort(function (a, b) { return (b.balanceDue || 0) - (a.balanceDue || 0); });
+                if (!invs.length) return { html: '🎉 Great news! <b>No unpaid invoices</b> — everything is fully collected.', actions: [], chips: ["Total revenue", "Pending tasks"] };
+                let total = invs.reduce(function (t, s) { return t + (s.balanceDue || 0); }, 0);
+                let rows = invs.slice(0, 5).map(function (s) {
+                    let nm = (partiesDB[s.partyId] && partiesDB[s.partyId].name) || (s.event || 'Invoice');
+                    return '🧾 <b>' + sanitize(nm) + '</b> — ₹' + (s.balanceDue || 0).toLocaleString('en-IN') +
+                        ' <span style="color:#94A3B8;font-size:11px">(' + sanitize(s.id) + ')</span>';
+                }).join('<br>');
+                if (invs.length > 5) rows += '<br><span style="color:#94A3B8;font-size:11px">…and ' + (invs.length - 5) + ' more</span>';
+                return {
+                    html: '🔴 <b>' + invs.length + ' unpaid invoice' + (invs.length > 1 ? 's' : '') + '</b> — total pending <b style="color:#DC2626">₹' + total.toLocaleString('en-IN') + '</b><br><br>' + rows,
+                    actions: [{ label: '🧾 Open Sales Hub', type: 'tab', a: 'sales-hub', primary: true }],
+                    chips: ["Total revenue", "This month's expenses"]
+                };
+            }
+
+            // 7. Events by period (today / tomorrow / this week / month / upcoming)
+            let wantsEvents = /(event|function|show|kaam|list)/.test(q) || period;
+            if (period && /(event|kaam|program)/.test(q)) {
+                let evs = Object.values(leadsDB).filter(function (l) {
+                    let dates = (l.dates && l.dates.length ? l.dates : (l.events || []));
+                    return dates.some(function (d) { return nexaInPeriod(d.date, period); });
+                });
+                if (!evs.length) return { html: '📭 No events found for <b>' + period.label + '</b>.', actions: [], chips: ["Upcoming events", "Pending tasks"] };
+                let rows = evs.slice(0, 6).map(function (l) {
+                    let dates = (l.dates && l.dates.length ? l.dates : (l.events || []));
+                    let d = dates.find(function (x) { return nexaInPeriod(x.date, period); }) || dates[0] || {};
+                    return '📅 <b>' + sanitize(l.name) + '</b> — ' + sanitize(d.name || l.func || 'Event') + ' · ' + nexaFmtDate(d.date);
+                }).join('<br>');
+                return {
+                    html: '📅 <b>' + evs.length + ' event' + (evs.length > 1 ? 's' : '') + '</b> ' + period.label + ':<br><br>' + rows,
+                    actions: [{ label: '📅 Open Events', type: 'tab', a: 'events', primary: true }].concat(evs.length === 1 ? [{ label: '👁️ View Event', type: 'viewEvent', a: evs[0].id, primary: true }] : []),
+                    chips: ["Unpaid invoices"]
+                };
+            }
+            if (/(upcoming|aane wale|agla|next events|all events|sab event|badha event|sara event)/.test(q)) {
+                let evs = Object.values(leadsDB).filter(function (l) {
+                    return (l.dates && l.dates.length ? l.dates : (l.events || [])).some(function (d) { return d.date && new Date(d.date) >= new Date(new Date().setHours(0, 0, 0, 0)); });
+                }).sort(function (a, b) {
+                    let da = (a.dates && a.dates[0] && a.dates[0].date) || '9999'; let db = (b.dates && b.dates[0] && b.dates[0].date) || '9999';
+                    return da < db ? -1 : 1;
+                });
+                if (!evs.length) return { html: '📭 No upcoming events scheduled.', actions: [], chips: [] };
+                let rows = evs.slice(0, 6).map(function (l) {
+                    let d = (l.dates && l.dates[0]) || (l.events && l.events[0]) || {};
+                    return '📅 <b>' + sanitize(l.name) + '</b> — ' + sanitize(d.name || l.func || 'Event') + ' · ' + nexaFmtDate(d.date);
+                }).join('<br>');
+                return {
+                    html: '📅 <b>Upcoming events (' + evs.length + '):</b><br><br>' + rows,
+                    actions: [{ label: '📅 Open Events', type: 'tab', a: 'events', primary: true }],
+                    chips: ["Today's events", "Unpaid invoices"]
+                };
+            }
+
+            // 8. Revenue / income
+            if (/(revenue|income|kamai|kamani|total sale|total billing|sale kitna|kitna bill|ketlu bill)/.test(q)) {
+                if (!nexaAllowed('sales')) return { html: "⛔ You don't have permission to view Sales data.", actions: [], chips: [] };
+                let tot = 0, n = 0;
+                Object.values(salesDB).forEach(function (s) {
+                    if (s.type === 'Invoice' && nexaInPeriod(s.date, period) && (typeof shouldShowInFY !== 'function' || shouldShowInFY(s))) { tot += s.finalTotal || 0; n++; }
+                });
+                let rec = 0;
+                Object.values(salesDB).forEach(function (s) {
+                    if (s.type === 'Receipt' && nexaInPeriod(s.date, period) && (typeof shouldShowInFY !== 'function' || shouldShowInFY(s))) rec += s.amount || 0;
+                });
+                return {
+                    html: '💰 <b>Revenue ' + (period ? period.label : 'this financial year') + ':</b> ₹' + tot.toLocaleString('en-IN') +
+                        ' <span style="color:#94A3B8;font-size:11px">(' + n + ' invoices)</span><br>✅ Collected: ₹' + rec.toLocaleString('en-IN'),
+                    actions: [{ label: '📊 Open Reports', type: 'tab', a: 'reports-hub', primary: true }],
+                    chips: ["Total expenses", "Unpaid invoices"]
+                };
+            }
+
+            // 9. Expenses
+            if (/(kharch|kharcha|expense|kharche|spend)/.test(q)) {
+                if (!nexaAllowed('exp')) return { html: "⛔ You don't have permission to view Expenses.", actions: [], chips: [] };
+                let tot = 0, n = 0;
+                Object.values(expenseDB).forEach(function (e) { if (nexaInPeriod(e.date, period)) { tot += e.amount || 0; n++; } });
+                let unpaid = 0;
+                Object.values(expenseDB).forEach(function (e) { if ((e.balanceDue || 0) > 0) unpaid += e.balanceDue; });
+                let html = '💸 <b>Expenses ' + (period ? period.label : 'total') + ':</b> ₹' + tot.toLocaleString('en-IN') + ' <span style="color:#94A3B8;font-size:11px">(' + n + ' entries)</span>';
+                if (unpaid > 0) html += '<br>🔴 Unpaid expense dues: ₹' + unpaid.toLocaleString('en-IN');
+                return { html: html, actions: [{ label: '💸 Open Expenses', type: 'tab', a: 'expense-hub', primary: true }], chips: ["Total revenue", "Pending tasks"] };
+            }
+
+            // 10. Tasks
+            if (/(task|kaam|todo|reminder|pending work)/.test(q) && !entity) {
+                let ts = Object.values(globalTasksDB || {}).filter(function (t) { return !t.status || t.status === 'Pending' || t.status === 'pending'; });
+                if (!ts.length) return { html: '✅ No pending tasks — all clear!', actions: [], chips: ["Today's events"] };
+                let rows = ts.slice(0, 5).map(function (t) {
+                    return '🔹 ' + sanitize(t.title || 'Task') + (t.due ? ' <span style="color:#94A3B8;font-size:11px">(due ' + nexaFmtDate(t.due) + ')</span>' : '');
+                }).join('<br>');
+                return { html: '✅ <b>' + ts.length + ' pending task' + (ts.length > 1 ? 's' : '') + ':</b><br><br>' + rows, actions: [{ label: '✅ Open Tasks', type: 'tab', a: 'tasks', primary: true }], chips: ["Today's events"] };
+            }
+
+            // 11. Overall pending (receivable/payable)
+            if (/(kitna pending|ketlu pending|ketla pending|total pending|total due|recover karna|how much pending)/.test(q)) {
+                let rec = 0;
+                Object.values(salesDB).forEach(function (s) { if (s.type === 'Invoice') rec += s.balanceDue || 0; });
+                let pay = 0;
+                Object.values(purchaseDB).forEach(function (p) { if (p.type === 'PB') pay += p.balanceDue || 0; });
+                Object.values(expenseDB).forEach(function (e) { pay += e.balanceDue || 0; });
+                return {
+                    html: '📊 <b>Overall pending:</b><br>🔴 To collect: <b style="color:#DC2626">₹' + rec.toLocaleString('en-IN') + '</b><br>🟠 To pay: <b style="color:#D97706">₹' + pay.toLocaleString('en-IN') + '</b>',
+                    actions: [{ label: '🧾 Sales Hub', type: 'tab', a: 'sales-hub' }, { label: '📦 Purchase Hub', type: 'tab', a: 'purchase-hub' }],
+                    chips: ["Unpaid invoices"]
+                };
+            }
+
+            // 11.5 COUNTS: "kitne/kitla events hai?", "kitni parties?", "kitne invoice?"
+            if (/(kitne|kitna|kitni|ketla|ketlu|ketli|how many)/.test(q) && !entity) {
+                let evs = Object.values(leadsDB).length;
+                let won = Object.values(leadsDB).filter(function (l) { return l.status === 'Won'; }).length;
+                if (/(event|lead|program)/.test(q)) {
+                    return { html: '\ud83d\udcc5 You have <b>' + evs + ' events/leads</b> in this workspace (' + won + ' confirmed events).', actions: [{ label: '\ud83d\udcc5 Open Events', type: 'tab', a: 'events', primary: true }], chips: ["Today's events", "Upcoming events"] };
+                }
+                if (/(party|client|customer)/.test(q)) {
+                    return { html: '\ud83d\udc64 You have <b>' + Object.keys(partiesDB).length + ' parties/clients</b> in this workspace.', actions: [{ label: '\ud83d\udc64 Open Parties', type: 'tab', a: 'party-master', primary: true }], chips: [] };
+                }
+                if (/(invoice|bill)/.test(q) && nexaAllowed('sales')) {
+                    let invs = Object.values(salesDB).filter(function (s) { return s.type === 'Invoice'; }).length;
+                    return { html: '\ud83e\uddfe You have <b>' + invs + ' invoices</b> in this workspace.', actions: [{ label: '\ud83e\uddfe Open Sales Hub', type: 'tab', a: 'sales-hub', primary: true }], chips: ['Unpaid invoices'] };
+                }
+            }
+
+            // 12. Entity summary fallback (name found, no specific intent)
+            if (entity) {
+                if (entity.source === 'lead') {
+                    let l = entity.rec;
+                    return { html: nexaEventCardHtml(l), actions: [{ label: '👁️ View Event', type: 'viewEvent', a: entity.id, primary: true }], chips: ["Unpaid invoices", "Today's events"] };
+                }
+                let pid = entity.id;
+                let billed = 0, due = 0;
+                Object.values(salesDB).forEach(function (s) { if (s.type === 'Invoice' && s.partyId === pid) { billed += s.finalTotal || 0; due += s.balanceDue || 0; } });
+                return {
+                    html: '👤 <b>' + sanitize(entity.rec.name) + '</b> (' + sanitize(entity.rec.type || 'Party') + ')<br>📞 +91 ' + sanitize(String(entity.rec.phone || '—')) +
+                        (billed ? '<br>🧾 Billed: ₹' + billed.toLocaleString('en-IN') + (due > 0 ? ' · 🔴 Pending: ₹' + due.toLocaleString('en-IN') : ' · 🟢 Settled') : ''),
+                    actions: [{ label: '📒 Ledger', type: 'tab', a: 'party-master' }],
+                    chips: ["Unpaid invoices"]
+                };
+            }
+
+            // 13. Fallback
+            return {
+                html: "🤔 I didn't quite get that. I understand <b>English, Hindi/Hinglish and Gujarati</b> (in English letters). Try:<br>📅 <b>Events</b> — “Payal ka event kab hai?” / “Payal no event kyare chhe?”<br>📞 <b>Clients</b> — “Rahul ka number” / “Rahul no nambhar”<br>🧾 <b>Dues</b> — “unpaid invoices” / “ketlu baki chhe?”<br>💰 <b>Revenue & expenses</b> — “total revenue this month”",
+                actions: [],
+                chips: ["When is Payal's event?", "Unpaid invoices", "Total revenue", "Pending tasks"]
+            };
+        }
+
+        // Renders a bot message directly (welcome message etc.)
+        function nexaBotSay(html, actions, chips) {
+            let msgs = document.getElementById('nexa-msgs');
+            if (!msgs) return;
+            let b = document.createElement('div');
+            b.className = 'nexa-bubble nexa-bot';
+            b.innerHTML = html;
+            msgs.appendChild(b);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+
+    </script>
+
 </body>
 
 </html>
