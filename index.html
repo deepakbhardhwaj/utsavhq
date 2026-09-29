@@ -2960,6 +2960,130 @@
         }
 
         /* ============================================================
+           🚀 DESKTOP FORM DIALOGS — data-entry forms open as proper
+           large desktop dialogs instead of the small mobile popup box
+           (~450-550px). The !important is required because each form
+           modal carries its own per-modal <style> tag later in the
+           document, which would otherwise win the cascade against
+           these rules. Mobile is untouched (min-width guard).
+           ============================================================ */
+        @media (min-width: 1024px) {
+            :is(#leadModal, #paymentModal, #paymentOutModal, #otherIncomeModal,
+                #expenseModal, #partyModal, #assetModal, #loanModal, #quotationModal,
+                #quotePreviewModal, #directInvoiceModal, #invPreviewModal,
+                #purchaseOrderModal, #purchaseBillModal, #directEventModal,
+                #companyProfileModal, #orderBookModal, #outwardChallanModal,
+                #returnStockModal, #multiDateModal, #addBankModal, #bankActionModal,
+                #smartBankActionModal, #itemMasterModal, #stockTransferModal,
+                #emiModal, #feedbackModal, #myProfileModal, #teamModal,
+                #addStaffModal, #permissionModal, #manageCatModal, #manageSourceModal,
+                #clearChequeModal, #stockAuditModal, #quickTaskModal,
+                #quickMeetingModal, #crmMeetingPromptModal, #inventorySelectModal,
+                #godownModal, #directStockModal, #eventDocListModal,
+                #leadEventPanel, #quoteEventPanel, #invEventPanel) .modal-content {
+                width: min(720px, 94vw) !important;
+                max-width: min(720px, 94vw) !important;
+                max-height: 86vh !important;
+            }
+
+            /* Two-column field flow on desktop: bare .form-group field blocks
+               pair up side-by-side like a proper desktop form. The safety
+               rule is the second one below — anything that is NOT a plain
+               form-group (custom sections, flex rows, item lists, buttons,
+               event panels) always spans the FULL width, so no custom form
+               layout can ever get squeezed by the grid. */
+            :is(#leadModal, #paymentModal, #paymentOutModal, #otherIncomeModal,
+                #expenseModal, #partyModal, #assetModal, #loanModal, #quotationModal,
+                #quotePreviewModal, #directInvoiceModal, #invPreviewModal,
+                #purchaseOrderModal, #purchaseBillModal, #directEventModal,
+                #companyProfileModal, #orderBookModal, #outwardChallanModal,
+                #returnStockModal, #multiDateModal, #addBankModal, #bankActionModal,
+                #smartBankActionModal, #itemMasterModal, #stockTransferModal,
+                #emiModal, #feedbackModal, #myProfileModal, #teamModal,
+                #addStaffModal, #permissionModal, #manageCatModal, #manageSourceModal,
+                #clearChequeModal, #stockAuditModal, #quickTaskModal,
+                #quickMeetingModal, #crmMeetingPromptModal, #inventorySelectModal,
+                #godownModal, #directStockModal, #eventDocListModal,
+                #leadEventPanel, #quoteEventPanel, #invEventPanel) .modal-content form {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2px 18px;
+                align-items: start;
+            }
+
+            :is(#leadModal, #paymentModal, #paymentOutModal, #otherIncomeModal,
+                #expenseModal, #partyModal, #assetModal, #loanModal, #quotationModal,
+                #quotePreviewModal, #directInvoiceModal, #invPreviewModal,
+                #purchaseOrderModal, #purchaseBillModal, #directEventModal,
+                #companyProfileModal, #orderBookModal, #outwardChallanModal,
+                #returnStockModal, #multiDateModal, #addBankModal, #bankActionModal,
+                #smartBankActionModal, #itemMasterModal, #stockTransferModal,
+                #emiModal, #feedbackModal, #myProfileModal, #teamModal,
+                #addStaffModal, #permissionModal, #manageCatModal, #manageSourceModal,
+                #clearChequeModal, #stockAuditModal, #quickTaskModal,
+                #quickMeetingModal, #crmMeetingPromptModal, #inventorySelectModal,
+                #godownModal, #directStockModal, #eventDocListModal,
+                #leadEventPanel, #quoteEventPanel, #invEventPanel) .modal-content form > *:not(.form-group),
+            :is(#leadModal, #paymentModal, #paymentOutModal, #otherIncomeModal,
+                #expenseModal, #partyModal, #assetModal, #loanModal, #quotationModal,
+                #quotePreviewModal, #directInvoiceModal, #invPreviewModal,
+                #purchaseOrderModal, #purchaseBillModal, #directEventModal,
+                #companyProfileModal, #orderBookModal, #outwardChallanModal,
+                #returnStockModal, #multiDateModal, #addBankModal, #bankActionModal,
+                #smartBankActionModal, #itemMasterModal, #stockTransferModal,
+                #emiModal, #feedbackModal, #myProfileModal, #teamModal,
+                #addStaffModal, #permissionModal, #manageCatModal, #manageSourceModal,
+                #clearChequeModal, #stockAuditModal, #quickTaskModal,
+                #quickMeetingModal, #crmMeetingPromptModal, #inventorySelectModal,
+                #godownModal, #directStockModal, #eventDocListModal,
+                #leadEventPanel, #quoteEventPanel, #invEventPanel) .modal-content form > .form-group:has(textarea),
+            /* Long bill-settle dropdowns need the full row to stay readable */
+            #paymentModal #pending_bills_group,
+            #paymentOutModal #pending_pbills_group {
+                grid-column: 1 / -1;
+            }
+
+            /* Slightly larger, roomier fields inside desktop dialogs */
+            :is(#leadModal, #paymentModal, #paymentOutModal, #otherIncomeModal,
+                #expenseModal, #partyModal, #assetModal, #loanModal, #quotationModal,
+                #quotePreviewModal, #directInvoiceModal, #invPreviewModal,
+                #purchaseOrderModal, #purchaseBillModal, #directEventModal,
+                #companyProfileModal, #orderBookModal, #outwardChallanModal,
+                #returnStockModal, #multiDateModal, #addBankModal, #bankActionModal,
+                #smartBankActionModal, #itemMasterModal, #stockTransferModal,
+                #emiModal, #feedbackModal, #myProfileModal, #teamModal,
+                #addStaffModal, #permissionModal, #manageCatModal, #manageSourceModal,
+                #clearChequeModal, #stockAuditModal, #quickTaskModal,
+                #quickMeetingModal, #crmMeetingPromptModal, #inventorySelectModal,
+                #godownModal, #directStockModal, #eventDocListModal,
+                #leadEventPanel, #quoteEventPanel, #invEventPanel) .modal-content .form-input,
+            :is(#leadModal, #paymentModal, #paymentOutModal, #otherIncomeModal,
+                #expenseModal, #partyModal, #assetModal, #loanModal, #quotationModal,
+                #quotePreviewModal, #directInvoiceModal, #invPreviewModal,
+                #purchaseOrderModal, #purchaseBillModal, #directEventModal,
+                #companyProfileModal, #orderBookModal, #outwardChallanModal,
+                #returnStockModal, #multiDateModal, #addBankModal, #bankActionModal,
+                #smartBankActionModal, #itemMasterModal, #stockTransferModal,
+                #emiModal, #feedbackModal, #myProfileModal, #teamModal,
+                #addStaffModal, #permissionModal, #manageCatModal, #manageSourceModal,
+                #clearChequeModal, #stockAuditModal, #quickTaskModal,
+                #quickMeetingModal, #crmMeetingPromptModal, #inventorySelectModal,
+                #godownModal, #directStockModal, #eventDocListModal,
+                #leadEventPanel, #quoteEventPanel, #invEventPanel) .modal-content .form-select {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            /* Document / report / preview modals get even more room */
+            :is(#quoteViewModal, #eventBalanceSheetModal, #recycleBinModal,
+                #docViewerModal, #itemLedgerModal, #challanHistoryModal,
+                #logPreviewModal) .modal-content {
+                width: min(900px, 94vw) !important;
+                max-width: min(900px, 94vw) !important;
+            }
+        }
+
+        /* ============================================================
            🚀 SKELETON LOADING SYSTEM — shimmer placeholders shown while the
            workspace data is still arriving (fresh device / new login /
            company switch with no local cache). The skeletons are replaced by
