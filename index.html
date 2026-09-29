@@ -707,28 +707,10 @@
             }
         }
 
-        /* Brand name + tagline under the logo — subtle, one-shot fade-up */
-        .splash-name {
-            margin-top: 18px;
-            font-size: 24px;
-            font-weight: 900;
-            letter-spacing: -0.4px;
-            color: var(--text-primary);
-            animation: splashIn 0.8s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
-        .splash-tagline {
-            margin-top: 5px;
-            font-size: 10.5px;
-            font-weight: 700;
-            letter-spacing: 3.5px;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            animation: splashIn 0.8s 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
         /* Slim indeterminate loading bar — communicates "app is loading"
-            professionally, replacing the pulsing logo as the only motion. */
+            professionally, replacing the pulsing logo as the only motion.
+            (No text name/tagline here — the logo image itself carries the
+            brand name, adding text below it showed the name twice.) */
         .splash-loader {
             margin-top: 34px;
             width: 150px;
@@ -3030,8 +3012,6 @@
         <div class="splash-logo">
             <img loading="lazy" src="logo.png" alt="UTSAVhq Logo" onerror="this.style.display='none'"
                 style="max-height: 80px; object-fit: contain;">
-            <div class="splash-name">UTSAVhq</div>
-            <div class="splash-tagline">Enterprise ERP</div>
         </div>
         <div class="splash-loader" aria-hidden="true"></div>
     </div>
@@ -25468,9 +25448,20 @@ function openPurchaseOrderModal() {
             }
         }
 
+        // 🚀 DESKTOP NAV FIX: the mobile bottom nav bar and the desktop left
+        // sidebar are the SAME element (#master-nav-bar). Mobile UX rules hide
+        // it in full-screen list tabs and while overlays are open — but on
+        // desktop the sidebar IS the primary navigation and must stay visible
+        // at all times. Every hide/show decision below asks this helper first.
+        window.__isDesktop = function () {
+            return window.matchMedia('(min-width: 1024px)').matches;
+        };
+
         window.hideNavAndFabs = function() {
             let nav = document.getElementById('master-nav-bar') || document.querySelector('.nav-bar');
-            if(nav) nav.style.setProperty('display', 'none', 'important');
+            // 🚀 DESKTOP NAV FIX: never hide the sidebar on desktop — only the
+            // floating action buttons below are desktop-safe to hide.
+            if (nav && !window.__isDesktop()) nav.style.setProperty('display', 'none', 'important');
             document.querySelectorAll('.pill-floating-btn').forEach(btn => btn.style.setProperty('display', 'none', 'important'));
             let mainFab = document.getElementById('main-fab-container');
             if(mainFab) mainFab.style.setProperty('display', 'none', 'important');
@@ -25487,8 +25478,11 @@ function openPurchaseOrderModal() {
             let isFullScreenList = isInsideSalesList || isInsidePurchaseList || tabName === 'expense-hub' || tabName === 'party-master' || tabName === 'bank-hub' || tabName === 'inventory-hub';
 
             // 1. Bottom Nav Bar Handle
+            // 🚀 DESKTOP NAV FIX: on desktop the sidebar never hides — the
+            // isFullScreenList rule is a mobile-only full-screen-list UX.
             if (nav) {
-                if (isFullScreenList) nav.style.setProperty('display', 'none', 'important');
+                if (window.__isDesktop()) nav.style.setProperty('display', 'flex', 'important');
+                else if (isFullScreenList) nav.style.setProperty('display', 'none', 'important');
                 else nav.style.setProperty('display', 'flex', 'important');
             }
 
