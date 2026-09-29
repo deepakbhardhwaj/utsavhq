@@ -29376,23 +29376,73 @@ Please use a different name or edit the existing item.`);
 
         // Ask Gemini. Renders into the existing typing bubble so the chat
         // stays visually identical to local answers.
-        // 🐛 FIX (Sept 2026): key goes in the x-goog-api-key header
-        // (works with BOTH the new "AQ." Auth keys and legacy "AIza" keys),
-        // and a model fallback chain keeps the bot alive even if Google
-        // renames or deprecates a model — the winning model is cached.
-        window.nexaAIModels = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+        // 🐛 FIX (Sept 2026): "Advanced AI could not answer" had three
+        // root causes: (a) gemini-2.0-flash is fully SHUT DOWN, (b) the
+        // flash-latest alias now serves Gemini 3.x "thinking" models which
+        // deprecated temperature/top_p/top_k and can return 200 OK with EMPTY
+        // text when maxOutputTokens is small, and (c) empty text aborted the
+        // model chain instead of moving on. Fixed by: a current model chain,
+        // NO generationConfig at all (defaults work on every generation), and
+        // empty text now counts as a model failure that falls through to the
+        // next candidate — with a live ListModels discovery backstop so
+        // future model renames/deprecations self-heal without an app update.
+        window.nexaAIModels = ['gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
 
-        window.nexaAskAI = function (q, t, modelIdx) {
+        // Live discovery: ask Google which models this key can actually use,
+        // pick a sensible text chat model, cache it for next time.
+        window.nexaDiscoverModel = function (key) {
+            return fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', {
+                headers: { 'x-goog-api-key': key }
+            }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+                if (!j || !j.models || !j.models.length) return null;
+                let clean = function (m) { return String(m.name || '').replace(/^models\//, ''); };
+                let usable = j.models.filter(function (m) {
+                    let n = clean(m);
+                    let methods = m.supportedGenerationMethods || [];
+                    return methods.indexOf('generateContent') !== -1 && /^gemini-/.test(n) &&
+                        !/image|tts|live|native-audio|embedding|learnlm|transcribe|omni/i.test(n);
+                });
+                let pick = usable.filter(function (m) { return /flash-latest/.test(m.name); })[0] ||
+                    usable.filter(function (m) { return /flash(?!-lite)/.test(m.name); })[0] ||
+                    usable.filter(function (m) { return /flash/.test(m.name); })[0] ||
+                    usable[0];
+                return pick ? clean(pick) : null;
+            });
+        };
+
+        window.nexaAskAI = function (q, t, idx, discovered) {
             let key = nexaGetApiKey();
-            // Prefer the model that worked last time (cached per workspace).
-            let models = window.nexaAIModels.slice();
+            // Candidate order: last model that worked (cached), then the chain.
+            let models = [];
             try {
                 let cached = localStorage.getItem('utsav_nexa_model_' + currentWorkspaceId);
-                if (cached && models.indexOf(cached) > 0) models = [cached].concat(models.filter(function (m) { return m !== cached; }));
+                if (cached) models.push(cached);
             } catch (e) {}
-            let mi = (typeof modelIdx === 'number') ? modelIdx : 0;
-            let model = models[mi];
-            if (!model) return;
+            window.nexaAIModels.forEach(function (m) { if (models.indexOf(m) === -1) models.push(m); });
+            let i2 = (typeof idx === 'number') ? idx : 0;
+            let model = models[i2];
+
+            // Whole chain failed -> discover what actually works and retry once.
+            if (!model) {
+                if (discovered) {
+                    t.innerHTML = '⚠️ Advanced AI could not answer right now — please try again in a minute.';
+                    let msgs = document.getElementById('nexa-msgs'); if (msgs) msgs.scrollTop = msgs.scrollHeight;
+                    return;
+                }
+                t.innerHTML = '<span class="nexa-typing"><span></span><span></span><span></span></span>';
+                window.nexaDiscoverModel(key).then(function (m) {
+                    if (!m) {
+                        t.innerHTML = '⚠️ Advanced AI could not answer right now — please check your connection and try again.';
+                        return;
+                    }
+                    try { localStorage.setItem('utsav_nexa_model_' + currentWorkspaceId, m); } catch (e) {}
+                    window.nexaAskAI(q, t, 0, true);
+                }).catch(function () {
+                    t.innerHTML = '📡 You seem offline — Advanced AI needs internet. Local answers still work!';
+                });
+                return;
+            }
+
             let sys = 'You are "Nexa Bot", the built-in assistant of UTSAVhq, an Indian event-management ERP. The user is the business owner. You are given a snapshot of their workspace data below.\n' +
                 'RULES:\n' +
                 '1. Reply in the SAME language the user asked in: Hinglish (Roman Hindi + English mix) gets Hinglish, Gujarati in Roman letters gets Gujarati Roman, English gets English, Devanagari gets Devanagari.\n' +
@@ -29402,8 +29452,10 @@ Please use a different name or edit the existing item.`);
                 '5. No markdown headings; simple text, hyphens and short bold (**text**) only.';
             let body = {
                 systemInstruction: { parts: [{ text: sys }] },
-                contents: [{ role: 'user', parts: [{ text: 'WORKSPACE DATA SNAPSHOT:\n' + nexaBuildAIContext() + '\n\nUSER QUESTION: ' + q }] }],
-                generationConfig: { temperature: 0.3, maxOutputTokens: 700 }
+                contents: [{ role: 'user', parts: [{ text: 'WORKSPACE DATA SNAPSHOT:\n' + nexaBuildAIContext() + '\n\nUSER QUESTION: ' + q }] }]
+                // 🐛 FIX: no generationConfig. temperature/top_p/top_k are
+                // deprecated on Gemini 3.x, and any maxOutputTokens cap risks
+                // empty replies from thinking models. Defaults work everywhere.
             };
             fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
                 method: 'POST',
@@ -29414,11 +29466,32 @@ Please use a different name or edit the existing item.`);
             }).then(function (res) {
                 let c = res.j && res.j.candidates && res.j.candidates[0];
                 let txt = c && c.content && c.content.parts ? c.content.parts.map(function (p) { return p.text || ''; }).join('') : '';
-                // Model unavailable/renamed -> silently try the next candidate;
-                // only if every candidate fails do we surface an error.
-                if (!res.ok && (res.status === 404 || res.status === 400) && mi + 1 < models.length) {
-                    window.nexaAskAI(q, t, mi + 1);
-                    return;
+                let next = i2 + 1 < models.length;
+                // 🐛 FIX: model failure = 404 (gone/renamed) OR 200 with
+                // EMPTY text (thinking model burned its output budget). Either
+                // way, move to the next candidate instead of showing an error.
+                // 🐛 FIX 2: when the LAST candidate fails, self-heal by
+                // asking Google (ListModels) what this key can actually use,
+                // then retry once with the discovered model — so future model
+                // deprecations fix themselves without an app update.
+                let modelFailed = (!res.ok && res.status === 404) || (res.ok && !txt);
+                if (modelFailed) {
+                    if (next) { window.nexaAskAI(q, t, i2 + 1, discovered); return; }
+                    if (!discovered) {
+                        t.innerHTML = '<span class="nexa-typing"><span></span><span></span><span></span></span>';
+                        window.nexaDiscoverModel(key).then(function (m) {
+                            if (!m) {
+                                t.innerHTML = '⚠️ Advanced AI could not answer right now — please try again in a minute.';
+                                let msgs = document.getElementById('nexa-msgs'); if (msgs) msgs.scrollTop = msgs.scrollHeight;
+                                return;
+                            }
+                            try { localStorage.setItem('utsav_nexa_model_' + currentWorkspaceId, m); } catch (e) {}
+                            window.nexaAskAI(q, t, 0, true);
+                        }).catch(function () {
+                            t.innerHTML = '📡 You seem offline — Advanced AI needs internet. Local answers still work!';
+                        });
+                        return;
+                    }
                 }
                 if (res.ok && txt) {
                     try { localStorage.setItem('utsav_nexa_model_' + currentWorkspaceId, model); } catch (e) {}
@@ -29435,7 +29508,7 @@ Please use a different name or edit the existing item.`);
                 } else if (res.status === 429) {
                     t.innerHTML = '⏳ Free-tier limit reached for a moment — please ask again in a minute.';
                 } else {
-                    t.innerHTML = '⚠️ Advanced AI could not answer right now. Try again in a moment.';
+                    t.innerHTML = '⚠️ Advanced AI could not answer right now — please try again in a minute.';
                 }
                 let msgs = document.getElementById('nexa-msgs'); if (msgs) msgs.scrollTop = msgs.scrollHeight;
             }).catch(function () {
