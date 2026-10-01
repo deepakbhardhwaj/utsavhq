@@ -22,13 +22,16 @@
 // automatically delete ho jaata hai.
 // ==========================================================
 
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = `utsavhq-static-${CACHE_VERSION}`;
 
 // App shell — ye files offline bhi chalti hain
 const PRECACHE_URLS = [
     './',
     './index.html',
+    './manifest.json',
+    './icon-192.png',
+    './icon-512.png',
     './js/boot.js',
     './js/app.js',
     './js/nexa.js',
