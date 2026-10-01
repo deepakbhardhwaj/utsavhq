@@ -89,7 +89,15 @@
 @keyframes nexaRec{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.4)}50%{box-shadow:0 0 0 7px rgba(220,38,38,0)}}
 .nexa-stop{display:none;background:#FEF2F2;border:1.5px solid #FECACA;color:#DC2626;border-radius:10px;width:42px;flex:none;cursor:pointer;font-size:13px;align-items:center;justify-content:center}
 .nexa-status{font-size:10.5px;color:#94A3B8;padding:0 12px 7px 12px;background:#fff;font-weight:600;letter-spacing:.2px;min-height:0}
-.nexa-status:empty{display:none}
+ .nexa-status:empty{display:none}
+        /* 🔒 LEGAL CONSENT (sign-up) */
+        .legal-consent { display: flex; align-items: flex-start; gap: 9px; margin: 16px 2px 2px; font-size: 12px; color: #475569; line-height: 1.55; text-align: left; cursor: pointer; font-weight: 600; }
+        .legal-consent input { margin-top: 2px; width: 16px; height: 16px; flex: none; accent-color: #1D4ED8; cursor: pointer; }
+        .legal-consent a { color: #1D4ED8; font-weight: 800; text-decoration: underline; }
+        .legal-consent.shake { animation: legalShake .4s ease; }
+        @keyframes legalShake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-4px) } 75% { transform: translateX(4px) } }
+        .legal-msg { display: none; font-size: 11.5px; font-weight: 800; color: #DC2626; margin: 7px 0 0; text-align: left; }
+        .legal-msg.show { display: block; }
     </style>
 
     <div id="global-loader">
@@ -125,14 +133,21 @@
                     <label class="form-label">EMAIL ADDRESS</label>
                     <input type="email" id="auth_email_input" class="form-input" style="padding:12px; font-size:14px; margin-bottom:16px;" placeholder="name@domain.com" required>
                     
-                    <button type="button" class="btn-main" style="padding: 14px; font-size: 14px; border-radius: 10px; background: linear-gradient(135deg, var(--accent-color), #1D4ED8);" onclick="sendEmailLoginLink()">Send Login Link ✉️</button>
+                    <button type="button" class="btn-main" style="padding: 14px; font-size: 14px; border-radius: 10px; background: linear-gradient(135deg, var(--accent-color), #1D4ED8);" onclick="if(!window.nexaLegalOk())return;sendEmailLoginLink()">Send Login Link ✉️</button>
 
                     <div style="margin: 15px 0; text-align: center; color: var(--text-secondary); font-size: 12px; font-weight: 700;">OR</div>
                     
-                    <button type="button" class="btn-main" style="background: white; color: #475569; border: 1px solid #CBD5E1; box-shadow: none; padding: 14px; font-size: 14px; border-radius: 10px;" onclick="signInWithGoogle()">
+                    <button type="button" class="btn-main" style="background: white; color: #475569; border: 1px solid #CBD5E1; box-shadow: none; padding: 14px; font-size: 14px; border-radius: 10px;" onclick="if(!window.nexaLegalOk())return;signInWithGoogle()">
                         <img loading="lazy" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:16px; margin-right:8px;"> Sign in with Google
                     </button>
                 </div>
+
+                    <!-- 🔒 LEGAL CONSENT: required before a login link is sent or Google sign-in starts -->
+                    <label class="legal-consent" for="legal_consent" id="legal_consent_label">
+                        <input type="checkbox" id="legal_consent">
+                        <span>I agree to the <a href="./privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="./terms.html" target="_blank" rel="noopener">Terms &amp; Conditions</a>.</span>
+                    </label>
+                    <p class="legal-msg" id="legal_consent_msg">Please tick the box above to continue.</p>
             </form>
         </div>
 
@@ -647,6 +662,14 @@
                         </div>
                     </a>
 
+                    <a href="./privacy.html" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:13px 14px; margin-bottom:10px; text-decoration:none;">
+                        <span style="font-size:19px;">&#128274;</span>
+                        <div style="min-width:0;"><div style="font-size:10px; color:#94A3B8; font-weight:800; text-transform:uppercase; letter-spacing:0.4px;">Privacy Policy</div><div style="font-size:13.5px; font-weight:800; color:var(--accent-color);">How your data is handled</div></div>
+                    </a>
+                    <a href="./terms.html" target="_blank" rel="noopener" style="display:flex; align-items:center; gap:12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:13px 14px; margin-bottom:10px; text-decoration:none;">
+                        <span style="font-size:19px;">&#128220;</span>
+                        <div style="min-width:0;"><div style="font-size:10px; color:#94A3B8; font-weight:800; text-transform:uppercase; letter-spacing:0.4px;">Terms &amp; Conditions</div><div style="font-size:13.5px; font-weight:800; color:var(--accent-color);">Rules for using the app</div></div>
+                    </a>
                     <div style="text-align:center; font-size:11px; color:#94A3B8; font-weight:600; margin-top:14px;">We're happy to help with any questions about UTSAVhq.</div>
                 </div>
             </div>
@@ -5868,6 +5891,51 @@
     <script defer src="js/nexa.js"></script>
     <!-- 🚀 NEXA ADVANCED v2: streaming, markdown, memory, voice, history -->
     <script defer src="js/nexa.advanced.js"></script>
+
+    <script>
+        /* ================================================================
+           🔒 LEGAL CONSENT GATE (sign-up screen)
+           A new visitor must accept the Privacy Policy and Terms & Conditions
+           before a login link is sent or Google sign-in starts. The acceptance
+           is remembered on this device so returning users are not asked again.
+           ================================================================ */
+        (function () {
+            var LEGAL_VERSION = '2026-10-01';
+            var KEY = 'utsav_legal_acceptance';
+
+            function stored() {
+                try {
+                    var raw = localStorage.getItem(KEY);
+                    if (!raw) return null;
+                    var o = JSON.parse(raw);
+                    return (o && o.version === LEGAL_VERSION) ? o : null;
+                } catch (e) { return null; }
+            }
+            function save() {
+                try { localStorage.setItem(KEY, JSON.stringify({ version: LEGAL_VERSION, at: new Date().toISOString() })); } catch (e) {}
+            }
+            function box() { return document.getElementById('legal_consent'); }
+
+            // Called by both sign-in buttons before they do anything.
+            window.nexaLegalOk = function () {
+                var cb = box();
+                var msg = document.getElementById('legal_consent_msg');
+                var wrap = document.getElementById('legal_consent_label');
+                if (stored()) { if (cb) cb.checked = true; return true; }
+                if (cb && cb.checked) { save(); if (msg) msg.classList.remove('show'); return true; }
+                if (msg) msg.classList.add('show');
+                if (wrap) { wrap.classList.remove('shake'); void wrap.offsetWidth; wrap.classList.add('shake'); }
+                if (cb) cb.focus();
+                return false;
+            };
+
+            if (stored() && box()) box().checked = true;
+            if (box()) box().addEventListener('change', function () {
+                var msg = document.getElementById('legal_consent_msg');
+                if (this.checked && msg) msg.classList.remove('show');
+            });
+        })();
+    </script>
 
 </body>
 
