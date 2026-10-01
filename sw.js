@@ -22,13 +22,17 @@
 // automatically delete ho jaata hai.
 // ==========================================================
 
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME = `utsavhq-static-${CACHE_VERSION}`;
 
 // App shell — ye files offline bhi chalti hain
 const PRECACHE_URLS = [
     './',
+    './',
     './index.html',
+    './app/',
+    './privacy.html',
+    './terms.html',
     './manifest.json',
     './icon-192.png',
     './icon-512.png',
@@ -133,4 +137,64 @@ self.addEventListener('fetch', (event) => {
             return cached || network;
         })
     );
+});
+
+// ---------------------------------------------------------- NOTIFICATIONS
+// Tapping a notification opens (or focuses) the app instead of doing nothing.
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const target = (event.notification.data && event.notification.data.url) || './app/';
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+            for (const client of list) {
+                if (client.url.indexOf('/app/') !== -1 && 'focus' in client) return client.focus();
+            }
+            if (self.clients.openWindow) return self.clients.openWindow(target);
+        })
+    );
+});
+
+// Web Push (ready for later, when a push service is wired up).
+self.addEventListener('push', (event) => {
+    let payload = {};
+    try { payload = event.data ? event.data.json() : {}; } catch (e) { payload = { body: event.data && event.data.text() }; }
+    const title = payload.title || 'UTSAVhq';
+    event.waitUntil(self.registration.showNotification(title, {
+        body: payload.body || 'You have a new update.',
+        icon: './icon-192.png',
+        badge: './icon-badge.png',
+        vibrate: [120, 60, 120],
+        timestamp: Date.now(),
+        data: { url: payload.url || './app/' }
+    }));
+});
+
+// ---------------------------------------------------- PUSH SUBSCRIPTION ROTATION
+// Browsers occasionally rotate a push endpoint. When that happens we subscribe
+// again with the same VAPID key and hand the new subscription to the app, which
+// saves it back to Firestore.
+const VAPID_PUBLIC_KEY = 'BBv2EwIbSzys7G3eppCkiQDSDAyoCDWeHo6Qwkkutvi-PNaUdTKLFmK6Ny4AuxG3aEcQjRgVpX50NjJKAXK_THg';
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    const out = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+}
+
+self.addEventListener('pushsubscriptionchange', (event) => {
+    event.waitUntil((async () => {
+        try {
+            const sub = await self.registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+            const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+            clients.forEach((c) => c.postMessage({ type: 'push-subscription-changed', subscription: sub.toJSON() }));
+        } catch (e) {
+            console.warn('Could not renew the push subscription:', e && e.message);
+        }
+    })());
 });
