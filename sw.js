@@ -22,7 +22,7 @@
 // automatically delete ho jaata hai.
 // ==========================================================
 
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const CACHE_NAME = `utsavhq-static-${CACHE_VERSION}`;
 
 // App shell — ye files offline bhi chalti hain
@@ -97,6 +97,24 @@ self.addEventListener('fetch', (event) => {
 
     // Sirf same-origin static assets cache karo (index.html, js/, icons)
     if (url.origin !== self.location.origin) return;
+
+    // 🐛 FIX: the app shell itself is NETWORK-FIRST. Cache-first made every
+    // new deploy show up one load late ("push kiya but purana hi dikh raha
+    // hai"). Offline still falls back to the cached copy.
+    if (req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('index.html')) {
+        event.respondWith(
+            fetch(req)
+                .then((res) => {
+                    if (res && res.status === 200 && res.type === 'basic') {
+                        const copy = res.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+                    }
+                    return res;
+                })
+                .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
+        );
+        return;
+    }
 
     event.respondWith(
         caches.match(req).then((cached) => {
