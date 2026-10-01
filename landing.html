@@ -115,7 +115,70 @@
   footer{padding:34px 0 46px;text-align:center;color:var(--muted);font-size:13px}
   footer a{color:var(--ink-soft);text-decoration:none}
 
+  /* pricing */
+  .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px;align-items:stretch}
+  .plan{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;position:relative;
+  }
+  .plan.featured{border:2px solid var(--accent);box-shadow:0 18px 44px rgba(29,78,216,.16)}
+  .plan .tag{
+    position:absolute;top:-12px;left:24px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:#fff;font-size:11.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+    padding:5px 12px;border-radius:999px;
+  }
+  .plan h3{margin:6px 0 2px;font-size:17px}
+  .plan .who{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .plan .amount{font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1}
+  .plan .amount small{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:0}
+  .plan ul{list-style:none;margin:18px 0 22px;padding:0;display:grid;gap:10px}
+  .plan li{display:flex;gap:9px;font-size:13.5px;color:var(--ink-soft);align-items:flex-start}
+  .plan li svg{width:16px;height:16px;flex:none;margin-top:3px;color:var(--success)}
+  .plan .btn{justify-content:center;margin-top:auto}
+  .price-note{text-align:center;color:var(--muted);font-size:13px;margin:20px 0 0}
+  .price-note a{color:var(--accent);font-weight:600}
+
+  /* faq */
+  .faq{max-width:820px;margin:0 auto;display:grid;gap:12px}
+  .faq details{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:16px 18px;box-shadow:var(--shadow);
+  }
+  .faq summary{
+    cursor:pointer;font-weight:700;font-size:15px;list-style:none;display:flex;align-items:center;gap:10px;
+  }
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{content:'+';margin-left:auto;font-size:20px;color:var(--accent);font-weight:700;line-height:1}
+  .faq details[open] summary::after{content:'–'}
+  .faq details p{margin:12px 0 0;color:var(--ink-soft);font-size:14px}
+
+  /* inquiry form */
+  .form-wrap{max-width:640px;margin:0 auto;text-align:left}
+  .fields{display:grid;gap:12px;margin:22px 0 16px}
+  .fields .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .fields input,.fields select,.fields textarea{
+    width:100%;padding:13px 14px;border-radius:12px;font-size:14px;font-family:inherit;
+    border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;
+  }
+  .fields input::placeholder,.fields textarea::placeholder{color:#94A3B8}
+  .fields input:focus,.fields select:focus,.fields textarea:focus{
+    outline:none;border-color:#60A5FA;background:rgba(255,255,255,.1);
+  }
+  .fields select option{color:#0F172A}
+  .fields textarea{min-height:96px;resize:vertical}
+  .fields .invalid{border-color:#F87171 !important}
+  .form-note{font-size:13px;color:#93C5FD;min-height:18px;margin:10px 0 0;text-align:center}
+  .form-note.err{color:#FCA5A5}
+  .form-note.ok{color:#86EFAC}
+
+  section[id],div[id]{scroll-margin-top:84px}
+
   @media (max-width:820px){
+    .fields .row{grid-template-columns:1fr}
+    .fields{gap:14px}
+    .contact{padding:34px 20px}
+    .contact .cta{flex-direction:column;align-items:stretch}
+    .contact .cta .btn{width:100%;justify-content:center}
     nav.links{
       display:none;position:absolute;top:64px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);
       flex-direction:column;align-items:stretch;gap:0;padding:8px 20px 16px;
@@ -140,8 +203,10 @@
     </a>
     <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <nav class="links" id="navlinks">
+      <a href="#home">Home</a>
       <a href="#features">Features</a>
-      <a href="#screens">Screenshots</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#help">Help</a>
       <a href="#contact">Contact</a>
       <a class="btn btn-primary btn-sm" href="./index.html">Open App →</a>
     </nav>
@@ -149,7 +214,7 @@
 </header>
 
 <!-- ======================= INTRO ======================= -->
-<div class="wrap intro">
+<div class="wrap intro" id="home">
   <div class="pill">Built for Indian event businesses</div>
   <h1>Run your entire event business<br>from <span class="grad">one app</span></h1>
   <p class="lede">
@@ -191,6 +256,18 @@
   </div>
 </section>
 
+<!-- ======================= PRICING ======================= -->
+<section id="pricing" style="background:#fff;border-top:1px solid var(--border)">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Simple, honest pricing</h2>
+      <p>One subscription for your whole team — no setup fee, no per-invoice charges, cancel anytime.</p>
+    </div>
+    <div class="plans" id="plans"></div>
+    <p class="price-note">Prices are per company workspace. Need something different? <a href="#contact">Talk to us</a>.</p>
+  </div>
+</section>
+
 <!-- ======================= SCREENSHOTS ======================= -->
 <section id="screens" style="background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
   <div class="wrap">
@@ -227,17 +304,66 @@
   </div>
 </section>
 
+<!-- ======================= HELP / FAQ ======================= -->
+<section id="help">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Help &amp; frequently asked questions</h2>
+      <p>Everything people usually ask before getting started.</p>
+    </div>
+    <div class="faq">
+      <details open>
+        <summary>Do I need to install anything?</summary>
+        <p>No. UTSAVhq runs in the browser. On mobile you can add it to your home screen in one tap and it behaves like a normal app — same on desktop.</p>
+      </details>
+      <details>
+        <summary>Does it work without internet?</summary>
+        <p>Yes. The app is installable and keeps working offline; your entries sync back to your workspace as soon as you are online again.</p>
+      </details>
+      <details>
+        <summary>Is my business data safe?</summary>
+        <p>Every company gets its own separate workspace, and only the people you add can see it. You control exactly which modules each staff member can open, and each login is locked to one device.</p>
+      </details>
+      <details>
+        <summary>Can my staff use it too?</summary>
+        <p>Yes. Add your team, choose their role, and decide module by module what they can see and do — accounts, sales, purchases, inventory and more.</p>
+      </details>
+      <details>
+        <summary>I run more than one business. Is that supported?</summary>
+        <p>Yes. You can run several companies side by side, each with its own data, staff and reports, and switch between them instantly.</p>
+      </details>
+      <details>
+        <summary>How do I get a demo or set up my company?</summary>
+        <p>Send us a message on WhatsApp using the form below — we will set up your workspace and walk you through it on your own data.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
 <!-- ======================= CONTACT ======================= -->
 <section id="contact">
   <div class="wrap">
     <div class="contact">
-      <h2>Want a demo, or ready to start?</h2>
-      <p>Message us on WhatsApp and we will show you the app on your own business data — or just open the app and try it right away.</p>
-      <div class="cta">
-        <a class="btn btn-wa" id="wa-main" href="#" rel="noopener">Chat on WhatsApp</a>
-        <a class="btn btn-primary" href="./index.html">Open the App</a>
-        <a class="btn btn-ghost" id="mail-link" href="#">Email us</a>
-      </div>
+      <h2>Send an enquiry</h2>
+      <p>Fill this in and it goes straight to our WhatsApp — we usually reply the same day.</p>
+      <form class="form-wrap" id="inquiry" novalidate>
+        <div class="fields">
+          <div class="row">
+            <input id="iq-name" name="name" type="text" placeholder="Your name *" autocomplete="name" required>
+            <input id="iq-phone" name="phone" type="tel" placeholder="Mobile number *" autocomplete="tel" required>
+          </div>
+          <div class="row">
+            <input id="iq-biz" name="business" type="text" placeholder="Business / company name" autocomplete="organization">
+            <select id="iq-plan" name="plan" aria-label="Interested plan"></select>
+          </div>
+          <textarea id="iq-msg" name="message" placeholder="What do you need? (events per month, team size, modules…)"></textarea>
+        </div>
+        <div class="cta">
+          <button class="btn btn-wa" type="submit">Send on WhatsApp</button>
+          <a class="btn btn-ghost" id="mail-link" href="#">Email instead</a>
+        </div>
+        <p class="form-note" id="form-note" role="status" aria-live="polite"></p>
+      </form>
     </div>
   </div>
 </section>
@@ -245,7 +371,7 @@
 <footer>
   <div class="wrap">
     <p>© <span id="year">2026</span> UTSAVhq Enterprise ERP · Event business management, simplified.</p>
-    <p style="margin-top:6px"><a href="./index.html">Open App</a> · <a href="#features">Features</a> · <a href="#contact">Contact</a></p>
+    <p style="margin-top:6px"><a href="./index.html">Open App</a> · <a href="#features">Features</a> · <a href="#pricing">Pricing</a> · <a href="#help">Help</a> · <a href="#contact">Contact</a></p>
   </div>
 </footer>
 
@@ -258,6 +384,112 @@
   var WHATSAPP_NUMBER = '919000000000';              // TODO: replace with the real number
   var CONTACT_EMAIL   = 'eventwalaaa@gmail.com';
 
+  /* ---------------------------------------------------------------
+     PLANS — PLACEHOLDER PRICES. Replace price/features with your real
+     plans before sharing the page publicly.
+     --------------------------------------------------------------- */
+  var PLANS = [
+    { name: 'Starter', price: '₹999', period: '/month', who: 'For solo organisers',
+      features: ['1 company workspace', 'CRM, events & invoicing', 'Up to 3 staff users', 'WhatsApp-ready invoices', 'Mobile + desktop app'] },
+    { name: 'Professional', price: '₹1,999', period: '/month', who: 'For growing teams', featured: true,
+      features: ['Everything in Starter', 'Purchase, inventory & godown', 'Party ledger & bank book', 'Reports: P&L, balance sheet, daybook', 'Nexa AI assistant', 'Up to 10 staff users'] },
+    { name: 'Enterprise', price: 'Custom', period: '', who: 'For larger operations',
+      features: ['Unlimited staff & workspaces', 'Staff permissions & device lock', 'Priority support & onboarding', 'Custom reports & training'] }
+  ];
+
+  var tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"/></svg>';
+
+  // render the pricing cards
+  (function renderPlans() {
+    var host = document.getElementById('plans');
+    if (!host) return;
+    host.innerHTML = PLANS.map(function (p) {
+      return '<div class="plan' + (p.featured ? ' featured' : '') + '">' +
+        (p.featured ? '<span class="tag">Most popular</span>' : '') +
+        '<h3>' + p.name + '</h3><p class="who">' + p.who + '</p>' +
+        '<div class="amount">' + p.price + (p.period ? '<small>' + p.period + '</small>' : '') + '</div>' +
+        '<ul>' + p.features.map(function (f) { return '<li>' + tick + '<span>' + f + '</span></li>'; }).join('') + '</ul>' +
+        '<a class="btn ' + (p.featured ? 'btn-primary' : 'btn-ghost') + '" href="#contact" data-plan="' + p.name + '">' +
+          (p.price === 'Custom' ? 'Talk to us' : 'Choose ' + p.name) + '</a>' +
+        '</div>';
+    }).join('');
+
+    // the enquiry form's plan dropdown
+    var sel = document.getElementById('iq-plan');
+    if (sel) {
+      sel.innerHTML = '<option value="">Interested plan…</option>' +
+        PLANS.map(function (p) { return '<option value="' + p.name + '">' + p.name + '</option>'; }).join('') +
+        '<option value="Not sure yet">Not sure yet</option>';
+    }
+
+    // "Choose X" pre-selects that plan in the form
+    host.addEventListener('click', function (e) {
+      var a = e.target.closest('a[data-plan]');
+      if (!a || !sel) return;
+      sel.value = a.getAttribute('data-plan');
+    });
+  })();
+
+  // enquiry form -> WhatsApp (no backend required)
+  (function inquiryForm() {
+    var form = document.getElementById('inquiry');
+    if (!form) return;
+    var note = document.getElementById('form-note');
+    var waBtn = document.getElementById('wa-main');   // legacy top button, may not exist
+
+    function say(msg, kind) {
+      note.className = 'form-note' + (kind ? ' ' + kind : '');
+      note.textContent = msg;
+    }
+
+    function compose() {
+      var name = document.getElementById('iq-name').value.trim();
+      var phone = document.getElementById('iq-phone').value.trim();
+      var biz = document.getElementById('iq-biz').value.trim();
+      var plan = document.getElementById('iq-plan').value;
+      var msg = document.getElementById('iq-msg').value.trim();
+      var lines = ['New enquiry from the UTSAVhq website', '', 'Name: ' + name, 'Mobile: ' + phone];
+      if (biz) lines.push('Business: ' + biz);
+      if (plan) lines.push('Interested in: ' + plan);
+      if (msg) lines.push('', 'Message: ' + msg);
+      return { name: name, phone: phone, text: lines.join('\n') };
+    }
+
+    function validate() {
+      var ok = true;
+      var name = document.getElementById('iq-name'), phone = document.getElementById('iq-phone');
+      name.classList.remove('invalid'); phone.classList.remove('invalid');
+      if (name.value.trim().length < 2) { name.classList.add('invalid'); ok = false; }
+      var digits = phone.value.replace(/\D/g, '');
+      if (digits.length < 10) { phone.classList.add('invalid'); ok = false; }
+      if (!ok) say('Please enter your name and a valid 10-digit mobile number.', 'err');
+      return ok;
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!validate()) return;
+      var d = compose();
+      window.open('https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(d.text), '_blank', 'noopener');
+      say('Opening WhatsApp… if nothing happens, tap “Email instead”.', 'ok');
+    });
+
+    // keep the "Email instead" link in sync with whatever is typed
+    var mail = document.getElementById('mail-link');
+    function syncMail() {
+      var d = compose();
+      mail.setAttribute('href', 'mailto:' + CONTACT_EMAIL +
+        '?subject=' + encodeURIComponent('UTSAVhq ERP enquiry — ' + (d.name || 'website')) +
+        '&body=' + encodeURIComponent(d.text));
+    }
+    ['iq-name', 'iq-phone', 'iq-biz', 'iq-plan', 'iq-msg'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('input', syncMail);
+      if (el) el.addEventListener('change', syncMail);
+    });
+    syncMail();
+  })();
+
   document.getElementById('year').textContent = new Date().getFullYear();
 
   var waText = encodeURIComponent('Hi UTSAVhq team, I would like a demo of the ERP app.');
@@ -265,8 +497,8 @@
     var el = document.getElementById(id);
     if (el) el.setAttribute('href', 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + waText);
   });
-  var mail = document.getElementById('mail-link');
-  if (mail) mail.setAttribute('href', 'mailto:' + CONTACT_EMAIL + '?subject=' + encodeURIComponent('UTSAVhq ERP — demo request'));
+  // NOTE: the "Email instead" link is kept in sync by the enquiry form code
+  // above (it embeds whatever the visitor typed), so nothing to set here.
 
   // mobile menu
   var burger = document.getElementById('burger'), links = document.getElementById('navlinks');
