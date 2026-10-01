@@ -4,6 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 🐛 FIX: the 3-4 second BLACK flash at app start. On Android in dark
+         mode the browser paints its own canvas (BLACK) until the page paints,
+         and a data:-URL manifest makes Android fall back to a dark system
+         splash. Declaring a light color-scheme and painting the background
+         from the very first parsed byte keeps every startup frame light. -->
+    <meta name="color-scheme" content="light">
+    <style>html,body{background:#F1F5F9;margin:0;color-scheme:light}</style>
     <title>UTSAVhq Enterprise ERP 8.8</title>
     <link rel="icon" href="favicon.png" type="image/png">
     
@@ -21,7 +28,7 @@
     <meta name="referrer" content="no-referrer">
     
     <!-- 📱 PWA Manifest (inline) -->
-    <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22UTSAVhq%20Enterprise%20ERP%22%2C%22short_name%22%3A%22UTSAVhq%22%2C%22description%22%3A%22Secure%20Cloud-Based%20Business%20ERP%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23F1F5F9%22%2C%22theme_color%22%3A%22%231D4ED8%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22favicon.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%22%7D%2C%7B%22src%22%3A%22favicon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%22%7D%5D%7D">
+    <link rel="manifest" href="manifest.json">
     <!-- ⚡ PERF: warm up the CDN connections before the deferred scripts ask for them -->
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.gstatic.com">
