@@ -1,0 +1,37 @@
+# 🔔 Sends UTSAVhq reminders (events tomorrow, tasks due, pending dues) to every
+# subscribed device — the app does NOT need to be open.
+#
+# One-time setup (repo -> Settings -> Secrets and variables -> Actions):
+#     FIREBASE_SERVICE_ACCOUNT   the service-account JSON, pasted as one line
+#     VAPID_PUBLIC_KEY           from the VAPID key pair
+#     VAPID_PRIVATE_KEY          from the VAPID key pair (never commit this)
+#     VAPID_SUBJECT              mailto:utsavhq@gmail.com
+#
+# Runs every day at 08:00 IST (02:30 UTC). Change the cron to suit you.
+name: Push reminders
+
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:        # lets you run it by hand from the Actions tab
+
+jobs:
+  reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install push dependencies
+        run: npm install --no-save web-push firebase-admin
+
+      - name: Send today's reminders
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: node push/send-reminders.js
