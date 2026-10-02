@@ -6056,6 +6056,83 @@ window.addEventListener('load', window.renderRailBrand);
   if (nm && window.MutationObserver) new MutationObserver(window.renderRailBrand).observe(nm, { childList: true, characterData: true, subtree: true });
 })();
 </script>
+<style>
+/* 🐛 FIX (desktop): the settings tab strip scrolled horizontally, so picking a later tab
+   (e.g. About) auto-scrolled it and clipped the earlier tabs. On desktop there is room to
+   spread them out, so they wrap and fill the row instead of scrolling. */
+@media (min-width:1024px) {
+  .settings-nav-pill { flex-wrap: wrap; overflow: visible; }
+  .settings-nav-pill .set-pill { flex: 1 1 auto; text-align: center; }
+}
+/* the Appearance font-size setting uses a root zoom — never let it change the printed bill */
+@media print { html { zoom: 1 !important; } }
+</style>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════════
+   🎨 APPEARANCE FIXES (font size, accent colour, print theme)
+
+   Root causes found in the app's own code:
+   1. setFontSize() only set body{font-size}, but this app's CSS is px everywhere
+      (666 px font-sizes, zero rem/em) — so nothing actually changed.
+   2. setAccentTheme() / setFontSize() / selectPrintTheme() updated appSettings in
+      memory but never saved it, so every change was lost on reload.
+   3. initSettingsHub() restored only the *selection UI* (the active dot / button /
+      card) — it never re-applied the accent colours or the font size after a reload.
+
+   This layer fixes all three without touching the minified app bundle. It hooks the
+   clicks on the three controls (capture phase) and re-applies + saves after the app's
+   own handler has run, so it does not depend on script load order.
+   ══════════════════════════════════════════════════════════════════════════════ */
+(function () {
+  var ZOOM = { small: '0.9', medium: '1', large: '1.15' };
+  var SEL = '.font-size-btn, .theme-dot, .ptheme-card';
+  var SEL_PLUS_TABS = SEL + ', .set-pill';
+
+  /* appSettings / ACCENT_THEMES are top-level `let` bindings — reachable as bare
+     identifiers from here, but NOT as window.<name> */
+  function settings() { try { return (typeof appSettings !== 'undefined' && appSettings) || {}; } catch (e) { return {}; } }
+  function accentThemes() { try { return (typeof ACCENT_THEMES !== 'undefined' && ACCENT_THEMES) || {}; } catch (e) { return {}; } }
+
+  /* real font scaling — px-based CSS only responds to a root zoom */
+  function applyFontSize(size) { document.documentElement.style.zoom = ZOOM[size] || '1'; }
+
+  /* re-apply the accent CSS variables silently (no toast) */
+  function applyAccent(name) {
+    var t = accentThemes()[name];
+    if (!t) return;
+    var o = document.documentElement;
+    o.style.setProperty('--accent-color', t.accent);
+    o.style.setProperty('--accent-hover', t.hover);
+    o.style.setProperty('--accent-light', t.light);
+  }
+
+  function applyAppearance() {
+    var a = settings();
+    applyFontSize(a.fontSize || 'medium');
+    applyAccent(a.accentTheme || 'blue');
+  }
+
+  /* persist to the device immediately and to the workspace in the background */
+  function persist() {
+    try { localStorage.setItem('utsav_app_settings', JSON.stringify(settings())); } catch (e) {}
+    try { if (typeof saveDataLocally === 'function') saveDataLocally(); } catch (e) {}
+  }
+
+  /* capture-phase click hook: runs before the app's inline handler, then waits a tick
+     so appSettings has been updated, then re-applies and saves. */
+  document.addEventListener('click', function (e) {
+    var el = e.target && e.target.closest && e.target.closest(SEL_PLUS_TABS);
+    if (!el) return;
+    var save = el.matches(SEL);
+    setTimeout(function () { applyAppearance(); if (save) persist(); }, 60);
+  }, true);
+
+  document.addEventListener('DOMContentLoaded', applyAppearance);
+  window.addEventListener('load', applyAppearance);
+  /* the workspace hydrates asynchronously — re-apply for a few seconds until it settles */
+  var n = 0, t = setInterval(function () { applyAppearance(); if (++n > 20) clearInterval(t); }, 700);
+})();
+</script>
 </body>
 
 </html>
