@@ -24,6 +24,7 @@
        and #C2410C is a darker orange used whenever text sits on orange
        (keeps contrast accessible). */
     --accent:#0E2D55; --accent-2:#ED6F1F; --accent-2-deep:#C2410C;
+    --heading:#0E2D55;   /* logo navy — used for headings and titles */
     --accent-soft:#FFF3EA; --accent-line:#FBD5B5;
     --success:#059669;
     --shadow:0 10px 30px rgba(15,23,42,.08);
@@ -283,6 +284,22 @@
   .about-facts dd{margin:0;font-weight:700;text-align:right}
   .about-actions{display:grid;gap:9px}
   .about-actions .btn{justify-content:center}
+
+  /* ---- Headings and titles use the logo's navy; body copy stays grey so the
+     page keeps a clear hierarchy and stays easy to read. ---- */
+  h1,
+  .sec-head h2,
+  .card h3,
+  .step h3,
+  .plan h3,
+  .plan .amount,
+  .faq summary,
+  .about-brand b,
+  .about-facts dd,
+  .about-points b,
+  .who b,
+  .review blockquote,
+  .fgroup-title { color: var(--heading); }
 
   section[id],div[id]{scroll-margin-top:84px}
 
