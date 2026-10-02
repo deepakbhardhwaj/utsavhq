@@ -89,9 +89,9 @@
   .btn-ghost{background:#fff;border-color:var(--accent-line);color:var(--accent-2-deep)}
   /* secondary WhatsApp action — keeps the brand colour but stops competing
      with the primary "Open App" button in the hero */
-  .btn-wa-ghost{background:#fff;border-color:var(--accent-line);color:var(--accent-2-deep)}
-  .btn-wa-ghost:hover{background:var(--accent-soft);border-color:var(--accent-2)}
-  .btn-wa{background:linear-gradient(135deg,#F2892F,var(--accent-2));color:var(--accent);box-shadow:0 8px 22px rgba(237,111,31,.32)}
+  .btn-wa-ghost{background:#fff;border-color:#BBF7D0;color:#128C4A}
+  .btn-wa-ghost:hover{background:#F0FDF4;border-color:#86EFAC}
+  .btn-wa{background:#25D366;color:#053B1C;box-shadow:0 8px 22px rgba(37,211,102,.28)}
   .btn-sm{padding:9px 15px;font-size:var(--fs-sm);border-radius:var(--r-sm)}
   .burger{display:none;align-items:center;justify-content:center;margin-left:auto;background:#fff;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 12px;font-size:var(--fs-lg);cursor:pointer}
 
@@ -194,14 +194,14 @@
   #wa-float{
     position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;
     display:inline-flex;align-items:center;gap:8px;text-decoration:none;
-    background:#fff;color:var(--accent-2-deep);font-weight:700;font-size:var(--fs-sm);
-    padding:10px 14px;border-radius:var(--r-pill);border:1px solid var(--accent-line);
+    background:#fff;color:#128C4A;font-weight:700;font-size:var(--fs-sm);
+    padding:10px 14px;border-radius:var(--r-pill);border:1px solid #BBF7D0;
     box-shadow:0 6px 18px rgba(15,23,42,.14);
     opacity:0;transform:translateY(10px);pointer-events:none;
     transition:opacity .25s ease, transform .25s ease, background .15s ease;
   }
   #wa-float.show{opacity:1;transform:translateY(0);pointer-events:auto}
-  #wa-float:hover{background:var(--accent-soft)}
+  #wa-float:hover{background:#F0FDF4}
   #wa-float svg{width:18px;height:18px;flex:none}
   @media (max-width:520px){ #wa-float span{display:none} #wa-float{padding:12px;border-radius:var(--r-circle)} footer{padding-bottom:88px} }
 
