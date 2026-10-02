@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UTSAVhq Enterprise ERP — Run your entire event business from one app</title>
 <meta name="description" content="UTSAVhq Enterprise ERP is a cloud-based business management app for event companies — CRM, events, invoicing, purchases, inventory, ledgers, expenses, reports and a built-in AI assistant. Works on mobile and desktop, even offline.">
-<meta name="theme-color" content="#1D4ED8">
+<meta name="theme-color" content="#0E2D55">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="canonical" href="./">
@@ -19,7 +19,13 @@
   :root{
     --bg:#F1F5F9; --surface:#FFFFFF; --border:#E2E8F0;
     --ink:#0F172A; --ink-soft:#475569; --muted:#64748B;
-    --accent:#1D4ED8; --accent-2:#7C3AED; --success:#059669;
+    /* brand palette taken straight from logo.png:
+       navy #0E2D55 is the dominant colour, orange #ED6F1F the accent,
+       and #C2410C is a darker orange used whenever text sits on orange
+       (keeps contrast accessible). */
+    --accent:#0E2D55; --accent-2:#ED6F1F; --accent-2-deep:#C2410C;
+    --accent-soft:#FFF3EA; --accent-line:#FBD5B5;
+    --success:#059669;
     --shadow:0 10px 30px rgba(15,23,42,.08);
     --maxw:1120px;
 
@@ -62,7 +68,11 @@
   .brand img{height:38px;width:auto}
   .brand span{font-size:var(--fs-xl)}
   nav.links{margin-left:auto;display:flex;gap:22px;align-items:center}
-  nav.links a{text-decoration:none;color:var(--ink-soft);font-size:var(--fs-md);font-weight:600}
+  /* :not(.btn) is important — without it this rule (0,1,2) beats
+     .btn-primary (0,1,0) and the button label inherits grey, which made
+     "Get started" almost invisible on the gradient. */
+  nav.links a:not(.btn){text-decoration:none;color:var(--ink-soft);font-size:var(--fs-md);font-weight:600}
+  nav.links a.btn{color:#fff}
   nav.links a:hover{color:var(--accent)}
   .btn{
     display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:700;
@@ -70,7 +80,7 @@
     transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
   }
   .btn:hover{transform:translateY(-1px)}
-  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 8px 22px rgba(29,78,216,.28)}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),#1B4E8F);color:#fff;box-shadow:0 8px 22px rgba(14,45,85,.30)}
   .btn-ghost{background:#fff;border-color:var(--border);color:var(--ink)}
   /* secondary WhatsApp action — keeps the brand colour but stops competing
      with the primary "Open App" button in the hero */
@@ -83,8 +93,8 @@
   /* ---------------- intro ---------------- */
   .intro{padding:64px 0 8px;text-align:center}
   .pill{
-    display:inline-flex;align-items:center;gap:8px;background:#EFF6FF;color:var(--accent);
-    border:1px solid #DBEAFE;border-radius:var(--r-pill);padding:6px 14px;font-size:var(--fs-xs);font-weight:700;margin-bottom:18px;
+    display:inline-flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent-2-deep);
+    border:1px solid var(--accent-line);border-radius:var(--r-pill);padding:6px 14px;font-size:var(--fs-xs);font-weight:700;margin-bottom:18px;
   }
   h1{font-size:var(--fs-display);line-height:1.12;margin:0 0 16px;letter-spacing:-1px}
   h1 .grad{background:linear-gradient(135deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -114,7 +124,7 @@
   .ico svg{width:20px;height:20px;color:var(--accent)}
   .ico{
     width:40px;height:40px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;
-    font-size:var(--fs-2xl);background:linear-gradient(135deg,#EFF6FF,#F5F3FF);border:1px solid #E0E7FF;
+    font-size:var(--fs-2xl);background:linear-gradient(135deg,#EEF3F9,var(--accent-soft));border:1px solid #EADFD3;
   }
 
   /* screenshots */
@@ -131,7 +141,7 @@
 
   /* contact */
   .contact{
-    background:linear-gradient(135deg,#0F172A,#1E293B);color:#fff;border-radius:var(--radius);
+    background:linear-gradient(135deg,var(--accent),#08203F);color:#fff;border-radius:var(--radius);
     padding:44px 30px;text-align:center;box-shadow:0 20px 50px rgba(15,23,42,.25);
   }
   .contact h2{margin:0 0 12px;font-size:var(--fs-h2)}
@@ -151,7 +161,7 @@
   }
   .step .num{
     width:34px;height:34px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:var(--fs-lg);color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    font-weight:800;font-size:var(--fs-lg);color:#fff;background:linear-gradient(135deg,var(--accent),#1B4E8F);
     margin-bottom:14px;
   }
   .step h3{margin:0 0 7px;font-size:var(--fs-lg)}
@@ -169,7 +179,7 @@
   .review .who{display:flex;align-items:center;gap:11px;margin-top:auto;padding-top:6px}
   .review .avatar{
     width:38px;height:38px;border-radius:var(--r-circle);flex:none;display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:var(--fs-lg);color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    font-weight:800;font-size:var(--fs-lg);color:#fff;background:linear-gradient(135deg,var(--accent),#1B4E8F);
   }
   .review .who b{display:block;font-size:var(--fs-sm)}
   .review .who small{color:var(--muted);font-size:var(--fs-xs)}
@@ -196,9 +206,9 @@
     background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
     padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;position:relative;
   }
-  .plan.featured{border:2px solid var(--accent);box-shadow:0 18px 44px rgba(29,78,216,.16)}
+  .plan.featured{border:2px solid var(--accent);box-shadow:0 18px 44px rgba(14,45,85,.18)}
   .plan .tag{
-    position:absolute;top:-12px;left:24px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    position:absolute;top:-12px;left:24px;background:var(--accent-2-deep);
     color:#fff;font-size:var(--fs-xs);font-weight:800;letter-spacing:.4px;text-transform:uppercase;
     padding:5px 12px;border-radius:var(--r-pill);
   }
@@ -240,12 +250,12 @@
   }
   .fields input::placeholder,.fields textarea::placeholder{color:#94A3B8}
   .fields input:focus,.fields select:focus,.fields textarea:focus{
-    outline:none;border-color:#60A5FA;background:rgba(255,255,255,.1);
+    outline:none;border-color:#F0A868;background:rgba(255,255,255,.1);
   }
   .fields select option{color:#0F172A}
   .fields textarea{min-height:96px;resize:vertical}
   .fields .invalid{border-color:#F87171 !important}
-  .form-note{font-size:var(--fs-sm);color:#93C5FD;min-height:18px;margin:10px 0 0;text-align:center}
+  .form-note{font-size:var(--fs-sm);color:#FBD7B0;min-height:18px;margin:10px 0 0;text-align:center}
   .form-note.err{color:#FCA5A5}
   .form-note.ok{color:#86EFAC}
 
