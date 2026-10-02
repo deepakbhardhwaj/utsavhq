@@ -72,7 +72,7 @@
      .btn-primary (0,1,0) and the button label inherits grey, which made
      "Get started" almost invisible on the gradient. */
   nav.links a:not(.btn){text-decoration:none;color:var(--ink-soft);font-size:var(--fs-md);font-weight:600}
-  nav.links a.btn{color:#fff}
+  nav.links a.btn{color:var(--accent)}
   nav.links a:hover{color:var(--accent)}
   .btn{
     display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:700;
@@ -80,13 +80,17 @@
     transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
   }
   .btn:hover{transform:translateY(-1px)}
-  .btn-primary{background:linear-gradient(135deg,var(--accent),#1B4E8F);color:#fff;box-shadow:0 8px 22px rgba(14,45,85,.30)}
-  .btn-ghost{background:#fff;border-color:var(--border);color:var(--ink)}
+  .btn-primary{
+    background:linear-gradient(135deg,#F2892F,var(--accent-2));color:var(--accent);
+    box-shadow:0 8px 22px rgba(237,111,31,.32);
+  }
+  .btn-primary:hover{box-shadow:0 12px 26px rgba(237,111,31,.42)}
+  .btn-ghost{background:#fff;border-color:var(--accent-line);color:var(--accent-2-deep)}
   /* secondary WhatsApp action — keeps the brand colour but stops competing
      with the primary "Open App" button in the hero */
-  .btn-wa-ghost{background:#fff;border-color:#BBF7D0;color:#16A34A}
-  .btn-wa-ghost:hover{background:#F0FDF4;border-color:#86EFAC}
-  .btn-wa{background:#25D366;color:#053b1c;box-shadow:0 8px 22px rgba(37,211,102,.28)}
+  .btn-wa-ghost{background:#fff;border-color:var(--accent-line);color:var(--accent-2-deep)}
+  .btn-wa-ghost:hover{background:var(--accent-soft);border-color:var(--accent-2)}
+  .btn-wa{background:linear-gradient(135deg,#F2892F,var(--accent-2));color:var(--accent);box-shadow:0 8px 22px rgba(237,111,31,.32)}
   .btn-sm{padding:9px 15px;font-size:var(--fs-sm);border-radius:var(--r-sm)}
   .burger{display:none;align-items:center;justify-content:center;margin-left:auto;background:#fff;border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 12px;font-size:var(--fs-lg);cursor:pointer}
 
@@ -147,8 +151,8 @@
   .contact h2{margin:0 0 12px;font-size:var(--fs-h2)}
   .contact p{color:#CBD5E1;margin:0 auto 24px;max-width:620px;font-size:var(--fs-lg)}
   .contact .cta{justify-content:center}
-  .contact .btn-ghost{background:transparent;border-color:rgba(255,255,255,.25);color:#fff}
-  .contact .btn-ghost:hover{background:rgba(255,255,255,.08)}
+  .contact .btn-ghost{background:transparent;border-color:rgba(237,111,31,.55);color:#FFD9BC}
+  .contact .btn-ghost:hover{background:rgba(237,111,31,.14)}
 
   footer{padding:34px 0 46px;text-align:center;color:var(--muted);font-size:var(--fs-sm)}
   footer a{color:var(--ink-soft);text-decoration:none}
@@ -161,7 +165,7 @@
   }
   .step .num{
     width:34px;height:34px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:var(--fs-lg);color:#fff;background:linear-gradient(135deg,var(--accent),#1B4E8F);
+    font-weight:800;font-size:var(--fs-lg);color:var(--accent);background:linear-gradient(135deg,#F2892F,var(--accent-2));
     margin-bottom:14px;
   }
   .step h3{margin:0 0 7px;font-size:var(--fs-lg)}
@@ -179,7 +183,7 @@
   .review .who{display:flex;align-items:center;gap:11px;margin-top:auto;padding-top:6px}
   .review .avatar{
     width:38px;height:38px;border-radius:var(--r-circle);flex:none;display:flex;align-items:center;justify-content:center;
-    font-weight:800;font-size:var(--fs-lg);color:#fff;background:linear-gradient(135deg,var(--accent),#1B4E8F);
+    font-weight:800;font-size:var(--fs-lg);color:var(--accent);background:linear-gradient(135deg,#F2892F,var(--accent-2));
   }
   .review .who b{display:block;font-size:var(--fs-sm)}
   .review .who small{color:var(--muted);font-size:var(--fs-xs)}
@@ -189,14 +193,14 @@
   #wa-float{
     position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;
     display:inline-flex;align-items:center;gap:8px;text-decoration:none;
-    background:#fff;color:#16A34A;font-weight:700;font-size:var(--fs-sm);
-    padding:10px 14px;border-radius:var(--r-pill);border:1px solid #BBF7D0;
+    background:#fff;color:var(--accent-2-deep);font-weight:700;font-size:var(--fs-sm);
+    padding:10px 14px;border-radius:var(--r-pill);border:1px solid var(--accent-line);
     box-shadow:0 6px 18px rgba(15,23,42,.14);
     opacity:0;transform:translateY(10px);pointer-events:none;
     transition:opacity .25s ease, transform .25s ease, background .15s ease;
   }
   #wa-float.show{opacity:1;transform:translateY(0);pointer-events:auto}
-  #wa-float:hover{background:#F0FDF4}
+  #wa-float:hover{background:var(--accent-soft)}
   #wa-float svg{width:18px;height:18px;flex:none}
   @media (max-width:520px){ #wa-float span{display:none} #wa-float{padding:12px;border-radius:var(--r-circle)} footer{padding-bottom:88px} }
 
