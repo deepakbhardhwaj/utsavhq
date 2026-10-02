@@ -59,7 +59,7 @@
   }
   .bar{display:flex;align-items:center;gap:16px;height:64px}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.2px;text-decoration:none}
-  .brand img{height:30px;width:auto}
+  .brand img{height:38px;width:auto}
   .brand span{font-size:var(--fs-xl)}
   nav.links{margin-left:auto;display:flex;gap:22px;align-items:center}
   nav.links a{text-decoration:none;color:var(--ink-soft);font-size:var(--fs-md);font-weight:600}
@@ -286,6 +286,7 @@
     nav.links a{padding:11px 0;border-bottom:1px solid var(--border)}
     nav.links .btn{margin-top:12px;justify-content:center}
     .burger{display:block}
+    .brand img{height:32px}
     .shots-desktop,.shots-mobile{grid-template-columns:1fr}
     .about-grid{grid-template-columns:1fr;gap:20px}
     nav.links a{font-size:var(--fs-md)}
@@ -298,9 +299,10 @@
 
 <header>
   <div class="wrap bar">
-    <a class="brand" href="./landing.html">
-      <img src="logo.png" alt="UTSAVhq logo">
-      <span>UTSAVhq <span style="color:var(--muted);font-weight:600">ERP</span></span>
+    <!-- The logo image already contains the UTSAVhq wordmark, so the name is
+         NOT repeated as text next to it (that showed the brand twice). -->
+    <a class="brand" href="./">
+      <img src="logo.png" alt="UTSAVhq Enterprise ERP">
     </a>
     <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <nav class="links" id="navlinks">
@@ -310,7 +312,7 @@
       <a href="#about">About</a>
       <a href="#help">Help</a>
       <a href="#contact">Contact</a>
-      <a class="btn btn-primary btn-sm" href="./app/" data-app-cta>Open App →</a>
+      <a class="btn btn-primary btn-sm" href="./app/">Get started →</a>
     </nav>
   </div>
 </header>
