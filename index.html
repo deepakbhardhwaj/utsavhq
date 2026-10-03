@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+/* 🐛 FIX: an installed app must never show the marketing page. The redirect used to
+   live at the very end of <body>, so the whole landing painted first and the user saw
+   it for 1-2 seconds before the app opened. Running it in <head> hands over to the
+   app before anything is painted. */
+(function () {
+  try {
+    var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
+    if (standalone) location.replace('./app/');
+  } catch (e) {}
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UTSAVhq ERP — Run your entire event business from one app</title>
