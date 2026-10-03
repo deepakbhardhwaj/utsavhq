@@ -593,8 +593,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var L = [];
     L.push('BEGIN:VCARD');
     L.push('VERSION:3.0');
-    L.push('FN:' + name);
-    if (d.owner) L.push('N:' + d.owner + ';;;;');
+    /* The saved contact is labelled "Business Name, Owner Name" so the owner is
+       visible right in the phone's contact list, not only inside the card. */
+    L.push('FN:' + name + (d.owner ? ', ' + d.owner : ''));
+    if (d.owner) L.push('N:' + d.owner + ';;;;' + name + ';');
     L.push('ORG:' + name);
     if (d.category) L.push('TITLE:' + d.category);
     else if (d.tagline) L.push('TITLE:' + d.tagline);
@@ -705,6 +707,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       g.font = '700 23px -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
       var addrLines = d.address ? wrap(g, d.address, W - 240, 0, 32) : [];
       var y = 360;
+      if (d.owner) y += 34;
       if (d.category) y += 62;
       if (d.phone) y += 38;
       y += 32 * addrLines.length;
@@ -757,6 +760,16 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       g.font = '900 42px -apple-system, \"Segoe UI\", Roboto, Arial, sans-serif';
       g.fillText(fit(g, name, W - 90), W / 2, y);
       y += 40;
+
+      /* the owner's name, directly under the business name */
+      if (d.owner) {
+        g.fillStyle = '#64748B';
+        g.font = '700 24px -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+        g.fillText(fit(g, d.owner, W - 120), W / 2, y);
+        y += 34;
+        g.fillStyle = '#0F172A';
+        g.font = '900 42px -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+      }
 
       /* category pill */
       if (d.category) {
