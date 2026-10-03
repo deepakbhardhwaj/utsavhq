@@ -6268,36 +6268,50 @@ body:not(.on-home) #nexa-fab { display: none !important; }
 }
 
 /* ── Company preview ── */
-#companyPreviewModal .modal-content { max-width:560px; border-radius:20px; overflow:hidden; padding:0; }
-#companyPreviewModal .cpv-head { background:linear-gradient(135deg,#0E2D55,#1B4A85); padding:22px 20px 18px; text-align:center; position:relative; }
-#companyPreviewModal .cpv-plate { display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:16px; padding:12px 18px; box-shadow:0 10px 24px rgba(0,0,0,.22); margin-bottom:12px; min-height:56px; }
-#companyPreviewModal .cpv-plate img { max-height:46px; max-width:190px; object-fit:contain; display:block; }
-#companyPreviewModal .cpv-name { color:#fff; font-size:19px; font-weight:900; letter-spacing:-.2px; }
-#companyPreviewModal .cpv-owner { color:rgba(255,255,255,.72); font-size:12.5px; font-weight:700; margin-top:3px; }
-#companyPreviewModal .cpv-tag { display:inline-block; margin-top:9px; background:rgba(237,111,31,.18); color:#FFD9BC; border:1px solid rgba(237,111,31,.45); font-size:10px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; padding:4px 10px; border-radius:20px; }
-#companyPreviewModal .cpv-body { padding:16px; background:#F8FAFC; max-height:52vh; overflow-y:auto; }
-#companyPreviewModal .cpv-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-#companyPreviewModal .cpv-tile { background:#fff; border:1px solid #E7EDF5; border-radius:13px; padding:11px 12px; min-width:0; }
-#companyPreviewModal .cpv-k { font-size:9.5px; font-weight:800; color:#94A3B8; text-transform:uppercase; letter-spacing:.5px; }
-#companyPreviewModal .cpv-v { font-size:13px; font-weight:800; color:#0F172A; margin-top:3px; word-break:break-word; }
+#companyPreviewModal .modal-content { max-width:540px; border-radius:22px; overflow:hidden; padding:0; background:#F6F8FC; }
+#companyPreviewModal .cpv-cover { height:92px; background:linear-gradient(135deg,#0E2D55 0%,#1B4A85 60%,#2563EB 100%); position:relative; overflow:hidden; }
+#companyPreviewModal .cpv-cover::after { content:''; position:absolute; top:-40px; right:-30px; width:130px; height:130px; border-radius:50%; background:rgba(255,255,255,.07); }
+#companyPreviewModal .cpv-cover::before { content:''; position:absolute; bottom:-50px; left:18%; width:150px; height:150px; border-radius:50%; background:rgba(237,111,31,.10); }
+#companyPreviewModal .cpv-close-x { position:absolute; top:12px; right:12px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.18); color:#fff; border:none; font-size:17px; line-height:1; cursor:pointer; z-index:2; }
+#companyPreviewModal .cpv-id { text-align:center; margin-top:-40px; padding:0 18px; position:relative; z-index:2; }
+#companyPreviewModal .cpv-plate { display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:18px; padding:10px 16px; box-shadow:0 12px 28px rgba(14,45,85,.18); min-height:58px; min-width:58px; border:3px solid #fff; }
+#companyPreviewModal .cpv-plate img { max-height:46px; max-width:180px; object-fit:contain; display:block; }
+#companyPreviewModal .cpv-fallback { font-size:24px; font-weight:900; color:#0E2D55; }
+#companyPreviewModal .cpv-name { color:#0F172A; font-size:19px; font-weight:900; letter-spacing:-.3px; margin-top:10px; }
+#companyPreviewModal .cpv-owner { color:#64748B; font-size:12px; font-weight:700; margin-top:3px; }
+#companyPreviewModal .cpv-tag { display:inline-block; margin-top:9px; background:#EFF6FF; color:#1D4ED8; border:1px solid #DBEAFE; font-size:9.5px; font-weight:900; letter-spacing:.5px; text-transform:uppercase; padding:4px 11px; border-radius:20px; }
+#companyPreviewModal .cpv-actions { display:flex; gap:8px; padding:14px 16px 0; }
+#companyPreviewModal .cpv-act { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; border-radius:14px; text-decoration:none; font-size:10px; font-weight:800; border:1px solid #E7EDF5; background:#fff; color:#334155; cursor:pointer; transition:.2s; }
+#companyPreviewModal .cpv-act:hover { transform:translateY(-2px); box-shadow:0 8px 18px rgba(14,45,85,.12); }
+#companyPreviewModal .cpv-act span.i { font-size:17px; }
+#companyPreviewModal .cpv-body { padding:14px 16px; background:#F6F8FC; max-height:44vh; overflow-y:auto; }
+#companyPreviewModal .cpv-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+#companyPreviewModal .cpv-tile { background:#fff; border:1px solid #E7EDF5; border-radius:14px; padding:10px 11px; min-width:0; display:flex; gap:9px; align-items:flex-start; }
+#companyPreviewModal .cpv-ico { width:26px; height:26px; border-radius:9px; background:#EFF6FF; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+#companyPreviewModal .cpv-k { font-size:9px; font-weight:900; color:#94A3B8; text-transform:uppercase; letter-spacing:.5px; }
+#companyPreviewModal .cpv-v { font-size:12.5px; font-weight:800; color:#0F172A; margin-top:2px; word-break:break-word; }
 #companyPreviewModal .cpv-wide { grid-column:1 / -1; }
-#companyPreviewModal .cpv-sig { background:#fff; border:1px solid #E7EDF5; border-radius:13px; padding:11px 12px; margin-top:10px; }
-#companyPreviewModal .cpv-sig img { max-height:52px; display:block; margin-top:6px; }
-#companyPreviewModal .cpv-foot { display:flex; gap:10px; padding:14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background:#fff; border-top:1px solid #E7EDF5; }
-#companyPreviewModal .cpv-edit { flex:1; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#0E2D55; border:none; border-radius:13px; padding:13px; font-size:13.5px; font-weight:900; cursor:pointer; }
-#companyPreviewModal .cpv-close { flex:0 0 auto; background:#F1F5F9; color:#334155; border:none; border-radius:13px; padding:13px 18px; font-size:13.5px; font-weight:800; cursor:pointer; }
-@media (max-width:639px){ #companyPreviewModal .cpv-grid { grid-template-columns:1fr; } }
-@media (min-width:1024px){ #companyPreviewModal { align-items:center; padding:24px; } #companyPreviewModal .cpv-body { max-height:60vh; } }
+#companyPreviewModal .cpv-sig { background:#fff; border:1px solid #E7EDF5; border-radius:14px; padding:10px 11px; margin-top:9px; }
+#companyPreviewModal .cpv-sig img { max-height:50px; display:block; margin-top:6px; }
+#companyPreviewModal .cpv-foot { display:flex; gap:10px; padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background:#fff; border-top:1px solid #E7EDF5; }
+#companyPreviewModal .cpv-edit { flex:1; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#0E2D55; border:none; border-radius:14px; padding:13px; font-size:13.5px; font-weight:900; cursor:pointer; }
+#companyPreviewModal .cpv-close { flex:0 0 auto; background:#F1F5F9; color:#334155; border:none; border-radius:14px; padding:13px 18px; font-size:13.5px; font-weight:800; cursor:pointer; }
+@media (max-width:639px){ #companyPreviewModal .cpv-grid { grid-template-columns:1fr; } #companyPreviewModal .cpv-body { max-height:38vh; } }
+@media (min-width:1024px){ #companyPreviewModal { align-items:center; padding:24px; } #companyPreviewModal .cpv-body { max-height:52vh; } }
 </style>
 
 <div id="companyPreviewModal" class="modal-overlay" style="z-index:9750;">
     <div class="modal-content">
-        <div class="cpv-head">
-            <div class="cpv-plate"><img id="cpv_logo" alt="" onerror="this.style.display='none'"></div>
+        <div class="cpv-cover">
+            <button class="cpv-close-x" onclick="closeCompanyPreview()" aria-label="Close">&times;</button>
+        </div>
+        <div class="cpv-id">
+            <div class="cpv-plate"><img id="cpv_logo" alt="" onerror="this.style.display='none'"><span class="cpv-fallback" id="cpv_fallback" style="display:none;"></span></div>
             <div class="cpv-name" id="cpv_name">Your Company</div>
             <div class="cpv-owner" id="cpv_owner"></div>
-            <div class="cpv-tag">&#128081; Company Profile</div>
+            <div class="cpv-tag" id="cpv_tag">&#128081; Company Profile</div>
         </div>
+        <div class="cpv-actions" id="cpv_actions"></div>
         <div class="cpv-body">
             <div class="cpv-grid" id="cpv_grid"></div>
             <div class="cpv-sig" id="cpv_sigwrap" style="display:none;">
@@ -6329,34 +6343,53 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     try { p = (typeof profileDB !== 'undefined' && profileDB) || {}; } catch (e) {}
     var m = document.getElementById('companyPreviewModal');
     if (!m) return;
+    var c = {};
+    try { c = (typeof masterCompsDB !== 'undefined' && masterCompsDB[currentWorkspaceId]) || {}; } catch (e) {}
 
-    var logo = document.getElementById('cpv_logo');
-    if (logo) {
-      if (p.logo) { logo.src = p.logo; logo.style.display = 'block'; }
-      else { logo.removeAttribute('src'); logo.style.display = 'none'; }
+    /* logo, or the company initials as a fallback */
+    var logo = document.getElementById('cpv_logo'), fb = document.getElementById('cpv_fallback');
+    var src = p.logo || c.logo || '';
+    if (logo && fb) {
+      if (src) { logo.src = src; logo.style.display = 'block'; fb.style.display = 'none'; }
+      else {
+        logo.removeAttribute('src'); logo.style.display = 'none';
+        var nm = (p.name || c.name || 'U').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
+        fb.textContent = nm || 'U'; fb.style.display = 'inline';
+      }
     }
     var nameEl = document.getElementById('cpv_name');
-    if (nameEl) nameEl.textContent = p.name || 'Your Company';
+    if (nameEl) nameEl.textContent = p.name || c.name || 'Your Company';
     var ownerEl = document.getElementById('cpv_owner');
     if (ownerEl) ownerEl.textContent = p.owner ? ('Owner: ' + p.owner) : '';
 
+    /* quick actions — only the ones the company actually has */
+    var acts = [];
+    function act(icon, label, href) { acts.push('<a class="cpv-act" href="' + href + '" target="_blank" rel="noopener"><span class="i">' + icon + '</span>' + label + '</a>'); }
+    if (p.phone1) act('&#128222;', 'Call', 'tel:' + String(p.phone1).replace(/[^0-9+]/g, ''));
+    if (p.phone1) act('&#128172;', 'WhatsApp', 'https://wa.me/91' + String(p.phone1).replace(/\D/g, '').slice(-10));
+    if (p.email) act('&#9993;&#65039;', 'Email', 'mailto:' + p.email);
+    if (p.web) act('&#127760;', 'Website', /^https?:/i.test(p.web) ? p.web : 'https://' + p.web);
+    var actEl = document.getElementById('cpv_actions');
+    if (actEl) { actEl.innerHTML = acts.join(''); actEl.style.display = acts.length ? 'flex' : 'none'; }
+
+    /* detail tiles with icons */
     var tiles = [];
-    function tile(k, v, wide) {
+    function tile(icon, k, v, wide) {
       if (!v) return;
-      tiles.push('<div class="cpv-tile' + (wide ? ' cpv-wide' : '') + '"><div class="cpv-k">' + esc(k) + '</div><div class="cpv-v">' + esc(v) + '</div></div>');
+      tiles.push('<div class="cpv-tile' + (wide ? ' cpv-wide' : '') + '"><div class="cpv-ico">' + icon + '</div><div style="min-width:0;flex:1;"><div class="cpv-k">' + esc(k) + '</div><div class="cpv-v">' + esc(v) + '</div></div></div>');
     }
-    tile('Mobile', p.phone1);
-    tile('Mobile 2', p.phone2);
-    tile('Email', p.email);
-    tile('Website', p.web);
-    tile('Address', p.address, true);
-    tile('Instagram', p.insta);
-    tile('Google / Reviews', p.google);
-    tile('About', p.desc, true);
+    tile('&#128241;', 'Mobile 1', p.phone1);
+    tile('&#128242;', 'Mobile 2', p.phone2);
+    tile('&#9993;&#65039;', 'Email', p.email);
+    tile('&#127760;', 'Website', p.web);
+    tile('&#128205;', 'Address', p.address, true);
+    tile('&#128247;', 'Instagram', p.insta);
+    tile('&#11088;', 'Google / Reviews', p.google);
+    tile('&#128221;', 'About', p.desc, true);
     var grid = document.getElementById('cpv_grid');
     if (grid) {
       grid.innerHTML = tiles.length ? tiles.join('') :
-        '<div class="cpv-tile cpv-wide"><div class="cpv-k">Details</div><div class="cpv-v">No company details added yet.</div></div>';
+        '<div class="cpv-tile cpv-wide"><div class="cpv-ico">&#128203;</div><div><div class="cpv-k">Details</div><div class="cpv-v">No company details added yet.</div></div></div>';
     }
     var sw = document.getElementById('cpv_sigwrap'), si = document.getElementById('cpv_sig');
     if (sw && si) {
