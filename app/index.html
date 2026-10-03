@@ -3401,7 +3401,7 @@
 #digitalCardModal .dc-top .ic { width:36px; height:36px; border-radius:11px; background:rgba(255,255,255,.16); display:flex; align-items:center; justify-content:center; font-size:18px; }
 #digitalCardModal .dc-top h3 { margin:0; font-size:16px; font-weight:900; color:#fff; flex:1; }
 #digitalCardModal .dc-top .x { background:rgba(255,255,255,.16); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; }
-#digitalCardModal .dc-scroll { overflow-y:auto; padding:16px 18px; flex:1; }
+#digitalCardModal .dc-scroll { overflow-y:auto; padding:16px 18px calc(26px + env(safe-area-inset-bottom,0px)); flex:1; }
 #digitalCardModal .dc-card { background:#fff; border:1px solid #E7EDF5; border-radius:15px; padding:14px; margin-bottom:12px; }
 #digitalCardModal .dc-h { font-size:10px; font-weight:900; color:#94A3B8; text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px; }
 #digitalCardModal label.dc-l { display:block; font-size:10.5px; font-weight:800; color:#475569; margin-bottom:4px; }
@@ -3431,7 +3431,13 @@
 #digitalCardModal .dc-th.on { border-color:#0E2D55; }
 #digitalCardModal .dc-th.on:after { content:'\2713'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:900; text-shadow:0 1px 3px rgba(0,0,0,.5); }
 #digitalCardModal .dc-cover-row { display:flex; gap:9px; align-items:center; margin-top:12px; flex-wrap:wrap; }
-#digitalCardModal .dc-cover-row img { width:74px; height:42px; border-radius:10px; object-fit:cover; background:#E8EEF8; display:none; border:1px solid #DDE6F2; }
+#digitalCardModal .dc-cover-preview { height:88px; border-radius:14px; background:linear-gradient(135deg,#0E2D55,#1B4A85 60%,#2563EB); background-size:cover; background-position:center; position:relative; overflow:hidden; display:flex; align-items:flex-end; padding:10px 12px; }
+#digitalCardModal .dc-cover-preview .dc-cp-name { color:#fff; font-size:13px; font-weight:900; text-shadow:0 1px 6px rgba(0,0,0,.45); position:relative; z-index:2; }
+#digitalCardModal .dc-cover-preview.has-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(8,20,40,.25),rgba(8,20,40,.62)); }
+#digitalCardModal .dc-logo-row { display:flex; gap:12px; align-items:center; margin:12px 0 4px; }
+#digitalCardModal .dc-logo-box { width:56px; height:56px; border-radius:15px; background:#F1F5F9; border:1px solid #DDE6F2; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; }
+#digitalCardModal .dc-logo-box img { width:100%; height:100%; object-fit:contain; display:none; }
+#digitalCardModal .dc-logo-init { font-size:18px; font-weight:900; color:#0E2D55; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
 #digitalCardModal .dc-mini { background:#F1F5F9; border:1px solid #DDE6F2; color:#334155; border-radius:10px; padding:9px 12px; font-size:11.5px; font-weight:800; cursor:pointer; }
 #digitalCardModal .dc-add { width:100%; background:#F1F5F9; border:1px dashed #CBD5E1; color:#475569; border-radius:12px; padding:11px; font-size:12.5px; font-weight:800; cursor:pointer; }
 #digitalCardModal .dc-foot { background:#fff; border-top:1px solid #E7EDF5; padding:13px 18px calc(13px + env(safe-area-inset-bottom,0px)); display:flex; gap:9px; }
@@ -3473,10 +3479,23 @@
             <div class="dc-card">
                 <div class="dc-h">Cover</div>
                 <div class="dc-themes" id="dc_themes"></div>
+                <div class="dc-cover-preview" id="dc_cover_preview">
+                    <span class="dc-cp-name" id="dc_cp_name"></span>
+                </div>
+                <div class="dc-logo-row">
+                    <div class="dc-logo-box">
+                        <img id="dc_logo_prev" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <span id="dc_logo_initials" class="dc-logo-init" style="display:none;"></span>
+                    </div>
+                    <div style="min-width:0;flex:1;">
+                        <label class="dc-l">Business logo</label>
+                        <button type="button" class="dc-mini" onclick="document.getElementById('dc_logo_file').click()">&#128247; Upload logo</button>
+                        <input type="file" id="dc_logo_file" accept="image/*" style="display:none" onchange="dcUploadLogo(this)">
+                    </div>
+                </div>
                 <div class="dc-cover-row">
-                    <img id="dc_cover_prev" alt="">
                     <button type="button" class="dc-mini" onclick="document.getElementById('dc_cover_file').click()">&#128247; Upload cover photo</button>
-                    <button type="button" class="dc-mini" onclick="dcClearCover()">Use theme</button>
+                    <button type="button" class="dc-mini" id="dc_clear_cover" onclick="dcClearCover()">Use theme</button>
                     <input type="file" id="dc_cover_file" accept="image/*" style="display:none" onchange="dcUploadCover(this)">
                 </div>
                 <div class="dc-hint wait" style="margin-top:8px;">Pick a theme, or upload your own photo (a dark wash is added automatically so your name stays readable).</div>
@@ -3485,17 +3504,11 @@
             <!-- ── basic details ── -->
             <div class="dc-card">
                 <div class="dc-h">Card details</div>
-                <div class="dc-1"><label class="dc-l">Business name</label><input type="text" id="dc_name" class="dc-i"></div>
+                <div class="dc-1"><label class="dc-l">Business name</label><input type="text" id="dc_name" class="dc-i" oninput="dcNameTyped(this.value)"></div>
                 <div class="dc-1"><label class="dc-l">Tagline / short line</label><input type="text" id="dc_tagline" class="dc-i" maxlength="70"></div>
                 <div class="dc-2 dc-1">
-                    <div><label class="dc-l">Category badge</label><input type="text" id="dc_category" class="dc-i" maxlength="18" ></div>
-                    <div><label class="dc-l">Logo</label>
-                        <div style="display:flex;gap:8px;align-items:center;">
-                            <img id="dc_logo_prev" alt="" style="width:38px;height:38px;border-radius:10px;object-fit:contain;background:#F1F5F9;display:none;">
-                            <button type="button" class="dc-i" style="width:auto;padding:9px 13px;font-size:11.5px;font-weight:800;cursor:pointer;" onclick="document.getElementById('dc_logo_file').click()">Upload</button>
-                            <input type="file" id="dc_logo_file" accept="image/*" style="display:none" onchange="dcUploadLogo(this)">
-                        </div>
-                    </div>
+                    <div><label class="dc-l">Category badge</label><input type="text" id="dc_category" class="dc-i" maxlength="18"></div>
+                    <div><label class="dc-l">Second phone (optional)</label><input type="tel" id="dc_phone2" class="dc-i"></div>
                 </div>
                 <div class="dc-2 dc-1">
                     <div><label class="dc-l">Phone</label><input type="tel" id="dc_phone" class="dc-i"></div>
@@ -6867,8 +6880,6 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     el('dc_cat_title').value = cfg.catalogTitle || 'Our Catalogue';
     if (el('dc_location_text')) el('dc_location_text').value = cfg.locationText || '';
     dcRenderThemes();
-    var lp = el('dc_logo_prev');
-    if (lp) { if (dcLogo) { lp.src = dcLogo; lp.style.display = 'block'; } else { lp.style.display = 'none'; } }
     dcUpdateLinkPreview();
     dcRenderLinks();
     dcRenderCatalog();
@@ -6927,8 +6938,29 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     host.innerHTML = COVER_THEMES.map(function (t) {
       return '<div class="dc-th' + (t.key === on && !dcCover ? ' on' : '') + '" style="background:' + t.css + '" title="' + t.key + '" onclick="dcPickTheme(\'' + t.key + '\')"></div>';
     }).join('');
-    var prev = el('dc_cover_prev');
-    if (prev) { if (dcCover) { prev.src = dcCover; prev.style.display = 'block'; } else { prev.style.display = 'none'; } }
+    /* live cover preview: the theme gradient, or the uploaded photo */
+    var cp = el('dc_cover_preview');
+    if (cp) {
+      var th = COVER_THEMES.filter(function (x) { return x.key === (cfg.coverTheme || 'navy'); })[0] || COVER_THEMES[0];
+      cp.style.background = dcCover ? '' : th.css;
+      cp.style.backgroundImage = dcCover ? 'url("' + dcCover + '")' : th.css;
+      if (dcCover) cp.classList.add('has-photo'); else cp.classList.remove('has-photo');
+      var nm = el('dc_cp_name');
+      if (nm) nm.textContent = (cfg.name || 'Your business name');
+    }
+    var clr = el('dc_clear_cover');
+    if (clr) clr.style.display = dcCover ? '' : 'none';
+
+    /* the logo box: the picture, or the initials until one is uploaded */
+    var lp = el('dc_logo_prev'), li = el('dc_logo_initials');
+    if (lp && li) {
+      if (dcLogo) { lp.src = dcLogo; lp.style.display = 'block'; li.style.display = 'none'; }
+      else {
+        lp.removeAttribute('src'); lp.style.display = 'none';
+        li.textContent = (cfg.name || 'U').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase() || 'U';
+        li.style.display = 'flex';
+      }
+    }
   }
 
   window.dcPickTheme = function (key) {
@@ -6942,6 +6974,15 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   window.dcClearCover = function () {
     dcCover = ''; if (cfg) cfg.coverPhoto = '';
     dcRenderThemes();
+  };
+
+  window.dcNameTyped = function (v) {
+    if (cfg) cfg.name = v;
+    var nm = el('dc_cp_name'); if (nm) nm.textContent = v || 'Your business name';
+    var li = el('dc_logo_initials');
+    if (li && li.style.display !== 'none') {
+      li.textContent = String(v || 'U').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase() || 'U';
+    }
   };
 
   window.dcUploadCover = function (input) {
