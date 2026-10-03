@@ -462,9 +462,8 @@
                             <span class="sb-role-badge" id="sb_role_badge" style="background:rgba(255,255,255,0.12); color:#CBD5E1;">Staff</span>
                         </div>
                     </div>
-                    <button onclick="openCompanyProfile(); closeNav();"
-                        style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink:0;">✏️
-                        Edit</button>
+                    <button data-owner-only onclick="openCompanyPreview(); closeNav();"
+                        style="background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.24); color: white; padding: 6px 13px; border-radius: 9px; font-size: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink:0;">👁️ View</button>
                 </div>
             </div>
 
@@ -3293,7 +3292,7 @@
                     <div class="profile-bento-card">
                         <div class="profile-label-badge">✨ Brand Identity</div>
 
-                        <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px;">
+                        <div class="cp-upload-row">
                             <div
                                 style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px;">
                                 <div class="upload-box-sleek"
@@ -3504,7 +3503,7 @@
                         <div class="set-hero-sub" id="set_hero_email">No email set</div>
                         <div class="set-hero-sub" id="set_hero_phone">Tap card to edit profile →</div>
                     </div>
-                    <button class="set-hero-edit" onclick="event.stopPropagation(); openCompanyProfile()">✏️ Edit</button>
+                    <button class="set-hero-edit" data-owner-only onclick="event.stopPropagation(); openCompanyPreview()">👁️ View</button>
                 </div>
                 <!-- 🔷 Personal "My Profile" Hero Card — separate from Company details -->
                 <div class="set-profile-hero" style="background:linear-gradient(135deg, #ED6F1F 0%, #9A3412 100%); margin-top:10px;" onclick="openMyProfileModal()">
@@ -6243,6 +6242,152 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   document.addEventListener('DOMContentLoaded', watch);
   window.addEventListener('load', watch);
   var n = 0, t = setInterval(function () { watch(); if (++n > 20) clearInterval(t); }, 700);
+})();
+</script>
+<style>
+/* ── sidebar: stop the stat labels and section headings from being clipped ── */
+.sb-stat-chip { min-width: 0; }
+.sb-stat-lbl { font-size: 7.5px; letter-spacing: 0.1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-label { font-size: 10px; letter-spacing: 0.3px; padding: 22px 20px 8px 22px; }
+
+/* ── Profile & Branding: brand-identity row, aligned ── */
+#companyProfileModal .cp-upload-row { display:flex; gap:16px; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; }
+#companyProfileModal .cp-upload-row > div { display:flex; flex-direction:column; align-items:center; gap:8px; }
+#companyProfileModal .profile-label-badge { margin-bottom:14px; }
+#companyProfileModal .profile-bento-card { padding:16px 16px 18px; }
+
+/* phones: stack the two-column rows so no field is cramped or cut off */
+@media (max-width:639px){
+  #companyProfileModal .form-row { flex-direction:column; gap:12px; }
+  #companyProfileModal .form-row .form-group { width:100%; }
+}
+/* desktop: a proper centred dialog instead of a bottom sheet */
+@media (min-width:1024px){
+  #companyProfileModal { align-items:center; padding:24px; }
+  #companyProfileModal .profile-modal-content { border-radius:20px; max-height:86vh; width:min(600px,94vw); }
+}
+
+/* ── Company preview ── */
+#companyPreviewModal .modal-content { max-width:560px; border-radius:20px; overflow:hidden; padding:0; }
+#companyPreviewModal .cpv-head { background:linear-gradient(135deg,#0E2D55,#1B4A85); padding:22px 20px 18px; text-align:center; position:relative; }
+#companyPreviewModal .cpv-plate { display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:16px; padding:12px 18px; box-shadow:0 10px 24px rgba(0,0,0,.22); margin-bottom:12px; min-height:56px; }
+#companyPreviewModal .cpv-plate img { max-height:46px; max-width:190px; object-fit:contain; display:block; }
+#companyPreviewModal .cpv-name { color:#fff; font-size:19px; font-weight:900; letter-spacing:-.2px; }
+#companyPreviewModal .cpv-owner { color:rgba(255,255,255,.72); font-size:12.5px; font-weight:700; margin-top:3px; }
+#companyPreviewModal .cpv-tag { display:inline-block; margin-top:9px; background:rgba(237,111,31,.18); color:#FFD9BC; border:1px solid rgba(237,111,31,.45); font-size:10px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; padding:4px 10px; border-radius:20px; }
+#companyPreviewModal .cpv-body { padding:16px; background:#F8FAFC; max-height:52vh; overflow-y:auto; }
+#companyPreviewModal .cpv-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#companyPreviewModal .cpv-tile { background:#fff; border:1px solid #E7EDF5; border-radius:13px; padding:11px 12px; min-width:0; }
+#companyPreviewModal .cpv-k { font-size:9.5px; font-weight:800; color:#94A3B8; text-transform:uppercase; letter-spacing:.5px; }
+#companyPreviewModal .cpv-v { font-size:13px; font-weight:800; color:#0F172A; margin-top:3px; word-break:break-word; }
+#companyPreviewModal .cpv-wide { grid-column:1 / -1; }
+#companyPreviewModal .cpv-sig { background:#fff; border:1px solid #E7EDF5; border-radius:13px; padding:11px 12px; margin-top:10px; }
+#companyPreviewModal .cpv-sig img { max-height:52px; display:block; margin-top:6px; }
+#companyPreviewModal .cpv-foot { display:flex; gap:10px; padding:14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background:#fff; border-top:1px solid #E7EDF5; }
+#companyPreviewModal .cpv-edit { flex:1; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#0E2D55; border:none; border-radius:13px; padding:13px; font-size:13.5px; font-weight:900; cursor:pointer; }
+#companyPreviewModal .cpv-close { flex:0 0 auto; background:#F1F5F9; color:#334155; border:none; border-radius:13px; padding:13px 18px; font-size:13.5px; font-weight:800; cursor:pointer; }
+@media (max-width:639px){ #companyPreviewModal .cpv-grid { grid-template-columns:1fr; } }
+@media (min-width:1024px){ #companyPreviewModal { align-items:center; padding:24px; } #companyPreviewModal .cpv-body { max-height:60vh; } }
+</style>
+
+<div id="companyPreviewModal" class="modal-overlay" style="z-index:9750;">
+    <div class="modal-content">
+        <div class="cpv-head">
+            <div class="cpv-plate"><img id="cpv_logo" alt="" onerror="this.style.display='none'"></div>
+            <div class="cpv-name" id="cpv_name">Your Company</div>
+            <div class="cpv-owner" id="cpv_owner"></div>
+            <div class="cpv-tag">&#128081; Company Profile</div>
+        </div>
+        <div class="cpv-body">
+            <div class="cpv-grid" id="cpv_grid"></div>
+            <div class="cpv-sig" id="cpv_sigwrap" style="display:none;">
+                <div class="cpv-k">Authorised Signature</div>
+                <img id="cpv_sig" alt="">
+            </div>
+        </div>
+        <div class="cpv-foot">
+            <button class="cpv-edit" data-owner-only onclick="closeCompanyPreview(); openCompanyProfile();">&#9999;&#65039; Edit details</button>
+            <button class="cpv-close" onclick="closeCompanyPreview()">Close</button>
+        </div>
+    </div>
+</div>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════════
+   COMPANY PREVIEW — a read-only card that replaces the old "Edit" button.
+   The owner sees "View"; tapping it opens this preview, and the Edit button
+   sits at the bottom of the preview. Staff never see either button.
+   ══════════════════════════════════════════════════════════════════════════════ */
+(function () {
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  window.openCompanyPreview = function () {
+    var p = {};
+    try { p = (typeof profileDB !== 'undefined' && profileDB) || {}; } catch (e) {}
+    var m = document.getElementById('companyPreviewModal');
+    if (!m) return;
+
+    var logo = document.getElementById('cpv_logo');
+    if (logo) {
+      if (p.logo) { logo.src = p.logo; logo.style.display = 'block'; }
+      else { logo.removeAttribute('src'); logo.style.display = 'none'; }
+    }
+    var nameEl = document.getElementById('cpv_name');
+    if (nameEl) nameEl.textContent = p.name || 'Your Company';
+    var ownerEl = document.getElementById('cpv_owner');
+    if (ownerEl) ownerEl.textContent = p.owner ? ('Owner: ' + p.owner) : '';
+
+    var tiles = [];
+    function tile(k, v, wide) {
+      if (!v) return;
+      tiles.push('<div class="cpv-tile' + (wide ? ' cpv-wide' : '') + '"><div class="cpv-k">' + esc(k) + '</div><div class="cpv-v">' + esc(v) + '</div></div>');
+    }
+    tile('Mobile', p.phone1);
+    tile('Mobile 2', p.phone2);
+    tile('Email', p.email);
+    tile('Website', p.web);
+    tile('Address', p.address, true);
+    tile('Instagram', p.insta);
+    tile('Google / Reviews', p.google);
+    tile('About', p.desc, true);
+    var grid = document.getElementById('cpv_grid');
+    if (grid) {
+      grid.innerHTML = tiles.length ? tiles.join('') :
+        '<div class="cpv-tile cpv-wide"><div class="cpv-k">Details</div><div class="cpv-v">No company details added yet.</div></div>';
+    }
+    var sw = document.getElementById('cpv_sigwrap'), si = document.getElementById('cpv_sig');
+    if (sw && si) {
+      if (p.signature) { si.src = p.signature; sw.style.display = 'block'; }
+      else { sw.style.display = 'none'; }
+    }
+    m.style.display = 'flex';
+    if (typeof syncOwnerOnly === 'function') syncOwnerOnly();
+  };
+
+  window.closeCompanyPreview = function () {
+    var m = document.getElementById('companyPreviewModal');
+    if (m) m.style.display = 'none';
+  };
+
+  /* staff must never see the owner-only buttons */
+  window.syncOwnerOnly = function () {
+    var owner = false;
+    try {
+      owner = (typeof isCurrentUserOwner === 'function') ? !!isCurrentUserOwner()
+        : !!(typeof masterCompsDB !== 'undefined' && masterCompsDB[currentWorkspaceId] &&
+             masterCompsDB[currentWorkspaceId].ownerEmail === loggedInEmail);
+    } catch (e) {}
+    document.querySelectorAll('[data-owner-only]').forEach(function (el) {
+      el.style.display = owner ? '' : 'none';
+    });
+  };
+
+  document.addEventListener('DOMContentLoaded', window.syncOwnerOnly);
+  window.addEventListener('load', window.syncOwnerOnly);
+  var n = 0, t = setInterval(function () { window.syncOwnerOnly(); if (++n > 20) clearInterval(t); }, 800);
 })();
 </script>
 </body>
