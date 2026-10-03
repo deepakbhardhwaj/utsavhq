@@ -6133,6 +6133,52 @@ window.addEventListener('load', window.renderRailBrand);
   var n = 0, t = setInterval(function () { applyAppearance(); if (++n > 20) clearInterval(t); }, 700);
 })();
 </script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════════
+   🔒 SECURITY: workspace membership
+
+   Firestore rules cannot iterate the staff[] list (rules have no map/loop), so
+   membership is proven with a FLAT array on the company document:
+
+       companies/{companyId}.memberEmails = ["owner@x.com", "staff@y.com", ...]
+
+   That array is derived from ownerEmail + every staff entry whose status is
+   "Approved". It is written every time staff changes, so the rules can check
+   membership with a simple `myEmail() in memberEmails`.
+
+   Why not use users/{email}.companies? Because a user can write their own user
+   document, so that array can be self-granted and is NOT a security boundary.
+   ══════════════════════════════════════════════════════════════════════════════ */
+window.utsavMemberEmails = function (company) {
+  var out = [];
+  function add(v) { if (v && out.indexOf(v) === -1) out.push(v); }
+  if (company) {
+    add(company.ownerEmail);
+    (company.staff || []).forEach(function (s) {
+      if (s && s.status === 'Approved') add(s.email);
+    });
+  }
+  return out;
+};
+
+/* Backfill memberEmails on workspaces that were created before this field
+   existed. Runs when the owner opens the workspace; a no-op for everyone else. */
+window.utsavBackfillMembers = function (companyId) {
+  try {
+    var comps = (typeof masterCompsDB !== 'undefined') ? masterCompsDB : null;
+    var email = (typeof loggedInEmail !== 'undefined') ? loggedInEmail : null;
+    if (!comps || !email) return;
+    var c = comps[companyId];
+    if (!c || (c.memberEmails && c.memberEmails.length)) return;
+    if (c.ownerEmail !== email) return;
+    var list = window.utsavMemberEmails(c);
+    c.memberEmails = list;
+    if (typeof db !== 'undefined' && db) {
+      db.collection('companies').doc(companyId).update({ memberEmails: list }).catch(function () {});
+    }
+  } catch (e) {}
+};
+</script>
 </body>
 
 </html>
