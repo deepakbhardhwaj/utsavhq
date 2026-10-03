@@ -65,11 +65,17 @@ service cloud.firestore {
     }
 
     // ---- workspace records ------------------------------------------------
-    // Read stays open to signed-in users: the app lists the workspaces and
-    // also looks one up by joinCode when a staff member joins. No business
-    // data lives in this collection.
+    // Members only. The app reads the caller's own workspaces (their ids come
+    // from users/{email}.companies) and joins go through join_codes, so nobody
+    // can list or harvest other workspaces, their contacts or their join codes.
     match /companies/{companyId} {
-      allow read: if signedIn();
+      // resource-based (not get-based) so the two discovery queries in the app
+      // - where ownerEmail == me  and  where memberEmails contains me - can be
+      // verified by the rules engine.
+      allow read: if signedIn() && (
+        resource.data.ownerEmail == myEmail() ||
+        (resource.data.memberEmails != null && myEmail() in resource.data.memberEmails)
+      );
 
       // the creator becomes the first member
       allow create: if signedIn()
@@ -84,11 +90,13 @@ service cloud.firestore {
         || (isMember(companyId)
             && request.resource.data.ownerEmail == resource.data.ownerEmail
             && request.resource.data.memberEmails == resource.data.memberEmails)
-        // 3) a pending applicant may ONLY append one entry to staff[]; every
-        //    other field - memberEmails included - must stay untouched, so
-        //    they cannot let themselves in
+        // 3) an applicant may append ONE staff entry, and only by proving they
+        //    know this workspace's join code. They cannot touch memberEmails,
+        //    ownerEmail or anything else, so they cannot let themselves in.
         || (signedIn()
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['staff'])
+            && resource.data.joinCode != null
+            && request.resource.data.lastJoinCode == resource.data.joinCode
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['staff', 'lastJoinCode'])
             && request.resource.data.staff.size() == resource.data.staff.size() + 1);
 
       // only the owner can delete the workspace
