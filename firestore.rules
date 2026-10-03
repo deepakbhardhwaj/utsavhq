@@ -35,8 +35,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Only a VERIFIED email counts. Email-link and Google sign-in both set
+    // email_verified = true, so this blocks a spoofed / unverified address
+    // from ever matching an ownerEmail or a memberEmails entry.
     function myEmail() {
-      return request.auth.token.email;
+      return (request.auth != null && request.auth.token.email_verified == true)
+        ? request.auth.token.email
+        : null;
+    }
+
+    // the caller owns this workspace
+    function isOwner(companyId) {
+      let c = get(/databases/$(database)/documents/companies/$(companyId)).data;
+      return signedIn() && c.ownerEmail == myEmail();
     }
 
     // owner, or an approved member listed in the flat memberEmails array
@@ -65,16 +76,23 @@ service cloud.firestore {
         && request.resource.data.ownerEmail == myEmail()
         && request.resource.data.memberEmails == [myEmail()];
 
-      // a member may edit the workspace but never hand it to someone else
-      allow update: if isMember(companyId)
+      // 1) the owner may change anything, except handing the workspace away
+      allow update: if isOwner(companyId)
           && request.resource.data.ownerEmail == resource.data.ownerEmail
-        // a pending applicant may ONLY append to staff[] and cannot touch
-        // memberEmails / ownerEmail, so they cannot let themselves in
+        // 2) other members may edit the workspace, but must NOT be able to
+        //    change memberEmails (otherwise they could add or remove people)
+        || (isMember(companyId)
+            && request.resource.data.ownerEmail == resource.data.ownerEmail
+            && request.resource.data.memberEmails == resource.data.memberEmails)
+        // 3) a pending applicant may ONLY append one entry to staff[]; every
+        //    other field - memberEmails included - must stay untouched, so
+        //    they cannot let themselves in
         || (signedIn()
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['staff'])
             && request.resource.data.staff.size() == resource.data.staff.size() + 1);
 
-      allow delete: if signedIn() && resource.data.ownerEmail == myEmail();
+      // only the owner can delete the workspace
+      allow delete: if isOwner(companyId);
     }
 
     // ---- one document per person, keyed by email -------------------------
