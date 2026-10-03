@@ -1,0 +1,94 @@
+rules_version = '2';
+
+// ============================================================================
+// UTSAVhq ERP - Cloud Firestore security rules
+// STEP 2: full per-workspace isolation  (publish this version)
+//
+// ACCESS MODEL (exactly how the app stores things):
+//   users/{email}               -> { name, email, companies: [companyId, ...] }
+//   companies/{companyId}       -> { ownerEmail, staff[], ... }   workspace record
+//   workspace_data/{companyId}  -> all business data of that workspace
+//   push_subscriptions/{docId}  -> web-push endpoints, each carrying its email
+//
+// A user can touch a workspace's data only when they own it, or the workspace
+// id is listed in their own users/{email}.companies array. The app already
+// maintains that array, so NO app change is needed.
+//
+// HOW TO PUBLISH:
+//   Firebase Console > Firestore Database > Rules > paste > Publish
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myEmail() {
+      return request.auth.token.email;
+    }
+
+    // the caller owns this workspace
+    function isOwner(companyId) {
+      return signedIn() &&
+        get(/databases/$(database)/documents/companies/$(companyId)).data.ownerEmail == myEmail();
+    }
+
+    // the workspace id is listed in the caller's own users/{email}.companies
+    function isMember(companyId) {
+      return signedIn() &&
+        companyId in get(/databases/$(database)/documents/users/$(myEmail())).data.companies;
+    }
+
+    // owner or staff member. If either check errors, the result is a DENY.
+    function canAccess(companyId) {
+      return isOwner(companyId) || isMember(companyId);
+    }
+
+    // ---- business data: members of that workspace only --------------------
+    match /workspace_data/{companyId} {
+      allow read, write: if canAccess(companyId);
+    }
+
+    // ---- workspace records ------------------------------------------------
+    // Read stays open to signed-in users on purpose: the app lists all
+    // companies and also looks one up by joinCode / phone when a staff member
+    // joins. No business data lives in this collection.
+    match /companies/{companyId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerEmail == myEmail();
+      allow update: if canAccess(companyId);
+      allow delete: if signedIn() && resource.data.ownerEmail == myEmail();
+    }
+
+    // ---- one document per person, keyed by email -------------------------
+    match /users/{docId} {
+      allow read, write: if signedIn() &&
+        (docId == myEmail() || docId == request.auth.token.phone_number);
+    }
+
+    // ---- web-push endpoints: only their owner may read or change them -----
+    match /push_subscriptions/{docId} {
+      allow create, update: if signedIn() && request.resource.data.email == myEmail();
+      allow read, delete: if signedIn() && resource.data.email == myEmail();
+    }
+
+    // ---- everything else is denied ---------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ============================================================================
+// ROLLBACK
+// If anything in the app stops working after publishing this version, paste
+// the previous (weaker) rules back and investigate:
+//
+//   match /workspace_data/{docId} { allow read, write: if request.auth != null; }
+//   match /companies/{docId}      { allow read, write: if request.auth != null; }
+//   match /users/{docId}          { allow read, write: if request.auth != null && docId == request.auth.token.email; }
+//   match /push_subscriptions/{docId} { allow read, write: if request.auth != null; }
+//   match /{document=**} { allow read, write: if false; }
+// ============================================================================
