@@ -3347,7 +3347,7 @@
                             <div class="form-group"><label class="form-label">Email ID</label><input type="email"
                                     id="cp_email" class="form-input"></div>
                             <div class="form-group"><label class="form-label">Website</label><input type="text"
-                                    id="cp_web" class="form-input" placeholder="www.example.com"></div>
+                                    id="cp_web" class="form-input" ></div>
                         </div>
                         <div class="form-group" style="margin-bottom:0;"><label class="form-label">Company Address</label><textarea
                                 id="cp_address" class="form-input" style="height:55px; resize:none;"
@@ -3476,7 +3476,7 @@
                 <div class="dc-h">Your card link</div>
                 <label class="dc-l">Username (letters, numbers, hyphen and underscore only)</label>
                 <div style="display:flex;gap:8px;">
-                    <input type="text" id="dc_username" class="dc-i" placeholder="empireevents" maxlength="30" oninput="dcUsernameTyped()">
+                    <input type="text" id="dc_username" class="dc-i" maxlength="30" oninput="dcUsernameTyped()">
                     <button type="button" class="dc-i" style="flex:0 0 auto;width:auto;padding:0 15px;background:#0E2D55;color:#fff;border:none;font-weight:900;cursor:pointer;" onclick="dcCheckUsername()">Check</button>
                 </div>
                 <div class="dc-hint wait" id="dc_un_hint">Pick a username to build your link.</div>
@@ -3487,9 +3487,9 @@
             <div class="dc-card">
                 <div class="dc-h">Card details</div>
                 <div class="dc-1"><label class="dc-l">Business name</label><input type="text" id="dc_name" class="dc-i"></div>
-                <div class="dc-1"><label class="dc-l">Tagline / short line</label><input type="text" id="dc_tagline" class="dc-i" maxlength="70" placeholder="Weddings & corporate events in Surat"></div>
+                <div class="dc-1"><label class="dc-l">Tagline / short line</label><input type="text" id="dc_tagline" class="dc-i" maxlength="70"></div>
                 <div class="dc-2 dc-1">
-                    <div><label class="dc-l">Category badge</label><input type="text" id="dc_category" class="dc-i" maxlength="18" placeholder="Event Planner"></div>
+                    <div><label class="dc-l">Category badge</label><input type="text" id="dc_category" class="dc-i" maxlength="18" ></div>
                     <div><label class="dc-l">Logo</label>
                         <div style="display:flex;gap:8px;align-items:center;">
                             <img id="dc_logo_prev" alt="" style="width:38px;height:38px;border-radius:10px;object-fit:contain;background:#F1F5F9;display:none;">
@@ -3504,10 +3504,10 @@
                 </div>
                 <div class="dc-2 dc-1">
                     <div><label class="dc-l">Email</label><input type="email" id="dc_email" class="dc-i"></div>
-                    <div><label class="dc-l">Website</label><input type="text" id="dc_website" class="dc-i" placeholder="www.example.com"></div>
+                    <div><label class="dc-l">Website</label><input type="text" id="dc_website" class="dc-i" ></div>
                 </div>
                 <div class="dc-1"><label class="dc-l">Address</label><input type="text" id="dc_address" class="dc-i"></div>
-                <div class="dc-1" style="margin-bottom:0;"><label class="dc-l">Google Maps link (optional)</label><input type="text" id="dc_map" class="dc-i" placeholder="https://maps.app.goo.gl/..."></div>
+                <div class="dc-1" style="margin-bottom:0;"><label class="dc-l">Google Maps link (optional)</label><input type="text" id="dc_map" class="dc-i" ></div>
             </div>
 
             <!-- ── links ── -->
@@ -6940,6 +6940,10 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     if (!window.db) return toast('Not connected', 'error');
 
     cfg.username = u;
+    /* saving the card publishes it - otherwise a saved card would still show
+       "switched off" to every visitor until the owner remembered the toggle */
+    cfg.enabled = true;
+    var sw = el('cp_dc_toggle'); if (sw) sw.checked = true;
     cfg.name = el('dc_name').value.trim() || 'Our Business';
     cfg.tagline = el('dc_tagline').value.trim();
     cfg.category = el('dc_category').value.trim();
