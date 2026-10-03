@@ -3369,7 +3369,24 @@
                     </div>
                 </form>
 
-                <div style="background: white; padding: 16px 20px; border-top: 1px solid #E2E8F0; z-index: 10;">
+                
+            <!-- DIGITAL CARD: publish / unpublish toggle + entry to the card editor -->
+            <div class="cp-dc-box">
+                <div class="cp-dc-head">
+                    <div class="cp-dc-ico">&#128241;</div>
+                    <div class="cp-dc-tx">
+                        <div class="cp-dc-t">Digital Visiting Card</div>
+                        <div class="cp-dc-s" id="cp_dc_status">Off - turn it on to get a shareable link</div>
+                    </div>
+                    <label class="cp-dc-sw"><input type="checkbox" id="cp_dc_toggle" onchange="dcToggleChanged(this.checked)"><span class="cp-dc-sl"></span></label>
+                </div>
+                <div class="cp-dc-row">
+                    <input type="text" id="cp_dc_link" readonly placeholder="Turn the card on to get your link">
+                    <button type="button" onclick="dcCopyLink()">Copy</button>
+                </div>
+                <button type="button" class="cp-dc-manage" onclick="openDigitalCard()">&#9881;&#65039; Manage card - username, links &amp; catalogue</button>
+            </div>
+<div style="background: white; padding: 16px 20px; border-top: 1px solid #E2E8F0; z-index: 10;">
                     <button type="button" class="btn-main"
                         style="background: linear-gradient(135deg, var(--accent-color), #1E3A8A); padding: 14px; font-size: 14px; font-weight: 800; border-radius: 12px; box-shadow: 0 4px 15px rgba(37,99,235,0.3); width: 100%;"
                         onclick="saveProfileData()">💾 Update Profile & Settings</button>
@@ -3377,7 +3394,149 @@
             </div>
         </div>
 
-        <!-- 🚀 PERSONAL "My Profile" — separate from Company Profile above -->
+        <!-- ══════════════════════════════════════════════════════════════════════════
+     DIGITAL VISITING CARD — styles
+     ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── the enable/disable box inside Profile & Branding ── */
+.cp-dc-box { margin:16px 20px 4px; background:linear-gradient(135deg,#F8FAFF,#EEF4FE); border:1px solid #D9E4F5; border-radius:16px; padding:14px; }
+.cp-dc-head { display:flex; align-items:center; gap:11px; }
+.cp-dc-ico { width:38px; height:38px; border-radius:12px; background:#fff; border:1px solid #E1EAF7; display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
+.cp-dc-tx { flex:1; min-width:0; }
+.cp-dc-t { font-size:13.5px; font-weight:900; color:#0F172A; }
+.cp-dc-s { font-size:11px; font-weight:700; color:#64748B; margin-top:2px; }
+.cp-dc-sw { position:relative; display:inline-block; width:48px; height:27px; flex-shrink:0; cursor:pointer; }
+.cp-dc-sw input { opacity:0; width:0; height:0; }
+.cp-dc-sl { position:absolute; inset:0; background:#CBD5E1; border-radius:27px; transition:.25s; }
+.cp-dc-sl:before { content:''; position:absolute; width:21px; height:21px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.25s; box-shadow:0 2px 5px rgba(0,0,0,.2); }
+.cp-dc-sw input:checked + .cp-dc-sl { background:linear-gradient(135deg,#ED6F1F,#F2892F); }
+.cp-dc-sw input:checked + .cp-dc-sl:before { transform:translateX(21px); }
+.cp-dc-row { display:flex; gap:7px; margin-top:11px; }
+.cp-dc-row input { flex:1; min-width:0; font-size:11.5px; font-weight:700; padding:9px 11px; border:1px solid #D9E4F5; border-radius:11px; background:#fff; color:#0E2D55; }
+.cp-dc-row button { flex-shrink:0; background:#0E2D55; color:#fff; border:none; border-radius:11px; padding:0 15px; font-size:11.5px; font-weight:900; cursor:pointer; }
+.cp-dc-manage { width:100%; margin-top:9px; background:#fff; border:1px solid #D9E4F5; color:#0E2D55; border-radius:12px; padding:11px; font-size:12.5px; font-weight:900; cursor:pointer; }
+
+/* ── the editor modal ── */
+#digitalCardModal .modal-content { max-width:620px; background:#F6F8FC; border-radius:20px; padding:0; overflow:hidden; display:flex; flex-direction:column; max-height:92vh; }
+#digitalCardModal .dc-top { background:linear-gradient(135deg,#0E2D55,#1B4A85); padding:16px 18px; display:flex; align-items:center; gap:11px; }
+#digitalCardModal .dc-top .ic { width:36px; height:36px; border-radius:11px; background:rgba(255,255,255,.16); display:flex; align-items:center; justify-content:center; font-size:18px; }
+#digitalCardModal .dc-top h3 { margin:0; font-size:16px; font-weight:900; color:#fff; flex:1; }
+#digitalCardModal .dc-top .x { background:rgba(255,255,255,.16); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; }
+#digitalCardModal .dc-scroll { overflow-y:auto; padding:16px 18px; flex:1; }
+#digitalCardModal .dc-card { background:#fff; border:1px solid #E7EDF5; border-radius:15px; padding:14px; margin-bottom:12px; }
+#digitalCardModal .dc-h { font-size:10px; font-weight:900; color:#94A3B8; text-transform:uppercase; letter-spacing:.9px; margin-bottom:10px; }
+#digitalCardModal label.dc-l { display:block; font-size:10.5px; font-weight:800; color:#475569; margin-bottom:4px; }
+#digitalCardModal input.dc-i, #digitalCardModal select.dc-i, #digitalCardModal textarea.dc-i { width:100%; padding:10px 11px; border:1px solid #DDE6F2; border-radius:11px; font-size:13px; font-weight:600; font-family:inherit; background:#FBFDFF; color:#0F172A; }
+#digitalCardModal input.dc-i:focus, #digitalCardModal textarea.dc-i:focus { outline:none; border-color:#ED6F1F; background:#fff; }
+#digitalCardModal .dc-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#digitalCardModal .dc-1 { margin-bottom:10px; }
+#digitalCardModal .dc-urlrow { display:flex; align-items:center; gap:9px; padding:9px 0; border-bottom:1px solid #F1F5F9; }
+#digitalCardModal .dc-urlrow:last-child { border-bottom:none; }
+#digitalCardModal .dc-urlrow .ic { width:32px; height:32px; border-radius:10px; background:#F1F5F9; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+#digitalCardModal .dc-urlrow .nm { font-size:12px; font-weight:800; color:#334155; width:78px; flex-shrink:0; }
+#digitalCardModal .dc-urlrow input { flex:1; min-width:0; padding:8px 10px; border:1px solid #DDE6F2; border-radius:10px; font-size:11.5px; font-weight:600; background:#FBFDFF; }
+#digitalCardModal .dc-urlrow input:disabled { opacity:.45; }
+#digitalCardModal .dc-sw { position:relative; display:inline-block; width:40px; height:23px; flex-shrink:0; cursor:pointer; }
+#digitalCardModal .dc-sw input { opacity:0; width:0; height:0; }
+#digitalCardModal .dc-sw span { position:absolute; inset:0; background:#CBD5E1; border-radius:23px; transition:.22s; }
+#digitalCardModal .dc-sw span:before { content:''; position:absolute; width:17px; height:17px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.22s; }
+#digitalCardModal .dc-sw input:checked + span { background:#25D366; }
+#digitalCardModal .dc-sw input:checked + span:before { transform:translateX(17px); }
+#digitalCardModal .dc-cat { display:flex; gap:10px; padding:11px; border:1px solid #E7EDF5; border-radius:13px; margin-bottom:9px; background:#FBFDFF; }
+#digitalCardModal .dc-cat .thumb { width:64px; height:48px; border-radius:9px; object-fit:cover; background:#E8EEF8; flex-shrink:0; cursor:pointer; }
+#digitalCardModal .dc-cat .fields { flex:1; min-width:0; }
+#digitalCardModal .dc-cat .fields input { width:100%; padding:7px 9px; border:1px solid #DDE6F2; border-radius:9px; font-size:11.5px; font-weight:600; margin-bottom:6px; background:#fff; }
+#digitalCardModal .dc-del { background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:9px; width:30px; height:30px; font-size:14px; cursor:pointer; flex-shrink:0; align-self:flex-start; }
+#digitalCardModal .dc-add { width:100%; background:#F1F5F9; border:1px dashed #CBD5E1; color:#475569; border-radius:12px; padding:11px; font-size:12.5px; font-weight:800; cursor:pointer; }
+#digitalCardModal .dc-foot { background:#fff; border-top:1px solid #E7EDF5; padding:13px 18px calc(13px + env(safe-area-inset-bottom,0px)); display:flex; gap:9px; }
+#digitalCardModal .dc-foot button { border:none; border-radius:13px; padding:13px; font-size:13.5px; font-weight:900; cursor:pointer; }
+#digitalCardModal .dc-save { flex:1; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#0E2D55; }
+#digitalCardModal .dc-prev { flex:0 0 auto; background:#EFF6FF; color:#1D4ED8; padding:13px 16px; }
+#digitalCardModal .dc-hint { font-size:11px; font-weight:700; margin-top:6px; }
+#digitalCardModal .dc-hint.ok { color:#16A34A; }
+#digitalCardModal .dc-hint.bad { color:#DC2626; }
+#digitalCardModal .dc-hint.wait { color:#64748B; }
+@media (max-width:639px){ #digitalCardModal .dc-2 { grid-template-columns:1fr; } #digitalCardModal .dc-urlrow .nm { width:64px; font-size:11px; } }
+</style>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     DIGITAL VISITING CARD — editor modal
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div id="digitalCardModal" class="modal-overlay" style="z-index:9800;">
+    <div class="modal-content">
+        <div class="dc-top">
+            <div class="ic">&#128241;</div>
+            <h3>Digital Visiting Card</h3>
+            <button class="x" onclick="closeDigitalCard()" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="dc-scroll">
+            <!-- ── username + link ── -->
+            <div class="dc-card">
+                <div class="dc-h">Your card link</div>
+                <label class="dc-l">Username (letters, numbers, hyphen and underscore only)</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="dc_username" class="dc-i" placeholder="empireevents" maxlength="30" oninput="dcUsernameTyped()">
+                    <button type="button" class="dc-i" style="flex:0 0 auto;width:auto;padding:0 15px;background:#0E2D55;color:#fff;border:none;font-weight:900;cursor:pointer;" onclick="dcCheckUsername()">Check</button>
+                </div>
+                <div class="dc-hint wait" id="dc_un_hint">Pick a username to build your link.</div>
+                <div class="dc-hint" id="dc_link_preview" style="color:#0E2D55;word-break:break-all;"></div>
+            </div>
+
+            <!-- ── basic details ── -->
+            <div class="dc-card">
+                <div class="dc-h">Card details</div>
+                <div class="dc-1"><label class="dc-l">Business name</label><input type="text" id="dc_name" class="dc-i"></div>
+                <div class="dc-1"><label class="dc-l">Tagline / short line</label><input type="text" id="dc_tagline" class="dc-i" maxlength="70" placeholder="Weddings & corporate events in Surat"></div>
+                <div class="dc-2 dc-1">
+                    <div><label class="dc-l">Category badge</label><input type="text" id="dc_category" class="dc-i" maxlength="18" placeholder="Event Planner"></div>
+                    <div><label class="dc-l">Logo</label>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <img id="dc_logo_prev" alt="" style="width:38px;height:38px;border-radius:10px;object-fit:contain;background:#F1F5F9;display:none;">
+                            <button type="button" class="dc-i" style="width:auto;padding:9px 13px;font-size:11.5px;font-weight:800;cursor:pointer;" onclick="document.getElementById('dc_logo_file').click()">Upload</button>
+                            <input type="file" id="dc_logo_file" accept="image/*" style="display:none" onchange="dcUploadLogo(this)">
+                        </div>
+                    </div>
+                </div>
+                <div class="dc-2 dc-1">
+                    <div><label class="dc-l">Phone</label><input type="tel" id="dc_phone" class="dc-i"></div>
+                    <div><label class="dc-l">WhatsApp number</label><input type="tel" id="dc_whatsapp" class="dc-i"></div>
+                </div>
+                <div class="dc-2 dc-1">
+                    <div><label class="dc-l">Email</label><input type="email" id="dc_email" class="dc-i"></div>
+                    <div><label class="dc-l">Website</label><input type="text" id="dc_website" class="dc-i" placeholder="www.example.com"></div>
+                </div>
+                <div class="dc-1"><label class="dc-l">Address</label><input type="text" id="dc_address" class="dc-i"></div>
+                <div class="dc-1" style="margin-bottom:0;"><label class="dc-l">Google Maps link (optional)</label><input type="text" id="dc_map" class="dc-i" placeholder="https://maps.app.goo.gl/..."></div>
+            </div>
+
+            <!-- ── links ── -->
+            <div class="dc-card">
+                <div class="dc-h">Links on your card</div>
+                <div id="dc_links"></div>
+            </div>
+
+            <!-- ── catalogue ── -->
+            <div class="dc-card">
+                <div class="dc-h">Catalogue / albums</div>
+                <div class="dc-1" style="margin-bottom:10px;">
+                    <label class="dc-l">Catalogue heading</label>
+                    <input type="text" id="dc_cat_title" class="dc-i" placeholder="Our Catalogue" maxlength="30">
+                </div>
+                <div id="dc_catalog"></div>
+                <button type="button" class="dc-add" onclick="dcAddCatalog()">+ Add catalogue item</button>
+                <div class="dc-hint wait" style="margin-top:8px;">Tip: paste a Google Drive folder or album link, then tap the thumbnail box to upload a cover picture.</div>
+            </div>
+        </div>
+
+        <div class="dc-foot">
+            <button class="dc-prev" onclick="dcPreview()">&#128065; Preview</button>
+            <button class="dc-save" onclick="dcSave()">&#128190; Save card</button>
+        </div>
+    </div>
+</div>
+
+<!-- 🚀 PERSONAL "My Profile" — separate from Company Profile above -->
         <div id="myProfileModal" class="modal-overlay" style="z-index: 8100;">
             <div class="modal-content profile-modal-content">
                 <div style="background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 16px 20px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; z-index: 10;">
@@ -6421,6 +6580,452 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   document.addEventListener('DOMContentLoaded', window.syncOwnerOnly);
   window.addEventListener('load', window.syncOwnerOnly);
   var n = 0, t = setInterval(function () { window.syncOwnerOnly(); if (++n > 20) clearInterval(t); }, 800);
+})();
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   DIGITAL VISITING CARD — app side
+   The card is a PUBLIC Firestore document: cards/{username}.
+   The username is the document id, so uniqueness is guaranteed by Firestore
+   itself — a create simply fails if the name is already taken.
+
+   Where the config lives:
+     cards/{username}                 → the full public card (source of truth)
+     companies/{companyId}.digitalCard → { username, enabled }  (a pointer)
+     localStorage utsav_dc_{workspace} → the same pointer, for instant load
+   The pointer is kept OUT of profileDB on purpose: saveProfileData() replaces
+   profileDB wholesale, which would wipe the card settings on every profile save.
+   ══════════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var CLOUD = 'dvjjyinbl';
+  var PRESET = 'event_photos_preset';
+
+  /* every link type a card can carry: icon, label, and how its URL is derived
+     from the basic details when the owner leaves the field empty */
+  var LINK_TYPES = [
+    { type: 'whatsapp',  icon: '&#128172;',      name: 'WhatsApp' },
+    { type: 'call',      icon: '&#128222;',      name: 'Call' },
+    { type: 'email',     icon: '&#9993;&#65039;', name: 'Email' },
+    { type: 'location',  icon: '&#128205;',      name: 'Location' },
+    { type: 'website',   icon: '&#127760;',      name: 'Website' },
+    { type: 'instagram', icon: '&#128247;',      name: 'Instagram' },
+    { type: 'facebook',  icon: '&#128077;',      name: 'Facebook' },
+    { type: 'youtube',   icon: '&#9654;&#65039;', name: 'YouTube' },
+    { type: 'telegram',  icon: '&#9992;&#65039;', name: 'Telegram' },
+    { type: 'review',    icon: '&#11088;',       name: 'Reviews' },
+    { type: 'justdial',  icon: '&#128218;',      name: 'Justdial' },
+    { type: 'indiamart', icon: '&#128722;',      name: 'IndiaMART' },
+    { type: 'upi',       icon: '&#128179;',      name: 'UPI / Pay' },
+    { type: 'custom',    icon: '&#128279;',      name: 'Custom' }
+  ];
+
+  var cfg = null;      /* the working copy while the editor is open */
+  var dcLogo = '';     /* logo staged for upload */
+  var checking = false;
+
+  function el(id) { return document.getElementById(id); }
+  function wsId() {
+    try { return (typeof currentWorkspaceId !== 'undefined' && currentWorkspaceId) || ''; } catch (e) { return ''; }
+  }
+  function pointerKey() { return 'utsav_dc_' + wsId(); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function digits(s) { return String(s || '').replace(/[^\d+]/g, ''); }
+  function waNum(s) {
+    var n = String(s || '').replace(/\D/g, '');
+    if (n.length === 10) n = '91' + n;
+    return n;
+  }
+  function toast(m, t) {
+    if (typeof window.showToast === 'function') return window.showToast(m, t || 'info');
+    console.log(m);
+  }
+  function loading(m) { if (typeof window.showLoader === 'function') window.showLoader(m || 'Please wait...'); }
+  function stopLoad() { if (typeof window.hideLoader === 'function') window.hideLoader(); }
+
+  function linkUrl(t) {
+    /* the owner's explicit URL wins; otherwise derive it from the basics */
+    var explicit = (cfg.links[t.type] || {}).url || '';
+    if (explicit) return explicit;
+    var p = cfg;
+    if (t.type === 'whatsapp' && (p.whatsapp || p.phone)) return 'https://wa.me/' + waNum(p.whatsapp || p.phone);
+    if (t.type === 'call' && p.phone) return 'tel:' + digits(p.phone);
+    if (t.type === 'email' && p.email) return 'mailto:' + p.email;
+    if (t.type === 'website' && p.website) return p.website;
+    if (t.type === 'location') return p.mapUrl || (p.address ? 'https://maps.google.com/?q=' + encodeURIComponent(p.address) : '');
+    return '';
+  }
+
+  function emptyCfg() {
+    return {
+      username: '', enabled: false, name: '', tagline: '', category: '', logo: '',
+      phone: '', whatsapp: '', email: '', website: '', address: '', mapUrl: '',
+      links: {}, catalog: [], catalogTitle: 'Our Catalogue'
+    };
+  }
+
+  /* ── the pointer (companies doc / localStorage) ─────────────────────── */
+  function readPointer() {
+    var p = { username: '', enabled: false };
+    try {
+      var raw = localStorage.getItem(pointerKey());
+      if (raw) { var j = JSON.parse(raw); p.username = j.username || ''; p.enabled = !!j.enabled; }
+    } catch (e) {}
+    try {
+      var c = (typeof masterCompsDB !== 'undefined' && masterCompsDB[wsId()]) || {};
+      if (c.digitalCard) { p.username = c.digitalCard.username || p.username; p.enabled = !!c.digitalCard.enabled; }
+    } catch (e) {}
+    return p;
+  }
+
+  function writePointer(p) {
+    try { localStorage.setItem(pointerKey(), JSON.stringify(p)); } catch (e) {}
+    try {
+      if (typeof masterCompsDB !== 'undefined' && masterCompsDB[wsId()]) masterCompsDB[wsId()].digitalCard = p;
+    } catch (e) {}
+    /* mirror it onto the company record so other devices pick it up */
+    try {
+      if (wsId() && window.db) window.db.collection('companies').doc(wsId()).update({ digitalCard: p }).catch(function () {});
+    } catch (e) {}
+  }
+
+  /* ── the toggle box inside Profile & Branding ───────────────────────── */
+  function paintToggleBox() {
+    var p = readPointer();
+    var t = el('cp_dc_toggle');
+    if (t) t.checked = !!p.enabled;
+    var s = el('cp_dc_status');
+    if (s) s.textContent = !p.username
+      ? 'Set a username to get your shareable link'
+      : (p.enabled ? 'Live at utsavhq.com/card/?u=' + p.username : 'Off — turn it on to publish your card');
+    var l = el('cp_dc_link');
+    if (l) l.value = p.username ? ('https://utsavhq.com/card/?u=' + p.username) : '';
+  }
+
+  window.dcToggleChanged = function (on) {
+    var p = readPointer();
+    if (on && !p.username) {
+      /* nothing to publish yet — send them into the editor instead */
+      if (el('cp_dc_toggle')) el('cp_dc_toggle').checked = false;
+      toast('Pehle username set karo — Digital Card editor khul raha hai', 'info');
+      window.openDigitalCard();
+      return;
+    }
+    p.enabled = !!on;
+    writePointer(p);
+    paintToggleBox();
+    toast(on ? 'Digital card ON' : 'Digital card OFF', on ? 'success' : 'info');
+  };
+
+  window.dcCopyLink = function () {
+    var p = readPointer();
+    if (!p.username) return toast('No card link yet', 'error');
+    var url = 'https://utsavhq.com/card/?u=' + p.username;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { toast('Link copied', 'success'); })
+        .catch(function () { prompt('Copy this link:', url); });
+    } else { prompt('Copy this link:', url); }
+  };
+
+  /* ── open the editor ────────────────────────────────────────────────── */
+  window.openDigitalCard = function () {
+    if (typeof window.isCurrentUserOwner === 'function' && !window.isCurrentUserOwner()) {
+      return toast('Only the owner can manage the digital card', 'error');
+    }
+    cfg = emptyCfg();
+    dcLogo = '';
+    var p = readPointer();
+    cfg.username = p.username;
+    cfg.enabled = p.enabled;
+    /* seed the basics from the company profile so the owner types less */
+    try {
+      var pr = (typeof profileDB !== 'undefined' && profileDB) || {};
+      cfg.name = pr.name || ''; cfg.phone = pr.phone1 || ''; cfg.email = pr.email || '';
+      cfg.website = pr.web || ''; cfg.address = pr.address || ''; cfg.mapUrl = pr.google || '';
+      cfg.logo = pr.logo || '';
+    } catch (e) {}
+
+    el('digitalCardModal').style.display = 'flex';
+
+    if (p.username && window.db) {
+      loading('Loading card...');
+      window.db.collection('cards').doc(p.username).get().then(function (snap) {
+        if (snap.exists) {
+          var d = snap.data() || {};
+          /* keep the profile-seeded basics, but let saved card values win */
+          Object.keys(d).forEach(function (k) { if (d[k] !== undefined && d[k] !== null && d[k] !== '') cfg[k] = d[k]; });
+          if (!Array.isArray(cfg.catalog)) cfg.catalog = [];
+          if (!cfg.links || typeof cfg.links !== 'object') cfg.links = {};
+        }
+        dcPaint();
+        stopLoad();
+      }).catch(function () { dcPaint(); stopLoad(); });
+    } else {
+      dcPaint();
+    }
+  };
+
+  window.closeDigitalCard = function () {
+    if (el('digitalCardModal')) el('digitalCardModal').style.display = 'none';
+  };
+
+  function dcPaint() {
+    if (!cfg) return;
+    dcLogo = cfg.logo || '';
+    el('dc_username').value = cfg.username || '';
+    el('dc_name').value = cfg.name || '';
+    el('dc_tagline').value = cfg.tagline || '';
+    el('dc_category').value = cfg.category || '';
+    el('dc_phone').value = cfg.phone || '';
+    el('dc_whatsapp').value = cfg.whatsapp || '';
+    el('dc_email').value = cfg.email || '';
+    el('dc_website').value = cfg.website || '';
+    el('dc_address').value = cfg.address || '';
+    el('dc_map').value = cfg.mapUrl || '';
+    el('dc_cat_title').value = cfg.catalogTitle || 'Our Catalogue';
+    var lp = el('dc_logo_prev');
+    if (lp) { if (dcLogo) { lp.src = dcLogo; lp.style.display = 'block'; } else { lp.style.display = 'none'; } }
+    dcUpdateLinkPreview();
+    dcRenderLinks();
+    dcRenderCatalog();
+  }
+
+  function dcUpdateLinkPreview() {
+    var u = (el('dc_username').value || '').trim().toLowerCase();
+    var lp = el('dc_link_preview');
+    if (lp) lp.textContent = u ? ('https://utsavhq.com/card/?u=' + u) : '';
+  }
+
+  window.dcUsernameTyped = function () {
+    var i = el('dc_username');
+    if (!i) return;
+    i.value = i.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    var h = el('dc_un_hint');
+    if (h) { h.className = 'dc-hint wait'; h.textContent = i.value ? 'Tap Check to confirm this name is free.' : 'Pick a username to build your link.'; }
+    dcUpdateLinkPreview();
+  };
+
+  window.dcCheckUsername = function () {
+    var u = (el('dc_username').value || '').trim().toLowerCase();
+    var h = el('dc_un_hint');
+    if (u.length < 3) { h.className = 'dc-hint bad'; h.textContent = 'Use at least 3 characters.'; return; }
+    if (!window.db) { h.className = 'dc-hint bad'; h.textContent = 'Not connected. Try again.'; return; }
+    if (checking) return;
+    checking = true;
+    h.className = 'dc-hint wait'; h.textContent = 'Checking...';
+    window.db.collection('cards').doc(u).get().then(function (snap) {
+      checking = false;
+      var mine = false;
+      try { mine = snap.exists && snap.data() && snap.data().ownerEmail === (typeof loggedInEmail !== 'undefined' ? loggedInEmail : ''); } catch (e) {}
+      if (snap.exists && !mine) { h.className = 'dc-hint bad'; h.textContent = 'That name is already taken. Try another.'; }
+      else { h.className = 'dc-hint ok'; h.textContent = mine ? 'This is your current card link.' : 'Available — this name is free.'; }
+    }).catch(function () { checking = false; h.className = 'dc-hint bad'; h.textContent = 'Could not check. Try again.'; });
+  };
+
+  /* ── links ──────────────────────────────────────────────────────────── */
+  window.dcRenderLinks = function () {
+    if (!cfg) return;
+    var host = el('dc_links');
+    if (!host) return;
+    host.innerHTML = LINK_TYPES.map(function (t) {
+      var rec = cfg.links[t.type] || {};
+      var on = rec.enabled !== false && (rec.enabled === true || !!rec.url || (t.type !== 'custom' && !!linkUrl(t)));
+      if (t.type === 'custom' && !rec.url) on = false;
+      var derived = t.type === 'custom' ? '' : linkUrl(t);
+      return '<div class="dc-urlrow">' +
+        '<div class="ic">' + t.icon + '</div>' +
+        '<div class="nm">' + esc(t.name) + '</div>' +
+        '<input type="text" data-lk="' + t.type + '" placeholder="' + (t.type === 'custom' ? 'https://...' : esc(derived || 'Paste a link')) + '" value="' + esc(rec.url || '') + '"' + (on ? '' : ' disabled') + '>' +
+        '<label class="dc-sw"><input type="checkbox" data-lksw="' + t.type + '"' + (on ? ' checked' : '') + ' onchange="dcLinkToggle(\'' + t.type + '\', this.checked)"><span></span></label>' +
+        '</div>';
+    }).join('');
+  };
+
+  window.dcLinkToggle = function (type, on) {
+    if (!cfg) return;
+    if (!cfg.links[type]) cfg.links[type] = {};
+    cfg.links[type].enabled = !!on;
+    var inp = document.querySelector('#dc_links input[data-lk="' + type + '"]');
+    if (inp) {
+      inp.disabled = !on;
+      if (on && !inp.value) {
+        var t = LINK_TYPES.filter(function (x) { return x.type === type; })[0];
+        var d = t ? linkUrl(t) : '';
+        if (d) inp.value = d;
+      }
+    }
+  };
+
+  /* ── catalogue ──────────────────────────────────────────────────────── */
+  window.dcRenderCatalog = function () {
+    if (!cfg) return;
+    var host = el('dc_catalog');
+    if (!host) return;
+    if (!cfg.catalog.length) { host.innerHTML = '<div class="dc-hint wait" style="margin-bottom:9px;">No items yet. Add albums, price lists or Drive folders.</div>'; return; }
+    host.innerHTML = cfg.catalog.map(function (c, i) {
+      return '<div class="dc-cat">' +
+        (c.thumb ? '<img class="thumb" src="' + esc(c.thumb) + '" onclick="dcPickThumb(' + i + ')">' : '<div class="thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;" onclick="dcPickThumb(' + i + ')">&#128247;</div>') +
+        '<div class="fields">' +
+          '<input type="text" placeholder="Title (e.g. Wedding Albums)" value="' + esc(c.title || '') + '" oninput="dcCatField(' + i + ',\'title\',this.value)">' +
+          '<input type="text" placeholder="Subtitle (optional)" value="' + esc(c.sub || '') + '" oninput="dcCatField(' + i + ',\'sub\',this.value)">' +
+          '<input type="text" placeholder="Google Drive / album link" value="' + esc(c.url || '') + '" oninput="dcCatField(' + i + ',\'url\',this.value)">' +
+        '</div>' +
+        '<button class="dc-del" onclick="dcDelCatalog(' + i + ')">&times;</button>' +
+      '</div>';
+    }).join('');
+  };
+
+  window.dcAddCatalog = function () {
+    if (!cfg) return;
+    if (cfg.catalog.length >= 12) return toast('Maximum 12 catalogue items', 'error');
+    cfg.catalog.push({ title: '', sub: '', url: '', thumb: '' });
+    dcRenderCatalog();
+  };
+  window.dcDelCatalog = function (i) { cfg.catalog.splice(i, 1); dcRenderCatalog(); };
+  window.dcCatField = function (i, k, v) { if (cfg.catalog[i]) cfg.catalog[i][k] = v; };
+
+  var thumbIndex = -1;
+  window.dcPickThumb = function (i) {
+    thumbIndex = i;
+    var f = el('dc_thumb_file');
+    if (!f) {
+      f = document.createElement('input');
+      f.type = 'file'; f.id = 'dc_thumb_file'; f.accept = 'image/*'; f.style.display = 'none';
+      f.onchange = function () { dcUploadThumb(this); };
+      document.body.appendChild(f);
+    }
+    f.value = '';
+    f.click();
+  };
+
+  function cloudUpload(file) {
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', PRESET);
+    return fetch('https://api.cloudinary.com/v1_1/' + CLOUD + '/image/upload', { method: 'POST', body: fd })
+      .then(function (r) { if (!r.ok) throw new Error('upload failed'); return r.json(); })
+      .then(function (j) { if (!j.secure_url) throw new Error('no url'); return j.secure_url; });
+  }
+
+  function dcUploadThumb(input) {
+    if (!input.files || !input.files[0]) return;
+    var i = thumbIndex;
+    loading('Uploading picture...');
+    cloudUpload(input.files[0]).then(function (url) {
+      if (cfg.catalog[i]) cfg.catalog[i].thumb = url;
+      dcRenderCatalog(); stopLoad(); toast('Picture added', 'success');
+    }).catch(function () { stopLoad(); toast('Upload failed — try a smaller image', 'error'); });
+  }
+
+  window.dcUploadLogo = function (input) {
+    if (!input.files || !input.files[0]) return;
+    loading('Uploading logo...');
+    cloudUpload(input.files[0]).then(function (url) {
+      dcLogo = url; cfg.logo = url;
+      var lp = el('dc_logo_prev'); if (lp) { lp.src = url; lp.style.display = 'block'; }
+      stopLoad(); toast('Logo added', 'success');
+    }).catch(function () { stopLoad(); toast('Upload failed', 'error'); });
+  };
+
+  /* ── save ───────────────────────────────────────────────────────────── */
+  window.dcSave = function () {
+    if (!cfg) return;
+    var u = (el('dc_username').value || '').trim().toLowerCase();
+    if (u.length < 3) return toast('Username must be at least 3 characters', 'error');
+    if (!window.db) return toast('Not connected', 'error');
+
+    cfg.username = u;
+    cfg.name = el('dc_name').value.trim() || 'Our Business';
+    cfg.tagline = el('dc_tagline').value.trim();
+    cfg.category = el('dc_category').value.trim();
+    cfg.logo = dcLogo || cfg.logo || '';
+    cfg.phone = el('dc_phone').value.trim();
+    cfg.whatsapp = el('dc_whatsapp').value.trim();
+    cfg.email = el('dc_email').value.trim();
+    cfg.website = el('dc_website').value.trim();
+    cfg.address = el('dc_address').value.trim();
+    cfg.mapUrl = el('dc_map').value.trim();
+    cfg.catalogTitle = el('dc_cat_title').value.trim() || 'Our Catalogue';
+
+    /* rebuild the links map from the rows the owner actually filled in */
+    var newLinks = {};
+    LINK_TYPES.forEach(function (t) {
+      var inp = document.querySelector('#dc_links input[data-lk="' + t.type + '"]');
+      var sw = document.querySelector('#dc_links input[data-lksw="' + t.type + '"]');
+      var on = sw ? sw.checked : false;
+      var url = inp ? inp.value.trim() : '';
+      if (!on) return;
+      if (!url) url = linkUrl(t);   /* derive from the basics if left empty */
+      if (!url) return;
+      var rec = { type: t.type, enabled: true, url: url };
+      var old = (cfg.links || {})[t.type] || {};
+      if (old.label) rec.label = old.label;
+      newLinks[t.type] = rec;
+    });
+    cfg.links = newLinks;
+    cfg.catalog = (cfg.catalog || []).filter(function (c) { return c && (c.url || c.title); });
+    cfg.updatedAt = Date.now();
+
+    var oldUser = readPointer().username;
+    var email = (typeof loggedInEmail !== 'undefined' ? loggedInEmail : '');
+    loading('Saving your card...');
+    /* the owner record goes first - the cards rule checks it to prove ownership,
+       and it is the one place the owner's email is kept (never in the public card) */
+    window.db.collection('card_owners').doc(u)
+      .set({ ownerEmail: email, workspaceId: wsId(), username: u, updatedAt: Date.now() }, { merge: true })
+      .then(function () { return window.db.collection('cards').doc(u).set(cfg, { merge: true }); })
+      .then(function () {
+      /* if the username changed, retire the old document so the old link dies */
+      if (oldUser && oldUser !== u) {
+        window.db.collection('cards').doc(oldUser).delete().catch(function () {});
+        window.db.collection('card_owners').doc(oldUser).delete().catch(function () {});
+      }
+      writePointer({ username: u, enabled: !!cfg.enabled });
+      paintToggleBox();
+      stopLoad();
+      toast('Digital card saved', 'success');
+      window.closeDigitalCard();
+    }).catch(function (e) {
+      stopLoad();
+      var m = String(e && e.message || '');
+      if (/permission|denied/i.test(m)) toast('That username is taken, or you are not allowed to use it', 'error');
+      else toast('Could not save the card. Please try again.', 'error');
+    });
+  };
+
+  window.dcPreview = function () {
+    var u = (el('dc_username').value || '').trim().toLowerCase() || readPointer().username;
+    if (!u) return toast('Set a username first', 'error');
+    window.open('https://utsavhq.com/card/?u=' + u, '_blank', 'noopener');
+  };
+
+  /* ── init: paint the toggle box, keep it in sync with the modal ─────── */
+  function init() {
+    /* owner-only, like the rest of the company controls */
+    var box = document.querySelector('.cp-dc-box');
+    if (box) box.setAttribute('data-owner-only', '');
+    paintToggleBox();
+    if (typeof window.syncOwnerOnly === 'function') { try { window.syncOwnerOnly(); } catch (e) {} }
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    init();
+    var n = 0, t = setInterval(function () { init(); if (++n > 20) clearInterval(t); }, 700);
+  });
+  window.addEventListener('load', init);
+
+  /* repaint the toggle box whenever the profile modal is opened */
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    while (t && t !== document) {
+      if (t.getAttribute && /openCompanyProfile/.test(t.getAttribute('onclick') || '')) { setTimeout(paintToggleBox, 350); return; }
+      t = t.parentNode;
+    }
+  }, true);
 })();
 </script>
 </body>
