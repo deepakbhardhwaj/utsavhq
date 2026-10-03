@@ -22,7 +22,7 @@
 // automatically delete ho jaata hai.
 // ==========================================================
 
-const CACHE_VERSION = 'v14';
+const CACHE_VERSION = 'v15';
 const CACHE_NAME = `utsavhq-static-${CACHE_VERSION}`;
 
 // App shell — ye files offline bhi chalti hain
@@ -31,6 +31,7 @@ const PRECACHE_URLS = [
     './',
     './index.html',
     './app/',
+    './app/index.html',
     './privacy.html',
     './terms.html',
     './manifest.json',
@@ -115,7 +116,10 @@ self.addEventListener('fetch', (event) => {
                     }
                     return res;
                 })
-                .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
+                .catch(() => caches.match(req).then((c) => c || caches.match(
+                            // never fall back to the landing page for an app URL
+                            url.pathname.indexOf('/app/') === 0 ? './app/index.html' : './index.html'
+                        )))
         );
         return;
     }
