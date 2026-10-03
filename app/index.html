@@ -6179,6 +6179,42 @@ window.utsavBackfillMembers = function (companyId) {
   } catch (e) {}
 };
 </script>
+<style>
+/* 🐛 FIX (mobile glitch): .nav-brand (the desktop left-rail brand) had its rules ONLY
+   inside the 1024px media query, so on mobile it fell back to display:block and the
+   company logo rendered inside the bottom pill nav, covering the calendar and the
+   nav icons. It is hidden by default and shown only in the desktop rail. */
+.nav-brand { display: none; }
+@media (min-width:1024px) { .nav-brand { display: flex; } }
+
+/* 🤖 Nexa Bot belongs to the dashboard only. The button stays hidden on every other
+   tab; body.on-home is kept in sync by the script below. */
+body:not(.on-home) #nexa-fab { display: none !important; }
+</style>
+<script>
+/* Keeps body.on-home in sync with whichever tab is open, so the Nexa button shows
+   on the dashboard and nowhere else. */
+(function () {
+  function sync() {
+    try {
+      var home = document.getElementById('home');
+      var on = !!home && (home.classList.contains('active-section') ||
+        getComputedStyle(home).display !== 'none');
+      document.body.classList.toggle('on-home', on);
+    } catch (e) {}
+  }
+  function watch() {
+    var home = document.getElementById('home');
+    if (home && window.MutationObserver) {
+      new MutationObserver(sync).observe(home, { attributes: true, attributeFilter: ['class', 'style'] });
+    }
+    sync();
+  }
+  document.addEventListener('DOMContentLoaded', watch);
+  window.addEventListener('load', watch);
+  var n = 0, t = setInterval(function () { watch(); if (++n > 20) clearInterval(t); }, 700);
+})();
+</script>
 </body>
 
 </html>
