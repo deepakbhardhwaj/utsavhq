@@ -6168,6 +6168,28 @@ window.utsavMemberEmails = function (company) {
 
 /* Backfill memberEmails on workspaces that were created before this field
    existed. Runs when the owner opens the workspace; a no-op for everyone else. */
+/* Loads only the workspaces this user belongs to, with two indexed queries that
+   the security rules can verify (ownerEmail == me, and memberEmails contains me).
+   This replaces listing every company on the server, so /companies can stay
+   readable to members only. Returns the workspace ids that were found. */
+window.utsavLoadMyCompanies = function (email) {
+  if (!email) return Promise.resolve([]);
+  var found = [];
+  function add(snap) {
+    if (!snap) return;
+    snap.forEach(function (d) {
+      var c = d.data();
+      c.id = d.id;
+      masterCompsDB[d.id] = c;
+      if (found.indexOf(d.id) === -1) found.push(d.id);
+    });
+  }
+  return db.collection('companies').where('ownerEmail', '==', email).get()
+    .then(function (s) { add(s); return db.collection('companies').where('memberEmails', 'array-contains', email).get(); })
+    .then(function (s) { add(s); return found; })
+    .catch(function () { return found; });
+};
+
 window.utsavBackfillMembers = function (companyId) {
   try {
     var comps = (typeof masterCompsDB !== 'undefined') ? masterCompsDB : null;
@@ -6180,6 +6202,10 @@ window.utsavBackfillMembers = function (companyId) {
     c.memberEmails = list;
     if (typeof db !== 'undefined' && db) {
       db.collection('companies').doc(companyId).update({ memberEmails: list }).catch(function () {});
+      if (c.joinCode) {
+        db.collection('join_codes').doc(String(c.joinCode).toUpperCase())
+          .set({ companyId: companyId, name: c.name || '' }).catch(function () {});
+      }
     }
   } catch (e) {}
 };
