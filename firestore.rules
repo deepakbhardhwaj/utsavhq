@@ -95,6 +95,18 @@ service cloud.firestore {
       allow delete: if isOwner(companyId);
     }
 
+    // ---- join-code index --------------------------------------------------
+    // A tiny public index: { code -> companyId }. It holds NO personal data.
+    // Staff resolve a code they were given without being able to list every
+    // workspace. Only the workspace owner may publish or change a code.
+    match /join_codes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() &&
+        get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerEmail == myEmail();
+      allow update, delete: if signedIn() &&
+        get(/databases/$(database)/documents/companies/$(resource.data.companyId)).data.ownerEmail == myEmail();
+    }
+
     // ---- one document per person, keyed by email -------------------------
     match /users/{docId} {
       allow read, write: if signedIn()
