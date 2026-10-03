@@ -3,172 +3,183 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Digital Card | UTSAVhq</title>
-<meta name="description" content="Digital visiting card - powered by UTSAVhq ERP.">
+<title>Digital Visiting Card</title>
+<meta name="description" content="View the card, save the contact and browse the catalogue.">
 <meta name="theme-color" content="#0E2D55">
 <meta property="og:type" content="profile">
-<meta property="og:title" content="Digital Card | UTSAVhq">
-<meta property="og:description" content="Digital visiting card - powered by UTSAVhq ERP.">
+<meta property="og:title" content="Digital Visiting Card">
+<meta property="og:description" content="View the card, save the contact and browse the catalogue.">
 <link rel="icon" href="../favicon.png">
 <link rel="canonical" id="canonical_link" href="https://utsavhq.com/card/">
 <style>
 /* ══════════════════════════════════════════════════════════════════════════
    PUBLIC DIGITAL VISITING CARD
-   A standalone, mobile-first page. It reads ONE public Firestore document
-   (cards/{username}) and renders it. No login, no app shell, and the QR
-   encoder is inlined so the QR poster also works offline.
+   Standalone, mobile-first. Reads ONE public Firestore document
+   (cards/{username}). The QR encoder is inlined so the poster builds offline.
+   Layout is deliberately split into named sections so each block reads on its
+   own: hero, contact, quick actions, links, catalogue, then share.
    ══════════════════════════════════════════════════════════════════════════ */
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
   --navy:#0E2D55; --navy2:#1B4A85;
   --orange:#ED6F1F; --orange2:#F2892F;
-  --wa:#25D366;
-  --ink:#0F172A; --muted:#64748B; --line:#E7EDF5;
-  /* the cover gradient is replaced at runtime by the chosen theme */
+  --ink:#0B1220; --muted:#64748B; --line:#E6ECF5;
   --cover:linear-gradient(135deg,#0E2D55 0%,#1B4A85 60%,#2563EB 100%);
 }
 body {
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  background:linear-gradient(180deg,#F6F8FC 0%,#EDF2FA 100%);
-  color:var(--ink); min-height:100vh; padding:0 0 40px;
+  background:#EEF3FA; color:var(--ink); min-height:100vh; padding:0 0 46px;
+  -webkit-font-smoothing:antialiased;
 }
-.wrap { max-width:480px; margin:0 auto; padding:0 14px; }
-
-/* ---------- the card ---------- */
-.card {
-  background:#fff; border-radius:22px; overflow:hidden; margin-top:18px;
-  box-shadow:0 14px 40px rgba(14,45,85,.12); border:1px solid var(--line);
-  animation:rise .45s cubic-bezier(.2,.8,.3,1) both;
+body::before {
+  content:''; position:fixed; inset:0 0 auto 0; height:340px; z-index:-1;
+  background:linear-gradient(180deg,#E3ECF8 0%,#EEF3FA 100%);
 }
-@keyframes rise { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+.wrap { max-width:500px; margin:0 auto; padding:0 14px; }
 
-/* cover: a gradient theme, or a photo with a dark wash so the text stays readable */
-.cover { height:112px; background:var(--cover); position:relative; overflow:hidden; }
+/* ══════════ HERO ══════════ */
+.card { background:#fff; border-radius:24px; overflow:hidden; margin-top:16px;
+  box-shadow:0 18px 44px rgba(11,18,32,.13); border:1px solid var(--line);
+  animation:rise .5s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes rise { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+.cover { height:128px; background:var(--cover); position:relative; overflow:hidden; }
 .cover.has-photo { background-size:cover; background-position:center; }
-.cover.has-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(8,20,40,.45),rgba(8,20,40,.68)); }
-.cover:not(.has-photo)::after { content:''; position:absolute; top:-46px; right:-34px; width:150px; height:150px; border-radius:50%; background:rgba(255,255,255,.07); }
-.cover:not(.has-photo)::before { content:''; position:absolute; bottom:-60px; left:14%; width:170px; height:170px; border-radius:50%; background:rgba(237,111,31,.12); }
-.cover-badge { position:absolute; top:12px; right:12px; background:rgba(255,255,255,.20); color:#fff; font-size:9.5px; font-weight:900; letter-spacing:.6px; text-transform:uppercase; padding:5px 11px; border-radius:20px; border:1px solid rgba(255,255,255,.24); z-index:2; backdrop-filter:blur(4px); }
+.cover.has-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(6,16,32,.30),rgba(6,16,32,.72)); }
+.cover:not(.has-photo)::after { content:''; position:absolute; top:-50px; right:-36px; width:170px; height:170px; border-radius:50%; background:rgba(255,255,255,.08); }
+.cover:not(.has-photo)::before { content:''; position:absolute; bottom:-70px; left:10%; width:190px; height:190px; border-radius:50%; background:rgba(237,111,31,.13); }
+.cover-badge { position:absolute; top:14px; right:14px; background:rgba(255,255,255,.20); color:#fff; font-size:9.5px; font-weight:900;
+  letter-spacing:.7px; text-transform:uppercase; padding:6px 12px; border-radius:20px; border:1px solid rgba(255,255,255,.26); z-index:2; backdrop-filter:blur(6px); }
 
-.ident { text-align:center; padding:0 18px; margin-top:-44px; position:relative; z-index:2; }
-.plate { display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:18px; padding:10px 16px; min-height:60px; min-width:60px; box-shadow:0 12px 30px rgba(14,45,85,.16); border:3px solid #fff; }
-.plate img { max-height:46px; max-width:180px; object-fit:contain; display:block; }
-.initials { font-size:25px; font-weight:900; color:var(--navy); letter-spacing:-.5px; }
-.c-name { font-size:21px; font-weight:900; letter-spacing:-.4px; margin-top:11px; line-height:1.2; }
-.c-tag { font-size:12.5px; font-weight:700; color:var(--muted); margin-top:4px; line-height:1.4; }
-.c-verified { display:inline-flex; align-items:center; gap:4px; margin-top:9px; background:#EFF6FF; color:#1D4ED8; border:1px solid #DBEAFE; font-size:9.5px; font-weight:900; letter-spacing:.5px; text-transform:uppercase; padding:4px 11px; border-radius:20px; }
+.ident { text-align:center; padding:0 20px; margin-top:-48px; position:relative; z-index:2; }
+.plate { display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:20px; padding:11px 17px;
+  min-height:64px; min-width:64px; box-shadow:0 14px 32px rgba(11,18,32,.18); border:4px solid #fff; }
+.plate img { max-height:48px; max-width:190px; object-fit:contain; display:block; }
+.initials { font-size:26px; font-weight:900; color:var(--navy); letter-spacing:-.5px; }
+.c-name { font-size:23px; font-weight:900; letter-spacing:-.5px; margin-top:12px; line-height:1.2; }
+.c-tag { font-size:13px; font-weight:600; color:var(--muted); margin-top:5px; line-height:1.45; }
+.chips { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:11px; }
+.chip { display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:900; letter-spacing:.5px; text-transform:uppercase;
+  padding:5px 11px; border-radius:20px; }
+.chip-verified { background:#EFF6FF; color:#1D4ED8; border:1px solid #DBEAFE; }
+.chip-cat { background:#FFF4EA; color:#C2410C; border:1px solid #FDE3CC; }
 
-/* ---------- SAVE CONTACT: first thing under the name, highlighted ---------- */
-.savebar { padding:16px 16px 0; }
-.save-contact {
-  display:flex; align-items:center; justify-content:center; gap:9px; width:100%;
+/* ══════════ SECTION SHELL ══════════ */
+.sec { padding:20px 16px 0; }
+.sec:last-of-type { padding-bottom:4px; }
+.sec-head { display:flex; align-items:center; gap:8px; margin-bottom:11px; }
+.sec-head .dot { width:4px; height:14px; border-radius:3px; background:linear-gradient(180deg,var(--orange2),var(--orange)); }
+.sec-head h2 { font-size:11px; font-weight:900; color:#8A99AE; text-transform:uppercase; letter-spacing:1.1px; margin:0; }
+.sec-head .line { flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent); }
+
+/* ══════════ SAVE CONTACT ══════════ */
+.savebar { padding:20px 16px 0; }
+.save-contact { display:flex; align-items:center; justify-content:center; gap:11px; width:100%;
   background:linear-gradient(135deg,var(--orange2),var(--orange)); color:var(--navy);
-  border:none; border-radius:16px; padding:16px; font-size:15px; font-weight:900;
-  cursor:pointer; box-shadow:0 10px 24px rgba(237,111,31,.32); transition:transform .18s;
-}
+  border:none; border-radius:18px; padding:17px; font-size:15.5px; font-weight:900; cursor:pointer;
+  box-shadow:0 12px 26px rgba(237,111,31,.34); transition:transform .18s, box-shadow .18s; }
 .save-contact:active { transform:scale(.975); }
-.save-contact .ic { font-size:19px; }
-.save-contact small { display:block; font-size:10px; font-weight:800; opacity:.72; margin-top:1px; }
+.save-contact:hover { box-shadow:0 16px 32px rgba(237,111,31,.42); }
+.save-contact .ic { font-size:21px; }
+.save-contact small { display:block; font-size:10.5px; font-weight:800; opacity:.7; margin-top:2px; }
 .save-contact .txt { text-align:left; }
 
-/* ---------- quick actions ---------- */
-.quick { display:flex; gap:9px; padding:12px 16px 0; }
-.qa { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:11px 4px; border-radius:15px; background:#fff; border:1px solid var(--line); text-decoration:none; color:#334155; font-size:10px; font-weight:800; transition:transform .18s, box-shadow .18s; }
+/* ══════════ QUICK ACTIONS ══════════ */
+.quick { display:flex; gap:10px; padding:14px 16px 0; }
+.qa { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; padding:13px 4px; border-radius:17px;
+  background:#fff; border:1px solid var(--line); text-decoration:none; color:#334155; font-size:10.5px; font-weight:800;
+  transition:transform .18s, box-shadow .18s; }
 .qa:active { transform:scale(.96); }
-.qa .ic { width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:17px; background:#F1F5F9; }
-.qa.wa .ic { background:rgba(37,211,102,.13); }
-.qa.call .ic { background:rgba(237,111,31,.13); }
+.qa:hover { box-shadow:0 10px 22px rgba(11,18,32,.10); }
+.qa .ic { width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:18px; background:#F1F5F9; }
+.qa.wa .ic { background:rgba(37,211,102,.14); }
+.qa.call .ic { background:rgba(237,111,31,.14); }
 .qa.mail .ic { background:rgba(37,99,235,.11); }
-.qa.map .ic  { background:rgba(220,38,38,.10); }
+.qa.map  .ic { background:rgba(220,38,38,.10); }
 
-/* ---------- link list ---------- */
-.section { padding:18px 16px 0; }
-.section-title { font-size:10px; font-weight:900; color:#94A3B8; text-transform:uppercase; letter-spacing:1px; margin-bottom:9px; }
-.link {
-  display:flex; align-items:center; gap:12px; padding:13px 14px; background:#fff;
-  border:1px solid var(--line); border-radius:15px; text-decoration:none; color:var(--ink);
-  margin-bottom:9px; transition:transform .18s, box-shadow .18s, border-color .18s;
-}
+/* ══════════ LINK ROWS ══════════ */
+.link { display:flex; align-items:center; gap:13px; padding:14px; background:#fff; border:1px solid var(--line);
+  border-radius:17px; text-decoration:none; color:var(--ink); margin-bottom:10px;
+  transition:transform .18s, box-shadow .18s, border-color .18s; }
 .link:active { transform:scale(.985); }
-.link:hover { box-shadow:0 8px 20px rgba(14,45,85,.09); border-color:#D7E3F2; }
-.link .ic { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:19px; background:#F1F5F9; flex-shrink:0; }
+.link:hover { box-shadow:0 12px 26px rgba(11,18,32,.10); border-color:#D6E2F2; transform:translateY(-2px); }
+.link .ic { width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; background:#F1F5F9; flex-shrink:0; }
 .link .tx { flex:1; min-width:0; }
-.link .lt { font-size:14px; font-weight:800; }
-.link .ls { font-size:11px; font-weight:600; color:var(--muted); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.link .ch { color:#CBD5E1; font-size:16px; flex-shrink:0; }
-.link.wa  .ic { background:rgba(37,211,102,.13); }
+.link .lt { font-size:14.5px; font-weight:800; }
+.link .ls { font-size:11.5px; font-weight:600; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.link .ch { color:#C3CFE0; font-size:17px; flex-shrink:0; }
+.link.wa  .ic { background:rgba(37,211,102,.14); }
 .link.ig  .ic { background:linear-gradient(45deg,#F58529,#DD2A7B,#8134AF); }
 .link.yt  .ic { background:rgba(220,38,38,.11); }
-.link.tg  .ic { background:rgba(34,158,217,.13); }
+.link.tg  .ic { background:rgba(34,158,217,.14); }
 .link.fb  .ic { background:rgba(24,119,242,.12); }
 .link.loc .ic { background:rgba(220,38,38,.10); }
-.link.upi .ic { background:rgba(16,185,129,.13); }
-.link.rev .ic { background:rgba(250,204,21,.18); }
+.link.upi .ic { background:rgba(16,185,129,.14); }
+.link.rev .ic { background:rgba(250,204,21,.20); }
 
-/* ---------- catalogue ---------- */
-.cat-grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
-.cat { background:#fff; border:1px solid var(--line); border-radius:16px; overflow:hidden; text-decoration:none; color:var(--ink); display:block; transition:transform .18s, box-shadow .18s; }
+/* ══════════ CATALOGUE ══════════ */
+.cat-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.cat { background:#fff; border:1px solid var(--line); border-radius:18px; overflow:hidden; text-decoration:none; color:var(--ink);
+  display:block; transition:transform .18s, box-shadow .18s; }
 .cat:active { transform:scale(.98); }
-.cat:hover { box-shadow:0 10px 24px rgba(14,45,85,.11); }
+.cat:hover { box-shadow:0 14px 28px rgba(11,18,32,.12); transform:translateY(-2px); }
 .cat-thumb { width:100%; aspect-ratio:16/10; object-fit:cover; background:linear-gradient(135deg,#E8EEF8,#F4F7FC); display:block; }
-.cat-noimg { width:100%; aspect-ratio:16/10; display:flex; align-items:center; justify-content:center; font-size:26px; background:linear-gradient(135deg,#E8EEF8,#F4F7FC); }
-.cat-body { padding:9px 11px 11px; }
-.cat-t { font-size:12.5px; font-weight:800; line-height:1.3; }
-.cat-s { font-size:10.5px; font-weight:600; color:var(--muted); margin-top:2px; }
+.cat-noimg { width:100%; aspect-ratio:16/10; display:flex; align-items:center; justify-content:center; font-size:28px; background:linear-gradient(135deg,#E8EEF8,#F4F7FC); }
+.cat-body { padding:10px 12px 12px; }
+.cat-t { font-size:13px; font-weight:800; line-height:1.3; }
+.cat-s { font-size:11px; font-weight:600; color:var(--muted); margin-top:3px; }
 
-/* ---------- share + QR ---------- */
-.acts { display:flex; gap:9px; padding:20px 16px 0; }
-.btn { flex:1; display:flex; align-items:center; justify-content:center; gap:7px; padding:14px; border-radius:15px; font-size:13px; font-weight:900; border:none; cursor:pointer; text-decoration:none; transition:transform .18s; }
+/* ══════════ SHARE / QR ══════════ */
+.acts { display:flex; gap:10px; padding:22px 16px 0; }
+.btn { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:15px; border-radius:16px;
+  font-size:13.5px; font-weight:900; border:none; cursor:pointer; text-decoration:none; transition:transform .18s, box-shadow .18s; }
 .btn:active { transform:scale(.97); }
-.btn-share { background:linear-gradient(135deg,var(--navy),var(--navy2)); color:#fff; }
+.btn-share { background:linear-gradient(135deg,var(--navy),var(--navy2)); color:#fff; box-shadow:0 12px 26px rgba(14,45,85,.26); }
 .btn-qr { background:#fff; border:1px solid var(--line); color:var(--navy); }
 
-/* ---------- footer ---------- */
-.foot { text-align:center; padding:26px 16px 0; }
+/* ══════════ FOOTER ══════════ */
+.foot { text-align:center; padding:30px 16px 0; }
 .foot a { display:inline-flex; align-items:center; gap:7px; text-decoration:none; color:var(--muted); font-size:11.5px; font-weight:700; }
 .foot b { color:var(--navy); font-weight:900; }
-.foot .cta { display:block; margin-top:11px; font-size:11px; color:#94A3B8; font-weight:600; }
+.foot .cta { display:block; margin-top:12px; font-size:11px; color:#94A3B8; font-weight:600; }
 .foot .cta a { color:var(--orange); font-weight:800; font-size:11px; }
 
-/* ---------- states ---------- */
-.state { max-width:440px; margin:0 auto; padding:60px 24px; text-align:center; }
-.state .em { font-size:44px; margin-bottom:14px; }
+/* ══════════ STATES ══════════ */
+.state { max-width:440px; margin:0 auto; padding:64px 24px; text-align:center; }
+.state .em { font-size:46px; margin-bottom:14px; }
 .state h1 { font-size:19px; font-weight:900; margin-bottom:8px; }
 .state p { font-size:13.5px; color:var(--muted); line-height:1.6; font-weight:600; }
-.state a.go { display:inline-block; margin-top:18px; background:linear-gradient(135deg,var(--orange2),var(--orange)); color:var(--navy); text-decoration:none; padding:12px 26px; border-radius:14px; font-size:13.5px; font-weight:900; }
+.state a.go { display:inline-block; margin-top:18px; background:linear-gradient(135deg,var(--orange2),var(--orange)); color:var(--navy);
+  text-decoration:none; padding:13px 28px; border-radius:15px; font-size:13.5px; font-weight:900; }
 .spinner { width:34px; height:34px; border:3px solid #E2E8F0; border-top-color:var(--orange); border-radius:50%; margin:0 auto 16px; animation:spin .8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .hidden { display:none !important; }
 
-/* ---------- QR preview sheet ---------- */
-#qrSheet { position:fixed; inset:0; background:rgba(8,20,40,.72); z-index:99; display:none; align-items:center; justify-content:center; padding:18px; }
+/* ══════════ QR SHEET ══════════ */
+#qrSheet { position:fixed; inset:0; background:rgba(6,16,32,.74); z-index:99; display:none; align-items:center; justify-content:center; padding:18px; }
 #qrSheet.open { display:flex; }
-#qrSheet .panel { background:#fff; border-radius:20px; max-width:420px; width:100%; max-height:92vh; overflow-y:auto; padding:16px; }
-#qrSheet .panel h3 { font-size:15px; font-weight:900; margin-bottom:4px; }
-#qrSheet .panel p { font-size:12px; color:var(--muted); font-weight:600; margin-bottom:12px; }
-#qrSheet img { width:100%; border-radius:12px; border:1px solid var(--line); display:block; }
-#qrSheet .row { display:flex; gap:9px; margin-top:12px; }
-#qrSheet .row button { flex:1; padding:13px; border-radius:13px; font-size:13px; font-weight:900; border:none; cursor:pointer; }
+#qrSheet .panel { background:#fff; border-radius:22px; max-width:420px; width:100%; max-height:92vh; overflow-y:auto; padding:18px; }
+#qrSheet .panel h3 { font-size:16px; font-weight:900; margin-bottom:5px; }
+#qrSheet .panel p { font-size:12.5px; color:var(--muted); font-weight:600; margin-bottom:13px; line-height:1.5; }
+#qrSheet img { width:100%; border-radius:14px; border:1px solid var(--line); display:block; }
+#qrSheet .row { display:flex; gap:10px; margin-top:13px; }
+#qrSheet .row button { flex:1; padding:14px; border-radius:14px; font-size:13.5px; font-weight:900; border:none; cursor:pointer; }
 #qrSheet .dl { background:linear-gradient(135deg,var(--orange2),var(--orange)); color:var(--navy); }
 #qrSheet .cl { background:#F1F5F9; color:#334155; }
 
 @media (min-width:640px) {
-  .card { margin-top:34px; }
+  .card { margin-top:32px; }
   .cat-grid { grid-template-columns:1fr 1fr 1fr; }
-  .link:hover { transform:translateY(-2px); }
 }
 @media print { body { background:#fff; } .acts, .foot, .cover-badge, .savebar { display:none; } }
 </style>
 </head>
 <body>
 
-<!-- ── LOADING ─────────────────────────────────────────────────────────── -->
 <div id="state-loading" class="state">
   <div class="spinner"></div>
   <p>Loading card...</p>
 </div>
 
-<!-- ── NOT FOUND / DISABLED ────────────────────────────────────────────── -->
 <div id="state-error" class="state hidden">
   <div class="em" id="err_em">&#128533;</div>
   <h1 id="err_title">Card not found</h1>
@@ -176,21 +187,24 @@ body {
   <a class="go" href="https://utsavhq.com/">Go to UTSAVhq</a>
 </div>
 
-<!-- ── THE CARD ────────────────────────────────────────────────────────── -->
 <div id="card_root" class="wrap hidden">
   <main class="card">
+
+    <!-- ══════════ 1. HERO ══════════ -->
     <div class="cover" id="cover">
       <div class="cover-badge" id="badge">Digital Card</div>
     </div>
-
     <div class="ident">
       <div class="plate" id="plate"></div>
       <div class="c-name" id="c_name"></div>
       <div class="c-tag" id="c_tag"></div>
-      <div class="c-verified" id="c_verified">&#10003; Verified Business</div>
+      <div class="chips" id="chips">
+        <span class="chip chip-verified" id="c_verified">&#10003; Verified Business</span>
+        <span class="chip chip-cat hidden" id="c_chip_cat"></span>
+      </div>
     </div>
 
-    <!-- SAVE CONTACT: kept first, right under the name, so it is the obvious action -->
+    <!-- ══════════ 2. SAVE CONTACT ══════════ -->
     <div class="savebar">
       <button class="save-contact" id="btn_save">
         <span class="ic">&#128229;</span>
@@ -198,22 +212,29 @@ body {
       </button>
     </div>
 
+    <!-- ══════════ 3. QUICK ACTIONS ══════════ -->
     <div class="quick" id="quick"></div>
 
-    <div class="section hidden" id="sec_links">
-      <div class="section-title">Connect with us</div>
+    <!-- ══════════ 4. LINKS ══════════ -->
+    <section class="sec hidden" id="sec_links">
+      <div class="sec-head"><span class="dot"></span><h2>Connect with us</h2><span class="line"></span></div>
       <div id="links"></div>
-    </div>
+    </section>
 
-    <div class="section hidden" id="sec_cat">
-      <div class="section-title" id="cat_title">Our Catalogue</div>
+    <!-- ══════════ 5. CATALOGUE ══════════ -->
+    <section class="sec hidden" id="sec_cat">
+      <div class="sec-head"><span class="dot"></span><h2 id="cat_title">Our Catalogue</h2><span class="line"></span></div>
       <div class="cat-grid" id="cat_grid"></div>
-    </div>
+    </section>
 
-    <div class="acts">
-      <button class="btn btn-qr" id="btn_qr">&#128241; QR code</button>
-      <button class="btn btn-share" id="btn_share">&#128228; Share</button>
-    </div>
+    <!-- ══════════ 6. SHARE ══════════ -->
+    <section class="sec">
+      <div class="sec-head"><span class="dot"></span><h2>Share this card</h2><span class="line"></span></div>
+      <div class="acts" style="padding-top:0;">
+        <button class="btn btn-share" id="btn_share">&#128228; Share card</button>
+        <button class="btn btn-qr" id="btn_qr">&#128241; QR code</button>
+      </div>
+    </section>
 
     <div class="foot">
       <a href="https://utsavhq.com/">
@@ -225,7 +246,6 @@ body {
   </main>
 </div>
 
-<!-- ── QR PREVIEW / DOWNLOAD SHEET ─────────────────────────────────────── -->
 <div id="qrSheet">
   <div class="panel">
     <h3>Your QR code</h3>
@@ -252,6 +272,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 // (source map omitted) //26b4b0d0b1e283d6b3ec9857ac597d7a60c76ac17be1ef4c965f03086de426bb.map
 </script>
 <script>
+
 /* ══════════════════════════════════════════════════════════════════════════
    DIGITAL CARD - public renderer
    URL format: https://utsavhq.com/card/?u=<username>
@@ -428,7 +449,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     $('c_name').textContent = name;
     if (tag) { $('c_tag').textContent = tag; } else { $('c_tag').style.display = 'none'; }
     if (d.verified === false) { hide($('c_verified')); }
-    if (d.category) { $('badge').textContent = d.category; }
+    if (d.category) {
+      $('badge').textContent = d.category;
+      var cc = $('c_chip_cat');
+      if (cc) { cc.textContent = d.category; cc.classList.remove('hidden'); }
+    }
 
     /* ── quick actions ── */
     var q = [];
@@ -573,15 +598,30 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   /* ── share: native sheet on mobile, copy on desktop ── */
   function shareCard(name) {
-    var text = name + ' - digital visiting card';
-    if (navigator.share) {
-      navigator.share({ title: name, text: text, url: CARD_URL }).catch(function () {});
-      return;
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(CARD_URL).then(function () { toast('Link copied'); })
-        .catch(function () { prompt('Copy this link:', CARD_URL); });
-    } else { prompt('Copy this link:', CARD_URL); }
+    var text = name + ' - digital visiting card\n' + CARD_URL;
+    /* Prefer sharing the poster image: the chat then shows the business logo,
+       name, phone and address instead of a bare link preview. */
+    var ready = QR_IMG ? Promise.resolve(QR_IMG) : buildPoster(CARD, name).catch(function () { return null; });
+    ready.then(function (dataUrl) {
+      if (dataUrl) {
+        QR_IMG = dataUrl;
+        return fetch(dataUrl).then(function (r) { return r.blob(); }).then(function (blob) {
+          var file = new File([blob], (name || 'card').replace(/[^\w]+/g, '_') + '_card.png', { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            return navigator.share({ files: [file], title: name, text: text }).catch(function () {});
+          }
+          throw new Error('no-file-share');
+        });
+      }
+      throw new Error('no-poster');
+    }).catch(function () {
+      /* fall back to the plain link */
+      if (navigator.share) { navigator.share({ title: name, text: text, url: CARD_URL }).catch(function () {}); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(CARD_URL).then(function () { toast('Link copied'); })
+          .catch(function () { prompt('Copy this link:', CARD_URL); });
+      } else { prompt('Copy this link:', CARD_URL); }
+    });
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -794,6 +834,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if (sheet) sheet.addEventListener('click', function (e) { if (e.target === sheet) sheet.classList.remove('open'); });
   });
 })();
+
 
 </script>
 </body>
