@@ -6172,6 +6172,16 @@ window.utsavMemberEmails = function (company) {
    the security rules can verify (ownerEmail == me, and memberEmails contains me).
    This replaces listing every company on the server, so /companies can stay
    readable to members only. Returns the workspace ids that were found. */
+/* Canonical app URL. Invite links and the login email must always point at the
+   real domain, not at whatever deployment the owner happens to be browsing from
+   (that produced links like hello-world-dl1.pages.dev). Localhost keeps the
+   current origin so development still works. */
+window.utsavAppUrl = function () {
+  var h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1' || /\.local$/.test(h)) return location.origin + '/app/';
+  return 'https://utsavhq.com/app/';
+};
+
 window.utsavLoadMyCompanies = function (email) {
   if (!email) return Promise.resolve([]);
   var found = [];
@@ -6282,7 +6292,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function inviteLink(code, name) {
     var q = '?invite=' + encodeURIComponent(code);
     if (name) q += '&cname=' + encodeURIComponent(name);
-    return window.location.origin + '/app/' + q;
+    return (window.utsavAppUrl ? window.utsavAppUrl() : window.location.origin + '/app/') + q;
   }
 
   function renderTeamQR() {
