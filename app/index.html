@@ -3370,28 +3370,7 @@
                 </form>
 
                 
-            <!-- DIGITAL CARD: publish / unpublish toggle + entry to the card editor -->
-            <div class="cp-dc-box">
-                <div class="cp-dc-head">
-                    <div class="cp-dc-ico">&#128241;</div>
-                    <div class="cp-dc-tx">
-                        <div class="cp-dc-t">Digital Visiting Card</div>
-                        <div class="cp-dc-s" id="cp_dc_status">Off - turn it on to get a shareable link</div>
-                    </div>
-                    <label class="cp-dc-sw"><input type="checkbox" id="cp_dc_toggle" onchange="dcToggleChanged(this.checked)"><span class="cp-dc-sl"></span></label>
-                </div>
-                <div class="cp-dc-row">
-                    <input type="text" id="cp_dc_link" readonly placeholder="Turn the card on to get your link">
-                    <button type="button" onclick="dcCopyLink()">Copy</button>
-                </div>
-                <button type="button" class="cp-dc-manage" onclick="openDigitalCard()">&#9881;&#65039; Manage card - username, links &amp; catalogue</button>
-            </div>
-<div style="background: white; padding: 16px 20px; border-top: 1px solid #E2E8F0; z-index: 10;">
-                    <button type="button" class="btn-main"
-                        style="background: linear-gradient(135deg, var(--accent-color), #1E3A8A); padding: 14px; font-size: 14px; font-weight: 800; border-radius: 12px; box-shadow: 0 4px 15px rgba(37,99,235,0.3); width: 100%;"
-                        onclick="saveProfileData()">💾 Update Profile & Settings</button>
-                </div>
-            </div>
+</div>
         </div>
 
         <!-- ══════════════════════════════════════════════════════════════════════════
@@ -6451,10 +6430,11 @@ body:not(.on-home) #nexa-fab { display: none !important; }
 #companyPreviewModal .cpv-v { font-size:12.5px; font-weight:800; color:#0F172A; margin-top:2px; word-break:break-word; }
 #companyPreviewModal .cpv-wide { grid-column:1 / -1; }
 #companyPreviewModal .cpv-sig { background:#fff; border:1px solid #E7EDF5; border-radius:14px; padding:10px 11px; margin-top:9px; }
+#companyPreviewModal .cp-dc-box.in-preview { margin:12px 0 0; }
 #companyPreviewModal .cpv-sig img { max-height:50px; display:block; margin-top:6px; }
-#companyPreviewModal .cpv-foot { display:flex; gap:10px; padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background:#fff; border-top:1px solid #E7EDF5; }
+#companyPreviewModal .cpv-foot { display:flex; gap:10px; align-items:stretch; padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background:#fff; border-top:1px solid #E7EDF5; }
 #companyPreviewModal .cpv-edit { flex:1; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#0E2D55; border:none; border-radius:14px; padding:13px; font-size:13.5px; font-weight:900; cursor:pointer; }
-#companyPreviewModal .cpv-close { flex:0 0 auto; background:#F1F5F9; color:#334155; border:none; border-radius:14px; padding:13px 18px; font-size:13.5px; font-weight:800; cursor:pointer; }
+#companyPreviewModal .cpv-close { flex:0 0 auto; background:#F1F5F9; color:#334155; border:none; border-radius:14px; padding:13px 18px; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 @media (max-width:639px){ #companyPreviewModal .cpv-grid { grid-template-columns:1fr; } #companyPreviewModal .cpv-body { max-height:38vh; } }
 @media (min-width:1024px){ #companyPreviewModal { align-items:center; padding:24px; } #companyPreviewModal .cpv-body { max-height:52vh; } }
 </style>
@@ -6477,6 +6457,24 @@ body:not(.on-home) #nexa-fab { display: none !important; }
                 <div class="cpv-k">Authorised Signature</div>
                 <img id="cpv_sig" alt="">
             </div>
+            <!-- DIGITAL CARD: publish / unpublish toggle + entry to the card editor.
+                 It lives in the company preview (not the edit form) because the
+                 preview is where the owner sees and shares the company's card. -->
+            <div class="cp-dc-box in-preview">
+                <div class="cp-dc-head">
+                    <div class="cp-dc-ico">&#128241;</div>
+                    <div class="cp-dc-tx">
+                        <div class="cp-dc-t">Digital Visiting Card</div>
+                        <div class="cp-dc-s" id="cp_dc_status">Off - turn it on to get a shareable link</div>
+                    </div>
+                    <label class="cp-dc-sw"><input type="checkbox" id="cp_dc_toggle" onchange="dcToggleChanged(this.checked)"><span class="cp-dc-sl"></span></label>
+                </div>
+                <div class="cp-dc-row">
+                    <input type="text" id="cp_dc_link" readonly placeholder="Turn the card on to get your link">
+                    <button type="button" onclick="dcCopyLink()">Copy</button>
+                </div>
+                <button type="button" class="cp-dc-manage" onclick="openDigitalCard()">&#9881;&#65039; Manage card - username, links &amp; catalogue</button>
+            </div>
         </div>
         <div class="cpv-foot">
             <button class="cpv-edit" data-owner-only onclick="closeCompanyPreview(); openCompanyProfile();">&#9999;&#65039; Edit details</button>
@@ -6498,12 +6496,19 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   }
 
   window.openCompanyPreview = function () {
-    var p = {};
-    try { p = (typeof profileDB !== 'undefined' && profileDB) || {}; } catch (e) {}
     var m = document.getElementById('companyPreviewModal');
     if (!m) return;
     var c = {};
-    try { c = (typeof masterCompsDB !== 'undefined' && masterCompsDB[currentWorkspaceId]) || {}; } catch (e) {}
+    try { c = (typeof masterCompsDB !== 'undefined' && masterCompsDB[wsId()]) || {}; } catch (e) {}
+    var p = {};
+    try { p = (typeof profileDB !== 'undefined' && profileDB) || {}; } catch (e) {}
+    /* the company record carries the same fields, so use it to fill any gap */
+    (function () {
+      var keys = ['name', 'owner', 'logo', 'phone1', 'phone2', 'email', 'web', 'address', 'desc', 'insta', 'google', 'signature'];
+      var merged = {};
+      keys.forEach(function (k) { merged[k] = p[k] || c[k] || ''; });
+      p = merged;
+    })();
 
     /* logo, or the company initials as a fallback */
     var logo = document.getElementById('cpv_logo'), fb = document.getElementById('cpv_fallback');
@@ -6528,6 +6533,7 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     if (p.phone1) act('&#128172;', 'WhatsApp', 'https://wa.me/91' + String(p.phone1).replace(/\D/g, '').slice(-10));
     if (p.email) act('&#9993;&#65039;', 'Email', 'mailto:' + p.email);
     if (p.web) act('&#127760;', 'Website', /^https?:/i.test(p.web) ? p.web : 'https://' + p.web);
+    if (p.google || p.address) act('&#128205;', 'Location', p.google || ('https://maps.google.com/?q=' + encodeURIComponent(p.address)));
     var actEl = document.getElementById('cpv_actions');
     if (actEl) { actEl.innerHTML = acts.join(''); actEl.style.display = acts.length ? 'flex' : 'none'; }
 
@@ -6556,6 +6562,7 @@ body:not(.on-home) #nexa-fab { display: none !important; }
       else { sw.style.display = 'none'; }
     }
     m.style.display = 'flex';
+    if (typeof paintToggleBox === 'function') paintToggleBox();
     if (typeof syncOwnerOnly === 'function') syncOwnerOnly();
   };
 
@@ -6627,7 +6634,13 @@ body:not(.on-home) #nexa-fab { display: none !important; }
 
   function el(id) { return document.getElementById(id); }
   function wsId() {
-    try { return (typeof currentWorkspaceId !== 'undefined' && currentWorkspaceId) || ''; } catch (e) { return ''; }
+    /* currentWorkspaceId is created by a bare assignment inside the app bundle,
+       so a plain reference can be shadowed or in a temporal dead zone. Try the
+       bare name, then the real global, then the stored active workspace. */
+    try { if (typeof currentWorkspaceId !== 'undefined' && currentWorkspaceId) return currentWorkspaceId; } catch (e) {}
+    try { if (window.currentWorkspaceId) return window.currentWorkspaceId; } catch (e) {}
+    try { var a = localStorage.getItem('utsav_active_workspace'); if (a) return a; } catch (e) {}
+    return '';
   }
   function pointerKey() { return 'utsav_dc_' + wsId(); }
   function esc(s) {
@@ -6694,7 +6707,7 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     } catch (e) {}
   }
 
-  /* ── the toggle box inside Profile & Branding ───────────────────────── */
+  /* ── the toggle box inside the company preview ─────────────────────── */
   function paintToggleBox() {
     var p = readPointer();
     var t = el('cp_dc_toggle');
@@ -6707,20 +6720,46 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     if (l) l.value = p.username ? ('https://utsavhq.com/card/?u=' + p.username) : '';
   }
 
+  /* Publish the on/off state to the PUBLIC card document.
+     This was the bug behind "I turned it on but the link still says switched
+     off": the toggle only updated the local pointer, while the card page reads
+     cards/{username}.enabled. Both must be written together. */
+  function publishEnabled(username, on) {
+    if (!username || !window.db) return Promise.resolve(false);
+    return window.db.collection('cards').doc(username)
+      .set({ enabled: !!on }, { merge: true })
+      .then(function () { return true; })
+      .catch(function () { return false; });
+  }
+
   window.dcToggleChanged = function (on) {
     var p = readPointer();
     if (on && !p.username) {
-      /* nothing to publish yet — send them into the editor instead */
+      /* nothing to publish yet - send them into the editor instead */
       if (el('cp_dc_toggle')) el('cp_dc_toggle').checked = false;
-      toast('Pehle username set karo — Digital Card editor khul raha hai', 'info');
+      toast('Set a username first - opening the card editor', 'info');
       window.openDigitalCard();
       return;
     }
     p.enabled = !!on;
     writePointer(p);
     paintToggleBox();
-    toast(on ? 'Digital card ON' : 'Digital card OFF', on ? 'success' : 'info');
+    publishEnabled(p.username, on).then(function (ok) {
+      if (!ok && p.username) toast('Could not update the card link. Please try again.', 'error');
+      else toast(on ? 'Digital card ON - your link is live' : 'Digital card OFF', on ? 'success' : 'info');
+    });
   };
+
+  /* Self-heal: if this device remembers the card as ON but the public document
+     still says off (e.g. it was switched on before this fix), put it right. */
+  function dcSyncCard() {
+    var p = readPointer();
+    if (!p.username || !p.enabled || !window.db) return;
+    window.db.collection('cards').doc(p.username).get().then(function (snap) {
+      if (snap.exists && snap.data() && snap.data().enabled === false) publishEnabled(p.username, true);
+    }).catch(function () {});
+  }
+  window.dcSyncCard = dcSyncCard;
 
   window.dcCopyLink = function () {
     var p = readPointer();
@@ -6742,12 +6781,23 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     var p = readPointer();
     cfg.username = p.username;
     cfg.enabled = p.enabled;
-    /* seed the basics from the company profile so the owner types less */
+    /* Seed the basics so the owner types less.
+       profileDB lives inside js/app.js as a script-scoped binding, so a bare
+       reference here would not see it. The company record (masterCompsDB) is a
+       real global AND carries the same fields, because saving the profile
+       writes them onto companies/{id} - so read from there. */
     try {
-      var pr = (typeof profileDB !== 'undefined' && profileDB) || {};
-      cfg.name = pr.name || ''; cfg.phone = pr.phone1 || ''; cfg.email = pr.email || '';
-      cfg.website = pr.web || ''; cfg.address = pr.address || ''; cfg.mapUrl = pr.google || '';
-      cfg.logo = pr.logo || '';
+      var comp = (typeof masterCompsDB !== 'undefined' && masterCompsDB[wsId()]) || {};
+      var pr = {};
+      try { pr = (typeof profileDB !== 'undefined' && profileDB) || {}; } catch (e2) { pr = {}; }
+      function pick(k) { return pr[k] || comp[k] || ''; }
+      cfg.name = pick('name');
+      cfg.phone = pick('phone1');
+      cfg.email = pick('email');
+      cfg.website = pick('web');
+      cfg.address = pick('address');
+      cfg.mapUrl = pick('google');
+      cfg.logo = pick('logo');
     } catch (e) {}
 
     el('digitalCardModal').style.display = 'flex';
@@ -7009,10 +7059,12 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   };
 
   /* ── init: paint the toggle box, keep it in sync with the modal ─────── */
+  var healed = false;
   function init() {
     /* owner-only, like the rest of the company controls */
     var box = document.querySelector('.cp-dc-box');
     if (box) box.setAttribute('data-owner-only', '');
+    if (!healed) { healed = true; setTimeout(dcSyncCard, 1200); }
     paintToggleBox();
     if (typeof window.syncOwnerOnly === 'function') { try { window.syncOwnerOnly(); } catch (e) {} }
   }
