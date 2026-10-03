@@ -42,7 +42,17 @@ body::before {
   box-shadow:0 18px 44px rgba(11,18,32,.13); border:1px solid var(--line);
   animation:rise .5s cubic-bezier(.2,.8,.3,1) both; }
 @keyframes rise { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
-.cover { height:128px; background:var(--cover); position:relative; overflow:hidden; }
+@keyframes riseIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+.ident, .savebar, .quick, .sec, .foot { animation:riseIn .5s cubic-bezier(.2,.8,.3,1) both; }
+.ident  { animation-delay:.06s; }
+.savebar{ animation-delay:.12s; }
+.quick  { animation-delay:.18s; }
+.sec:nth-of-type(1) { animation-delay:.24s; }
+.sec:nth-of-type(2) { animation-delay:.30s; }
+.sec:nth-of-type(3) { animation-delay:.36s; }
+.foot   { animation-delay:.42s; }
+@media (prefers-reduced-motion: reduce) { .card, .ident, .savebar, .quick, .sec, .foot { animation:none; } }
+.cover { height:158px; background:var(--cover); position:relative; overflow:hidden; }
 .cover.has-photo { background-size:cover; background-position:center; }
 .cover.has-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(6,16,32,.30),rgba(6,16,32,.72)); }
 .cover:not(.has-photo)::after { content:''; position:absolute; top:-50px; right:-36px; width:170px; height:170px; border-radius:50%; background:rgba(255,255,255,.08); }
@@ -50,10 +60,13 @@ body::before {
 .cover-badge { position:absolute; top:14px; right:14px; background:rgba(255,255,255,.20); color:#fff; font-size:9.5px; font-weight:900;
   letter-spacing:.7px; text-transform:uppercase; padding:6px 12px; border-radius:20px; border:1px solid rgba(255,255,255,.26); z-index:2; backdrop-filter:blur(6px); }
 
-.ident { text-align:center; padding:0 20px; margin-top:-48px; position:relative; z-index:2; }
-.plate { display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:20px; padding:11px 17px;
-  min-height:64px; min-width:64px; box-shadow:0 14px 32px rgba(11,18,32,.18); border:4px solid #fff; }
-.plate img { max-height:48px; max-width:190px; object-fit:contain; display:block; }
+.ident { text-align:center; padding:0 20px; margin-top:-54px; position:relative; z-index:2; }
+.plate { position:relative; display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:22px; padding:12px 18px;
+  min-height:72px; min-width:72px; box-shadow:0 18px 38px rgba(11,18,32,.20); border:5px solid #fff; }
+/* a soft gradient ring so the logo plate reads as a premium badge */
+.plate::after { content:''; position:absolute; inset:-9px; border-radius:28px; z-index:-1;
+  background:linear-gradient(135deg,rgba(237,111,31,.55),rgba(14,45,85,.35)); filter:blur(7px); opacity:.75; }
+.plate img { max-height:54px; max-width:200px; object-fit:contain; display:block; }
 .initials { font-size:26px; font-weight:900; color:var(--navy); letter-spacing:-.5px; }
 .c-name { font-size:23px; font-weight:900; letter-spacing:-.5px; margin-top:12px; line-height:1.2; }
 .c-tag { font-size:13px; font-weight:600; color:var(--muted); margin-top:5px; line-height:1.45; }
@@ -434,8 +447,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var theme = COVER_THEMES[d.coverTheme] || COVER_THEMES.navy;
     cover.style.setProperty('--cover', theme);
     if (d.coverPhoto) {
-      cover.classList.add('has-photo');
-      cover.style.backgroundImage = 'url("' + String(d.coverPhoto).replace(/"/g, '') + '")';
+      /* preload first: only switch to the photo once it really loads, so a bad
+         URL leaves the chosen theme showing instead of an empty grey band */
+      var probe = new Image();
+      probe.onload = function () {
+        cover.classList.add('has-photo');
+        cover.style.backgroundImage = 'url("' + String(d.coverPhoto).replace(/"/g, '') + '")';
+      };
+      probe.src = d.coverPhoto;
     }
 
     /* logo, or initials */
@@ -535,6 +554,22 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
      Carries the owner's website AND the digital card link, and is tagged with
      the category "Digital Card" so it is easy to find in the phone's contacts.
      ══════════════════════════════════════════════════════════════════════ */
+  /* vCard 3.0 caps a line at 75 octets. A base64 logo is thousands of
+     characters long, so without folding the PHOTO line the phone silently
+     drops it - which is why the saved contact had no picture. Continuation
+     lines start with a single space. */
+  function foldVCard(lines) {
+    var out = [];
+    lines.forEach(function (ln) {
+      ln = String(ln);
+      if (ln.length <= 73) { out.push(ln); return; }
+      out.push(ln.slice(0, 73));
+      var rest = ln.slice(73);
+      while (rest.length) { out.push(' ' + rest.slice(0, 72)); rest = rest.slice(72); }
+    });
+    return out;
+  }
+
   function fetchLogoBase64(url) {
     /* Returns { data, mime } for embedding in the vCard, or null. */
     if (!url) return Promise.resolve(null);
@@ -566,11 +601,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if (d.phone) L.push('TEL;TYPE=CELL:' + digits(d.phone));
     if (d.whatsapp && d.whatsapp !== d.phone) L.push('TEL;TYPE=CELL:' + digits(d.whatsapp));
     if (d.email) L.push('EMAIL;TYPE=INTERNET:' + d.email);
-    /* the owner's own website first, then the digital card link on the next line */
+    /* The owner's website if they gave one, and the card link once. When no
+       website was entered the card link is the only URL - it is never repeated
+       in a NOTE, which used to print the same link a second time. */
     if (d.website) L.push('URL:' + safeUrl(d.website));
     L.push('URL:' + CARD_URL);
     if (d.address) L.push('ADR;TYPE=WORK:;;' + d.address.replace(/[\n,]/g, ' ') + ';;;;');
-    L.push('NOTE:Digital Card - ' + CARD_URL);
     L.push('CATEGORIES:Digital Card');
 
     /* Embed the logo as base64 so the phone shows the business picture.
@@ -583,7 +619,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         L.push('PHOTO;VALUE=URI:' + d.logo);
       }
       L.push('END:VCARD');
-      var blob = new Blob([L.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
+      var blob = new Blob([foldVCard(L).join('\r\n')], { type: 'text/vcard;charset=utf-8' });
       download(blob, name.replace(/[^\w]+/g, '_') + '.vcf');
     });
   }
@@ -647,7 +683,10 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return new Promise(function (resolve) {
       if (!src) return resolve(null);
       var im = new Image();
-      im.crossOrigin = 'anonymous';   /* needed so the canvas stays exportable */
+      /* Only ask for CORS on real http(s) images. Setting crossOrigin on a
+         data: URL makes the load fail in most browsers, which is why the
+         cover photo never reached the poster. */
+      if (/^https?:/i.test(src)) im.crossOrigin = 'anonymous';
       im.onload = function () { resolve(im); };
       im.onerror = function () { resolve(null); };
       im.src = src;
@@ -659,7 +698,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var c = document.createElement('canvas');
     var g = c.getContext('2d');
 
-    return loadImage(d.logo).then(function (logo) {
+    return Promise.all([loadImage(d.logo), loadImage(d.coverPhoto)]).then(function (imgs) {
+      var logo = imgs[0], coverImg = imgs[1];
       /* ── pass 1: measure, so the canvas is exactly as tall as the content
             needs and the footer keeps a steady margin from the bottom ── */
       g.font = '700 23px -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
@@ -684,7 +724,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       var stops = (theme.match(/#[0-9A-Fa-f]{6}/g) || ['#0E2D55', '#1B4A85']);
       grad.addColorStop(0, stops[0]);
       grad.addColorStop(1, stops[1] || stops[0]);
-      g.fillStyle = grad; g.fillRect(0, 0, W, 250);
+      if (coverImg) {
+        /* the owner's own cover photo fills the header, cropped like the card,
+           then a dark wash keeps the logo plate readable on top of it */
+        drawCoverCrop(g, coverImg, 0, 0, W, 250);
+        g.fillStyle = 'rgba(6,16,32,0.42)';
+        g.fillRect(0, 0, W, 250);
+      } else {
+        g.fillStyle = grad; g.fillRect(0, 0, W, 250);
+      }
 
       /* logo plate, overlapping the header */
       var plateW = 150, plateH = 150, plateX = (W - plateW) / 2, plateY = 175;
@@ -754,6 +802,15 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
       return c.toDataURL('image/png');
     });
+  }
+
+  /* Draw an image to fill the given box, cropping the overflow - the canvas
+     equivalent of background-size: cover. */
+  function drawCoverCrop(g, img, x, y, w, h) {
+    var ir = img.width / img.height, br = w / h, sw, sh, sx, sy;
+    if (ir > br) { sh = img.height; sw = sh * br; sx = (img.width - sw) / 2; sy = 0; }
+    else { sw = img.width; sh = sw / br; sx = 0; sy = (img.height - sh) / 2; }
+    g.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   }
 
   function drawQr(g, text, x, y, size) {
