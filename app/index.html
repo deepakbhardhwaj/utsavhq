@@ -3426,14 +3426,27 @@
 #digitalCardModal .dc-cat .fields { flex:1; min-width:0; }
 #digitalCardModal .dc-cat .fields input { width:100%; padding:7px 9px; border:1px solid #DDE6F2; border-radius:9px; font-size:11.5px; font-weight:600; margin-bottom:6px; background:#fff; }
 #digitalCardModal .dc-del { background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:9px; width:30px; height:30px; font-size:14px; cursor:pointer; flex-shrink:0; align-self:flex-start; }
-#digitalCardModal .dc-themes { display:flex; flex-wrap:wrap; gap:9px; }
-#digitalCardModal .dc-th { width:46px; height:34px; border-radius:11px; border:2px solid transparent; cursor:pointer; position:relative; box-shadow:0 2px 6px rgba(14,45,85,.14); }
+.dc-inline { display:flex; gap:8px; align-items:stretch; }
+.dc-inline .dc-i { flex:1; min-width:0; }
+.dc-btn-dark { flex:0 0 auto; padding:0 18px; border:none; border-radius:11px; background:#0E2D55; color:#fff; font-size:12.5px; font-weight:900; cursor:pointer; }
+.dc-btn-dark:active { transform:scale(.97); }
+.dc-sep { height:1px; background:#EEF2F8; margin:14px 0; }
+.dc-field-row { display:flex; gap:12px; align-items:flex-start; }
+.dc-field-tx { min-width:0; flex:1; }
+.dc-field-t { font-size:12.5px; font-weight:900; color:#0F172A; }
+.dc-field-s { font-size:10.5px; font-weight:600; color:#8595AB; margin:3px 0 8px; line-height:1.4; }
+.dc-mini-row { display:flex; gap:8px; flex-wrap:wrap; }
+.dc-cover-thumb { width:56px; height:56px; border-radius:15px; border:1px solid #DDE6F2; background-size:cover; background-position:center; flex-shrink:0; }
+#digitalCardModal .dc-themes { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+#digitalCardModal .dc-th { width:100%; height:44px; border-radius:13px; border:2px solid transparent; cursor:pointer; position:relative; box-shadow:0 3px 8px rgba(14,45,85,.14); transition:transform .15s, box-shadow .15s; }
+#digitalCardModal .dc-th:hover { transform:translateY(-2px); box-shadow:0 7px 14px rgba(14,45,85,.18); }
 #digitalCardModal .dc-th.on { border-color:#0E2D55; }
 #digitalCardModal .dc-th.on:after { content:'\2713'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:900; text-shadow:0 1px 3px rgba(0,0,0,.5); }
 #digitalCardModal .dc-cover-row { display:flex; gap:9px; align-items:center; margin-top:12px; flex-wrap:wrap; }
-#digitalCardModal .dc-cover-preview { height:88px; border-radius:14px; background:linear-gradient(135deg,#0E2D55,#1B4A85 60%,#2563EB); background-size:cover; background-position:center; position:relative; overflow:hidden; display:flex; align-items:flex-end; padding:10px 12px; }
-#digitalCardModal .dc-cover-preview .dc-cp-name { color:#fff; font-size:13px; font-weight:900; text-shadow:0 1px 6px rgba(0,0,0,.45); position:relative; z-index:2; }
-#digitalCardModal .dc-cover-preview.has-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(8,20,40,.25),rgba(8,20,40,.62)); }
+#digitalCardModal .dc-cover-preview { height:112px; border-radius:16px; margin-bottom:14px; background:linear-gradient(135deg,#0E2D55,#1B4A85 60%,#2563EB); background-size:cover; background-position:center; position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; padding:0 14px; }
+#digitalCardModal .dc-cover-preview .dc-cp-plate { width:46px; height:46px; border-radius:14px; background:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:900; color:#0E2D55; flex-shrink:0; position:relative; z-index:2; box-shadow:0 6px 16px rgba(0,0,0,.22); }
+#digitalCardModal .dc-cover-preview .dc-cp-name { color:#fff; font-size:14px; font-weight:900; text-shadow:0 2px 10px rgba(0,0,0,.65); position:relative; z-index:2; line-height:1.35; white-space:pre-line; }
+#digitalCardModal .dc-cover-preview.has-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(6,16,32,.38),rgba(6,16,32,.72)); }
 #digitalCardModal .dc-logo-row { display:flex; gap:12px; align-items:center; margin:12px 0 4px; }
 #digitalCardModal .dc-logo-box { width:56px; height:56px; border-radius:15px; background:#F1F5F9; border:1px solid #DDE6F2; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; }
 #digitalCardModal .dc-logo-box img { width:100%; height:100%; object-fit:contain; display:none; }
@@ -3448,6 +3461,7 @@
 #digitalCardModal .dc-hint.ok { color:#16A34A; }
 #digitalCardModal .dc-hint.bad { color:#DC2626; }
 #digitalCardModal .dc-hint.wait { color:#64748B; }
+@media (max-width:400px){ #digitalCardModal .dc-themes { grid-template-columns:repeat(4,1fr); gap:8px; } }
 @media (max-width:639px){ #digitalCardModal .dc-2 { grid-template-columns:1fr; } #digitalCardModal .dc-urlrow .nm { width:64px; font-size:11px; } }
 </style>
 
@@ -3467,9 +3481,9 @@
             <div class="dc-card">
                 <div class="dc-h">Your card link</div>
                 <label class="dc-l">Username (letters, numbers, hyphen and underscore only)</label>
-                <div style="display:flex;gap:8px;">
+                <div class="dc-inline">
                     <input type="text" id="dc_username" class="dc-i" maxlength="30" oninput="dcUsernameTyped()">
-                    <button type="button" class="dc-i" style="flex:0 0 auto;width:auto;padding:0 15px;background:#0E2D55;color:#fff;border:none;font-weight:900;cursor:pointer;" onclick="dcCheckUsername()">Check</button>
+                    <button type="button" class="dc-btn-dark" onclick="dcCheckUsername()">Check</button>
                 </div>
                 <div class="dc-hint wait" id="dc_un_hint">Pick a username to build your link.</div>
                 <div class="dc-hint" id="dc_link_preview" style="color:#0E2D55;word-break:break-all;"></div>
@@ -3480,25 +3494,38 @@
                 <div class="dc-h">Cover</div>
                 <div class="dc-themes" id="dc_themes"></div>
                 <div class="dc-cover-preview" id="dc_cover_preview">
+                    <span class="dc-cp-plate" id="dc_cp_initials"></span>
                     <span class="dc-cp-name" id="dc_cp_name"></span>
                 </div>
-                <div class="dc-logo-row">
+                <div class="dc-field-row">
                     <div class="dc-logo-box">
                         <img id="dc_logo_prev" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                         <span id="dc_logo_initials" class="dc-logo-init" style="display:none;"></span>
                     </div>
-                    <div style="min-width:0;flex:1;">
-                        <label class="dc-l">Business logo</label>
-                        <button type="button" class="dc-mini" onclick="document.getElementById('dc_logo_file').click()">&#128247; Upload logo</button>
+                    <div class="dc-field-tx">
+                        <div class="dc-field-t">Business logo</div>
+                        <div class="dc-field-s">Square works best. Shown on the card, the QR poster and the saved contact.</div>
+                        <div class="dc-mini-row">
+                            <button type="button" class="dc-mini" onclick="document.getElementById('dc_logo_file').click()">&#128247; Upload logo</button>
+                        </div>
                         <input type="file" id="dc_logo_file" accept="image/*" style="display:none" onchange="dcUploadLogo(this)">
                     </div>
                 </div>
-                <div class="dc-cover-row">
-                    <button type="button" class="dc-mini" onclick="document.getElementById('dc_cover_file').click()">&#128247; Upload cover photo</button>
-                    <button type="button" class="dc-mini" id="dc_clear_cover" onclick="dcClearCover()">Use theme</button>
-                    <input type="file" id="dc_cover_file" accept="image/*" style="display:none" onchange="dcUploadCover(this)">
+
+                <div class="dc-sep"></div>
+
+                <div class="dc-field-row">
+                    <div class="dc-cover-thumb" id="dc_cover_thumb"></div>
+                    <div class="dc-field-tx">
+                        <div class="dc-field-t">Cover photo</div>
+                        <div class="dc-field-s">Use one of the themes below, or upload your own picture.</div>
+                        <div class="dc-mini-row">
+                            <button type="button" class="dc-mini" onclick="document.getElementById('dc_cover_file').click()">&#128247; Upload photo</button>
+                            <button type="button" class="dc-mini" id="dc_clear_cover" onclick="dcClearCover()">Use theme</button>
+                        </div>
+                        <input type="file" id="dc_cover_file" accept="image/*" style="display:none" onchange="dcUploadCover(this)">
+                    </div>
                 </div>
-                <div class="dc-hint wait" style="margin-top:8px;">Pick a theme, or upload your own photo (a dark wash is added automatically so your name stays readable).</div>
             </div>
 
             <!-- ── basic details ── -->
@@ -6946,7 +6973,11 @@ body:not(.on-home) #nexa-fab { display: none !important; }
       cp.style.backgroundImage = dcCover ? 'url("' + dcCover + '")' : th.css;
       if (dcCover) cp.classList.add('has-photo'); else cp.classList.remove('has-photo');
       var nm = el('dc_cp_name');
-      if (nm) nm.textContent = (cfg.name || 'Your business name');
+      if (nm) nm.textContent = (cfg.name || 'Your business name') + (cfg.owner ? '\n' + cfg.owner : '');
+      var cpi = el('dc_cp_initials');
+      if (cpi) cpi.textContent = (cfg.name || 'U').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase() || 'U';
+      var ct = el('dc_cover_thumb');
+      if (ct) ct.style.backgroundImage = dcCover ? 'url("' + dcCover + '")' : th.css;
     }
     var clr = el('dc_clear_cover');
     if (clr) clr.style.display = dcCover ? '' : 'none';
