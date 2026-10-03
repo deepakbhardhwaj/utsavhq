@@ -510,6 +510,25 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
      Carries the owner's website AND the digital card link, and is tagged with
      the category "Digital Card" so it is easy to find in the phone's contacts.
      ══════════════════════════════════════════════════════════════════════ */
+  function fetchLogoBase64(url) {
+    /* Returns { data, mime } for embedding in the vCard, or null. */
+    if (!url) return Promise.resolve(null);
+    return fetch(url, { mode: 'cors' })
+      .then(function (r) { if (!r.ok) throw new Error('logo'); return r.blob(); })
+      .then(function (blob) {
+        return new Promise(function (resolve) {
+          var fr = new FileReader();
+          fr.onload = function () {
+            var m = String(fr.result).match(/^data:([^;]+);base64,(.*)$/);
+            resolve(m ? { data: m[2], mime: m[1] } : null);
+          };
+          fr.onerror = function () { resolve(null); };
+          fr.readAsDataURL(blob);
+        });
+      })
+      .catch(function () { return null; });
+  }
+
   function saveVCard(d, name) {
     var L = [];
     L.push('BEGIN:VCARD');
@@ -528,10 +547,20 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if (d.address) L.push('ADR;TYPE=WORK:;;' + d.address.replace(/[\n,]/g, ' ') + ';;;;');
     L.push('NOTE:Digital Card - ' + CARD_URL);
     L.push('CATEGORIES:Digital Card');
-    if (d.logo) L.push('PHOTO;VALUE=URI:' + d.logo);
-    L.push('END:VCARD');
-    var blob = new Blob([L.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
-    download(blob, name.replace(/[^\w]+/g, '_') + '.vcf');
+
+    /* Embed the logo as base64 so the phone shows the business picture.
+       A URI-only photo is ignored by most dialers, which is why the saved
+       contact came through without an image. */
+    fetchLogoBase64(d.logo).then(function (img) {
+      if (img) {
+        L.push('PHOTO;ENCODING=b;TYPE=' + (img.mime.split('/')[1] || 'JPEG').toUpperCase() + ':' + img.data);
+      } else if (d.logo) {
+        L.push('PHOTO;VALUE=URI:' + d.logo);
+      }
+      L.push('END:VCARD');
+      var blob = new Blob([L.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
+      download(blob, name.replace(/[^\w]+/g, '_') + '.vcf');
+    });
   }
 
   function download(blob, filename) {
@@ -586,12 +615,27 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function buildPoster(d, name) {
-    var W = 760, H = 1180;
+    var W = 760, PAD_BOTTOM = 78, QR_SIZE = 430;
     var c = document.createElement('canvas');
-    c.width = W; c.height = H;
     var g = c.getContext('2d');
 
     return loadImage(d.logo).then(function (logo) {
+      /* ── pass 1: measure, so the canvas is exactly as tall as the content
+            needs and the footer keeps a steady margin from the bottom ── */
+      g.font = '700 23px -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+      var addrLines = d.address ? wrap(g, d.address, W - 240, 0, 32) : [];
+      var y = 360;
+      if (d.category) y += 62;
+      if (d.phone) y += 38;
+      y += 32 * addrLines.length;
+      y += 64;                       /* gap between the text and the QR box */
+      var qy = y;
+      var captionY = qy + QR_SIZE + 62;
+      var footerY = captionY + 40;
+      var H = Math.round(footerY + PAD_BOTTOM);
+
+      c.width = W; c.height = H;
+      g = c.getContext('2d');        /* resizing resets the context */
       /* background */
       g.fillStyle = '#FFFFFF'; g.fillRect(0, 0, W, H);
       var theme = COVER_THEMES[d.coverTheme] || COVER_THEMES.navy;
@@ -649,10 +693,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       }
       y += 60;   /* clear gap so the address never touches the QR box */
 
-      /* the QR itself - it always sits below the text. If the space left is
-         short, the QR shrinks instead of being pulled up over the address. */
-      var qrSize = Math.max(260, Math.min(430, H - y - 200));
-      var qx = (W - qrSize) / 2, qy = y;
+      /* the QR itself - it always sits below the text, never pulled upward */
+      var qrSize = QR_SIZE;
+      var qx = (W - qrSize) / 2;
       g.fillStyle = '#FFFFFF';
       roundRect(g, qx - 18, qy - 18, qrSize + 36, qrSize + 36, 20); g.fill();
       g.strokeStyle = '#E7EDF5'; g.lineWidth = 2;
@@ -660,14 +703,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
       drawQr(g, CARD_URL, qx, qy, qrSize);
 
-      /* caption + footer */
-      var cy = qy + qrSize + 54;
+      /* caption + footer, anchored a steady margin above the bottom edge */
+      var cy = captionY;
       g.fillStyle = '#0E2D55';
       g.font = '900 26px -apple-system, \"Segoe UI\", Roboto, Arial, sans-serif';
       g.fillText('Scan to open my digital card', W / 2, cy);
       g.fillStyle = '#94A3B8';
       g.font = '700 20px -apple-system, \"Segoe UI\", Roboto, Arial, sans-serif';
-      g.fillText('Powered by UTSAVhq  |  utsavhq.com', W / 2, cy + 36);
+      g.fillText('Powered by UTSAVhq  |  utsavhq.com', W / 2, footerY);
 
       return c.toDataURL('image/png');
     });
