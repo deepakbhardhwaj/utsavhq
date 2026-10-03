@@ -127,6 +127,29 @@ service cloud.firestore {
       allow read, delete: if signedIn() && resource.data.email == myEmail();
     }
 
+    // ---- digital visiting cards ------------------------------------------
+    // cards/{username} is the PUBLIC card page. The username IS the document
+    // id, so uniqueness is enforced by Firestore itself - a create fails when
+    // the name is already taken. Anyone may READ a card: that is exactly what
+    // makes the shareable link work, and the owner only ever publishes what
+    // they chose to show.
+    //
+    // Ownership is NOT stored in the public card (it would leak the owner's
+    // email). It lives in card_owners/{username}, which only its owner can
+    // read or write. A card can therefore never be handed to another person.
+    match /card_owners/{username} {
+      allow read: if signedIn() && resource.data.ownerEmail == myEmail();
+      allow create: if signedIn() && request.resource.data.ownerEmail == myEmail();
+      allow update, delete: if signedIn() && resource.data.ownerEmail == myEmail();
+    }
+
+    match /cards/{username} {
+      allow read: if true;
+      allow create, update, delete: if signedIn()
+        && exists(/databases/$(database)/documents/card_owners/$(username))
+        && get(/databases/$(database)/documents/card_owners/$(username)).data.ownerEmail == myEmail();
+    }
+
     // ---- everything else is denied ---------------------------------------
     match /{document=**} {
       allow read, write: if false;
