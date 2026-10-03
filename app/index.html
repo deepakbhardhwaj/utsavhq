@@ -3448,7 +3448,7 @@
 <!-- ══════════════════════════════════════════════════════════════════════════
      DIGITAL VISITING CARD — editor modal
      ══════════════════════════════════════════════════════════════════════════ -->
-<div id="digitalCardModal" class="modal-overlay" style="z-index:9800;">
+<div id="digitalCardModal" class="modal-overlay" style="z-index:9990;">
     <div class="modal-content">
         <div class="dc-top">
             <div class="ic">&#128241;</div>
@@ -6799,6 +6799,9 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     if (typeof window.isCurrentUserOwner === 'function' && !window.isCurrentUserOwner()) {
       return toast('Only the owner can manage the digital card', 'error');
     }
+    /* Close the company preview first. Leaving both modals open made the card
+       editor look like it had opened behind the preview. */
+    try { if (typeof window.closeCompanyPreview === 'function') window.closeCompanyPreview(); } catch (e) {}
     cfg = emptyCfg();
     dcLogo = '';
     var p = readPointer();
