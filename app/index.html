@@ -3426,6 +3426,13 @@
 #digitalCardModal .dc-cat .fields { flex:1; min-width:0; }
 #digitalCardModal .dc-cat .fields input { width:100%; padding:7px 9px; border:1px solid #DDE6F2; border-radius:9px; font-size:11.5px; font-weight:600; margin-bottom:6px; background:#fff; }
 #digitalCardModal .dc-del { background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:9px; width:30px; height:30px; font-size:14px; cursor:pointer; flex-shrink:0; align-self:flex-start; }
+#digitalCardModal .dc-themes { display:flex; flex-wrap:wrap; gap:9px; }
+#digitalCardModal .dc-th { width:46px; height:34px; border-radius:11px; border:2px solid transparent; cursor:pointer; position:relative; box-shadow:0 2px 6px rgba(14,45,85,.14); }
+#digitalCardModal .dc-th.on { border-color:#0E2D55; }
+#digitalCardModal .dc-th.on:after { content:'\2713'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:900; text-shadow:0 1px 3px rgba(0,0,0,.5); }
+#digitalCardModal .dc-cover-row { display:flex; gap:9px; align-items:center; margin-top:12px; flex-wrap:wrap; }
+#digitalCardModal .dc-cover-row img { width:74px; height:42px; border-radius:10px; object-fit:cover; background:#E8EEF8; display:none; border:1px solid #DDE6F2; }
+#digitalCardModal .dc-mini { background:#F1F5F9; border:1px solid #DDE6F2; color:#334155; border-radius:10px; padding:9px 12px; font-size:11.5px; font-weight:800; cursor:pointer; }
 #digitalCardModal .dc-add { width:100%; background:#F1F5F9; border:1px dashed #CBD5E1; color:#475569; border-radius:12px; padding:11px; font-size:12.5px; font-weight:800; cursor:pointer; }
 #digitalCardModal .dc-foot { background:#fff; border-top:1px solid #E7EDF5; padding:13px 18px calc(13px + env(safe-area-inset-bottom,0px)); display:flex; gap:9px; }
 #digitalCardModal .dc-foot button { border:none; border-radius:13px; padding:13px; font-size:13.5px; font-weight:900; cursor:pointer; }
@@ -3462,6 +3469,19 @@
                 <div class="dc-hint" id="dc_link_preview" style="color:#0E2D55;word-break:break-all;"></div>
             </div>
 
+            <!-- ── cover: a ready theme, or the owner's own photo ── -->
+            <div class="dc-card">
+                <div class="dc-h">Cover</div>
+                <div class="dc-themes" id="dc_themes"></div>
+                <div class="dc-cover-row">
+                    <img id="dc_cover_prev" alt="">
+                    <button type="button" class="dc-mini" onclick="document.getElementById('dc_cover_file').click()">&#128247; Upload cover photo</button>
+                    <button type="button" class="dc-mini" onclick="dcClearCover()">Use theme</button>
+                    <input type="file" id="dc_cover_file" accept="image/*" style="display:none" onchange="dcUploadCover(this)">
+                </div>
+                <div class="dc-hint wait" style="margin-top:8px;">Pick a theme, or upload your own photo (a dark wash is added automatically so your name stays readable).</div>
+            </div>
+
             <!-- ── basic details ── -->
             <div class="dc-card">
                 <div class="dc-h">Card details</div>
@@ -3486,7 +3506,10 @@
                     <div><label class="dc-l">Website</label><input type="text" id="dc_website" class="dc-i" ></div>
                 </div>
                 <div class="dc-1"><label class="dc-l">Address</label><input type="text" id="dc_address" class="dc-i"></div>
-                <div class="dc-1" style="margin-bottom:0;"><label class="dc-l">Google Maps link (optional)</label><input type="text" id="dc_map" class="dc-i" ></div>
+                <div class="dc-2 dc-1" style="margin-bottom:0;">
+                    <div><label class="dc-l">Google Maps link (optional)</label><input type="text" id="dc_map" class="dc-i"></div>
+                    <div><label class="dc-l">Location text (shown on the card)</label><input type="text" id="dc_location_text" class="dc-i" maxlength="80"></div>
+                </div>
             </div>
 
             <!-- ── links ── -->
@@ -6827,6 +6850,7 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   function dcPaint() {
     if (!cfg) return;
     dcLogo = cfg.logo || '';
+    dcCover = cfg.coverPhoto || '';
     el('dc_username').value = cfg.username || '';
     el('dc_name').value = cfg.name || '';
     el('dc_tagline').value = cfg.tagline || '';
@@ -6838,6 +6862,8 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     el('dc_address').value = cfg.address || '';
     el('dc_map').value = cfg.mapUrl || '';
     el('dc_cat_title').value = cfg.catalogTitle || 'Our Catalogue';
+    if (el('dc_location_text')) el('dc_location_text').value = cfg.locationText || '';
+    dcRenderThemes();
     var lp = el('dc_logo_prev');
     if (lp) { if (dcLogo) { lp.src = dcLogo; lp.style.display = 'block'; } else { lp.style.display = 'none'; } }
     dcUpdateLinkPreview();
@@ -6875,6 +6901,53 @@ body:not(.on-home) #nexa-fab { display: none !important; }
       if (snap.exists && !mine) { h.className = 'dc-hint bad'; h.textContent = 'That name is already taken. Try another.'; }
       else { h.className = 'dc-hint ok'; h.textContent = mine ? 'This is your current card link.' : 'Available — this name is free.'; }
     }).catch(function () { checking = false; h.className = 'dc-hint bad'; h.textContent = 'Could not check. Try again.'; });
+  };
+
+  /* ── cover: themes + photo ─────────────────────────────────────────── */
+  var COVER_THEMES = [
+    { key:'navy',    css:'linear-gradient(135deg,#0E2D55,#1B4A85 60%,#2563EB)' },
+    { key:'orange',  css:'linear-gradient(135deg,#C2410C,#ED6F1F 60%,#F59E0B)' },
+    { key:'emerald', css:'linear-gradient(135deg,#065F46,#059669 60%,#34D399)' },
+    { key:'teal',    css:'linear-gradient(135deg,#134E4A,#0F766E 60%,#14B8A6)' },
+    { key:'maroon',  css:'linear-gradient(135deg,#7F1D1D,#B91C1C 60%,#EF4444)' },
+    { key:'slate',   css:'linear-gradient(135deg,#0F172A,#334155 60%,#64748B)' },
+    { key:'gold',    css:'linear-gradient(135deg,#78350F,#B45309 60%,#F59E0B)' },
+    { key:'ocean',   css:'linear-gradient(135deg,#0C4A6E,#0369A1 60%,#0EA5E9)' }
+  ];
+  var dcCover = '';   /* a cover photo the owner uploaded, if any */
+
+  function dcRenderThemes() {
+    if (!cfg) return;
+    var host = el('dc_themes');
+    if (!host) return;
+    var on = cfg.coverTheme || 'navy';
+    host.innerHTML = COVER_THEMES.map(function (t) {
+      return '<div class="dc-th' + (t.key === on && !dcCover ? ' on' : '') + '" style="background:' + t.css + '" title="' + t.key + '" onclick="dcPickTheme(\'' + t.key + '\')"></div>';
+    }).join('');
+    var prev = el('dc_cover_prev');
+    if (prev) { if (dcCover) { prev.src = dcCover; prev.style.display = 'block'; } else { prev.style.display = 'none'; } }
+  }
+
+  window.dcPickTheme = function (key) {
+    if (!cfg) return;
+    cfg.coverTheme = key;
+    dcCover = '';            /* a theme and a photo are mutually exclusive */
+    cfg.coverPhoto = '';
+    dcRenderThemes();
+  };
+
+  window.dcClearCover = function () {
+    dcCover = ''; if (cfg) cfg.coverPhoto = '';
+    dcRenderThemes();
+  };
+
+  window.dcUploadCover = function (input) {
+    if (!input.files || !input.files[0]) return;
+    loading('Uploading cover...');
+    cloudUpload(input.files[0]).then(function (url) {
+      dcCover = url; if (cfg) cfg.coverPhoto = url;
+      dcRenderThemes(); stopLoad(); toast('Cover photo added', 'success');
+    }).catch(function () { stopLoad(); toast('Upload failed - try a smaller image', 'error'); });
   };
 
   /* ── links ──────────────────────────────────────────────────────────── */
@@ -7005,6 +7078,9 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     cfg.address = el('dc_address').value.trim();
     cfg.mapUrl = el('dc_map').value.trim();
     cfg.catalogTitle = el('dc_cat_title').value.trim() || 'Our Catalogue';
+    if (el('dc_location_text')) cfg.locationText = el('dc_location_text').value.trim();
+    cfg.coverTheme = cfg.coverTheme || 'navy';
+    cfg.coverPhoto = dcCover || '';
 
     /* rebuild the links map from the rows the owner actually filled in */
     var newLinks = {};
