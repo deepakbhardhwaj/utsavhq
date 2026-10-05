@@ -6687,6 +6687,76 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   var n = 0, t = setInterval(function () { window.syncOwnerOnly(); if (++n > 20) clearInterval(t); }, 800);
 })();
 </script>
+<!-- ══════════════════════════════════════════════════════════════════════════
+     ITEM FORM — visual refresh
+     All four function/category-wise item popups (quotation, invoice, purchase
+     order, purchase bill) share the class .item-popup-overlay, so this one
+     stylesheet restyles every one of them. Nothing here changes behaviour:
+     the same fields, the same buttons, the same handlers — only how it looks.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+/* ---------- the popup shell ---------- */
+.item-popup-overlay .modal-content { max-width:560px; border-radius:20px; overflow:hidden; background:#F4F7FB; padding:0; }
+.item-popup-overlay .modal-header { background:linear-gradient(135deg,#0E2D55,#1B4A85); padding:15px 18px; display:flex; align-items:center; gap:10px; border:none; }
+.item-popup-overlay .modal-header h3 { margin:0; font-size:15px; font-weight:900; color:#fff; letter-spacing:-.2px; }
+.item-popup-overlay .modal-close { background:rgba(255,255,255,.16); border:none; color:#fff; width:30px; height:30px; border-radius:50%; font-size:17px; line-height:1; cursor:pointer; flex-shrink:0; }
+.item-popup-overlay > .modal-content > div:not(.modal-header) { padding:16px; }
+
+/* ---------- the function banner at the top ---------- */
+.item-popup-overlay #qiv_scroll_list, .item-popup-overlay #iiv_scroll_list,
+.item-popup-overlay #poiv_scroll_list, .item-popup-overlay #pbiv_scroll_list {
+  max-height:340px !important; border:1px solid #E4EBF5 !important; border-radius:16px !important;
+  background:#fff !important; margin-bottom:14px !important; padding:10px !important;
+}
+
+/* the coloured function strip inside it */
+.item-popup-overlay #qiv_scroll_list > div:first-child,
+.item-popup-overlay #iiv_scroll_list > div:first-child,
+.item-popup-overlay #poiv_scroll_list > div:first-child,
+.item-popup-overlay #pbiv_scroll_list > div:first-child { border-radius:12px !important; font-size:13px !important; }
+
+/* category blocks */
+.item-popup-overlay #qiv_scroll_list > div, .item-popup-overlay #iiv_scroll_list > div,
+.item-popup-overlay #poiv_scroll_list > div, .item-popup-overlay #pbiv_scroll_list > div { margin-bottom:9px !important; }
+
+/* item rows read as cards */
+.item-popup-overlay #qiv_scroll_list div[style*="display:flex"],
+.item-popup-overlay #iiv_scroll_list div[style*="display:flex"],
+.item-popup-overlay #poiv_scroll_list div[style*="display:flex"],
+.item-popup-overlay #pbiv_scroll_list div[style*="display:flex"] { border-radius:12px !important; }
+
+/* ---------- inputs ---------- */
+.item-popup-overlay .form-label { font-size:10.5px; font-weight:800; color:#5A6B82; letter-spacing:.2px; margin-bottom:5px; }
+.item-popup-overlay .form-input, .item-popup-overlay .form-select {
+  padding:11px 13px; border:1.5px solid #E2E9F3; border-radius:12px; font-size:13.5px;
+  font-weight:600; background:#FAFCFF; color:#0B1220; width:100%; font-family:inherit;
+}
+.item-popup-overlay .form-input:focus, .item-popup-overlay .form-select:focus {
+  outline:none; border-color:#ED6F1F; background:#fff; box-shadow:0 0 0 4px rgba(237,111,31,.12);
+}
+.item-popup-overlay .form-row { display:flex; gap:11px; margin-bottom:12px; }
+.item-popup-overlay .form-row .form-group { flex:1; min-width:0; }
+.item-popup-overlay .form-group { margin-bottom:12px; }
+
+/* ---------- buttons ---------- */
+.item-popup-overlay .btn-main {
+  background:linear-gradient(135deg,#F2892F,#ED6F1F) !important; color:#0E2D55 !important;
+  border:none !important; border-radius:13px !important; padding:13px 16px !important;
+  font-size:13.5px !important; font-weight:900 !important; cursor:pointer;
+  box-shadow:0 8px 18px rgba(237,111,31,.28);
+}
+.item-popup-overlay .btn-main:active { transform:scale(.97); }
+
+/* ---------- the add-item strip at the bottom ---------- */
+.item-popup-overlay > .modal-content > div:last-child { background:#fff; border-top:1px solid #E9EFF7; }
+
+/* ---------- roomier on a phone ---------- */
+@media (max-width:639px) {
+  .item-popup-overlay .form-row { flex-direction:column; gap:0; }
+  .item-popup-overlay .modal-content { border-radius:18px; }
+}
+</style>
+
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    DIGITAL VISITING CARD — app side
