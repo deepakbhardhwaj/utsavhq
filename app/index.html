@@ -6757,6 +6757,61 @@ body:not(.on-home) #nexa-fab { display: none !important; }
 }
 </style>
 
+<!-- ══════════════════════════════════════════════════════════════════════════
+     ITEM FORM v2 — structural refresh
+     The four function/category-wise item popups share .item-popup-overlay.
+     This layer fixes the real problems: two competing primary buttons, a total
+     floating mid-air, a clipped category hint, boxy inputs and cramped
+     spacing. Markup and behaviour are untouched - only layout and styling.
+     ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+.item-popup-overlay .modal-content { max-width:560px; border-radius:22px; overflow:hidden; background:#F2F6FB; padding:0; }
+.item-popup-overlay .modal-header { background:linear-gradient(135deg,#0E2D55,#1B4A85); padding:16px 18px; display:flex; align-items:center; gap:10px; border:none; }
+.item-popup-overlay .modal-header h3 { margin:0; font-size:16px; font-weight:900; color:#fff; letter-spacing:-.2px; }
+.item-popup-overlay .modal-close { background:rgba(255,255,255,.18); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-size:18px; line-height:1; cursor:pointer; flex-shrink:0; }
+.item-popup-overlay > .modal-content > div:not(.modal-header) { padding:16px 16px 20px; }
+
+/* the list of items already added, as one clean card */
+.item-popup-overlay [id$="scroll_list"] { max-height:320px !important; border:1px solid #E2E9F3 !important; border-radius:18px !important; background:#fff !important; margin-bottom:16px !important; padding:0 !important; overflow:hidden !important; }
+.item-popup-overlay [id$="scroll_list"] > div:first-child { border-radius:0 !important; padding:13px 16px !important; font-size:14px !important; font-weight:900 !important; margin-bottom:0 !important; }
+.item-popup-overlay [id$="scroll_list"] > div { margin-bottom:0 !important; }
+.item-popup-overlay [id$="scroll_list"] > div > div[style*="border-left"] { border-left-width:4px !important; padding:10px 14px !important; border-bottom:1px solid #EEF2F8 !important; }
+.item-popup-overlay [id$="scroll_list"] table td { padding:9px 6px !important; }
+.item-popup-overlay [id$="scroll_list"] table tr:last-child td { padding:11px 8px !important; font-size:12px !important; }
+
+/* inputs: soft filled fields, not boxy outlines */
+.item-popup-overlay .form-label { font-size:10.5px; font-weight:800; color:#5A6B82; letter-spacing:.3px; margin-bottom:6px; display:block; }
+.item-popup-overlay .form-input, .item-popup-overlay .form-select { padding:13px 14px; border:1.5px solid #E2E9F3; border-radius:14px; font-size:14px; font-weight:600; background:#fff; color:#0B1220; width:100%; font-family:inherit; transition:border-color .15s, box-shadow .15s; }
+.item-popup-overlay .form-input:focus, .item-popup-overlay .form-select:focus { outline:none; border-color:#ED6F1F; box-shadow:0 0 0 4px rgba(237,111,31,.13); }
+.item-popup-overlay .form-input::placeholder { color:#A9B6C8; font-weight:500; font-size:13px; }
+.item-popup-overlay .form-row { display:flex; gap:12px; margin-bottom:14px; }
+.item-popup-overlay .form-row .form-group { flex:1; min-width:0; }
+.item-popup-overlay .form-group { margin-bottom:14px; }
+
+/* category chips: readable and tappable */
+.item-popup-overlay button[onclick*="category"] { border-radius:999px !important; padding:6px 13px !important; font-size:11px !important; font-weight:800 !important; margin:0 6px 6px 0 !important; transition:transform .12s; }
+.item-popup-overlay button[onclick*="category"]:active { transform:scale(.95); }
+
+/* the Add Item action */
+.item-popup-overlay .btn-main { background:linear-gradient(135deg,#F2892F,#ED6F1F) !important; color:#0E2D55 !important; border:none !important; border-radius:14px !important; padding:15px 20px !important; font-size:14px !important; font-weight:900 !important; cursor:pointer; box-shadow:0 10px 22px rgba(237,111,31,.30) !important; }
+.item-popup-overlay .btn-main:active { transform:scale(.97); }
+
+/* reference photos: a normal section, not a floating window */
+.item-popup-overlay [id$="photos_grid"] { gap:8px !important; }
+.item-popup-overlay [id$="photos_grid"] img { height:82px !important; border-radius:10px !important; }
+.item-popup-overlay label[style*="var(--success)"] { border-radius:999px !important; padding:8px 16px !important; font-size:11px !important; }
+
+/* the single primary action at the very bottom */
+.item-popup-overlay > .modal-content > div:last-child { background:#fff; border-top:1px solid #E9EFF7; padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px)); }
+.item-popup-overlay > .modal-content > div:last-child button { width:100%; border-radius:14px; padding:15px; font-size:14px; font-weight:900; background:linear-gradient(135deg,#0E2D55,#1B4A85) !important; color:#fff !important; border:none !important; box-shadow:0 10px 22px rgba(14,45,85,.25) !important; }
+
+@media (max-width:639px) {
+  .item-popup-overlay .form-row { flex-wrap:wrap; }
+  .item-popup-overlay .form-row .form-group { flex:1 1 45%; }
+  .item-popup-overlay .modal-content { border-radius:18px; }
+}
+</style>
+
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    DIGITAL VISITING CARD — app side
