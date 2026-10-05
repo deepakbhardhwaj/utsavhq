@@ -7008,33 +7008,8 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     host.innerHTML = COVER_THEMES.map(function (t) {
       return '<div class="dc-th' + (t.key === on && !dcCover ? ' on' : '') + '" style="background:' + t.css + '" title="' + t.key + '" onclick="dcPickTheme(\'' + t.key + '\')"></div>';
     }).join('');
-    /* live cover preview: the theme gradient, or the uploaded photo */
-    var cp = el('dc_cover_preview');
-    if (cp) {
-      var th = COVER_THEMES.filter(function (x) { return x.key === (cfg.coverTheme || 'navy'); })[0] || COVER_THEMES[0];
-      cp.style.background = dcCover ? '' : th.css;
-      cp.style.backgroundImage = dcCover ? 'url("' + dcCover + '")' : th.css;
-      if (dcCover) cp.classList.add('has-photo'); else cp.classList.remove('has-photo');
-      var nm = el('dc_cp_name');
-      if (nm) nm.textContent = (cfg.name || 'Your business name') + (cfg.owner ? '\n' + cfg.owner : '');
-      var cpi = el('dc_cp_initials');
-      if (cpi) cpi.textContent = (cfg.name || 'U').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase() || 'U';
-      var ct = el('dc_cover_thumb');
-      if (ct) ct.style.backgroundImage = dcCover ? 'url("' + dcCover + '")' : th.css;
-    }
-    var clr = el('dc_clear_cover');
-    if (clr) clr.style.display = dcCover ? '' : 'none';
-
-    /* the logo box: the picture, or the initials until one is uploaded */
-    var lp = el('dc_logo_prev'), li = el('dc_logo_initials');
-    if (lp && li) {
-      if (dcLogo) { lp.src = dcLogo; lp.style.display = 'block'; li.style.display = 'none'; }
-      else {
-        lp.removeAttribute('src'); lp.style.display = 'none';
-        li.textContent = (cfg.name || 'U').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase() || 'U';
-        li.style.display = 'flex';
-      }
-    }
+    /* the visible preview, thumb and logo box are all painted by
+       dcPaintPreview(), which owns the current markup */
   }
 
   window.dcPickTheme = function (key) {
