@@ -69,6 +69,7 @@ body::before {
 .plate img { max-height:54px; max-width:200px; object-fit:contain; display:block; }
 .initials { font-size:26px; font-weight:900; color:var(--navy); letter-spacing:-.5px; }
 .c-name { font-size:23px; font-weight:900; letter-spacing:-.5px; margin-top:12px; line-height:1.2; }
+.c-owner { font-size:12.5px; font-weight:800; color:#7A8AA0; margin-top:4px; letter-spacing:.1px; }
 .c-tag { font-size:13px; font-weight:600; color:var(--muted); margin-top:5px; line-height:1.45; }
 .chips { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:11px; }
 .chip { display:inline-flex; align-items:center; gap:4px; font-size:9.5px; font-weight:900; letter-spacing:.5px; text-transform:uppercase;
@@ -210,6 +211,7 @@ body::before {
     <div class="ident">
       <div class="plate" id="plate"></div>
       <div class="c-name" id="c_name"></div>
+      <div class="c-owner hidden" id="c_owner"></div>
       <div class="c-tag" id="c_tag"></div>
       <div class="chips" id="chips">
         <span class="chip chip-verified" id="c_verified">&#10003; Verified Business</span>
@@ -466,6 +468,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
 
     $('c_name').textContent = name;
+    /* the owner, right under the business name */
+    var owEl = $('c_owner');
+    if (owEl) {
+      if (d.owner) { owEl.textContent = d.owner; owEl.classList.remove('hidden'); }
+      else owEl.classList.add('hidden');
+    }
     if (tag) { $('c_tag').textContent = tag; } else { $('c_tag').style.display = 'none'; }
     if (d.verified === false) { hide($('c_verified')); }
     if (d.category) {
