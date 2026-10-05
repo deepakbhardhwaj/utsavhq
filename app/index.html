@@ -3469,12 +3469,13 @@
 .dc-sw input:checked + span { background:#25D366; }
 .dc-sw input:checked + span:before { transform:translateX(19px); }
 
-.dc-cat { display:flex; gap:11px; padding:12px; border:1px solid #E6ECF5; border-radius:15px; margin-bottom:10px; background:#FAFCFF; }
-.dc-cat .thumb { width:66px; height:50px; border-radius:12px; object-fit:cover; background:#E8EEF8; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:20px; border:1.5px dashed #D6E1F0; }
-.dc-cat .fields { flex:1; min-width:0; }
-.dc-cat .fields input { width:100%; padding:9px 11px; border:1.5px solid #E2E9F3; border-radius:11px; font-size:12px; font-weight:600; margin-bottom:7px; background:#fff; font-family:inherit; }
-.dc-cat .fields input:last-child { margin-bottom:0; }
-.dc-cat .del { background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:11px; width:32px; height:32px; font-size:15px; cursor:pointer; flex-shrink:0; align-self:flex-start; }
+.dc-cat { position:relative; display:flex; gap:13px; padding:13px; border:1px solid #E6ECF5; border-radius:16px; margin-bottom:11px; background:#FAFCFF; }
+.dc-cat .thumb { width:72px; height:72px; border-radius:14px; object-fit:cover; background:#E8EEF8; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:22px; border:1.5px dashed #D6E1F0; }
+.dc-cat .fields { flex:1; min-width:0; display:flex; flex-direction:column; gap:9px; padding-right:30px; }
+.dc-cat .fields input { width:100%; padding:11px 12px; border:1.5px solid #E2E9F3; border-radius:12px; font-size:12.5px; font-weight:600; background:#fff; font-family:inherit; }
+.dc-cat .fields input:focus { outline:none; border-color:#ED6F1F; box-shadow:0 0 0 3px rgba(237,111,31,.12); }
+.dc-cat .dc-del { position:absolute; top:11px; right:11px; background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:10px; width:26px; height:26px; font-size:15px; line-height:1; cursor:pointer; }
+@media (max-width:420px) { .dc-cat .thumb { width:56px; height:56px; } }
 
 #digitalCardModal .dc-foot { background:#fff; border-top:1px solid #E9EFF7; padding:13px 16px calc(13px + env(safe-area-inset-bottom,0px)); display:flex; gap:10px; flex-shrink:0; }
 #digitalCardModal .dc-foot .dc-btn { flex:1; padding:15px; font-size:14px; }
@@ -6496,19 +6497,38 @@ body:not(.on-home) #nexa-fab { display: none !important; }
 #companyPreviewModal .cpv-name { color:#0F172A; font-size:19px; font-weight:900; letter-spacing:-.3px; margin-top:10px; }
 #companyPreviewModal .cpv-owner { color:#64748B; font-size:12px; font-weight:700; margin-top:3px; }
 #companyPreviewModal .cpv-tag { display:inline-block; margin-top:9px; background:#EFF6FF; color:#1D4ED8; border:1px solid #DBEAFE; font-size:9.5px; font-weight:900; letter-spacing:.5px; text-transform:uppercase; padding:4px 11px; border-radius:20px; }
-#companyPreviewModal .cpv-actions { display:flex; gap:8px; padding:14px 16px 0; }
-#companyPreviewModal .cpv-act { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; border-radius:14px; text-decoration:none; font-size:10px; font-weight:800; border:1px solid #E7EDF5; background:#fff; color:#334155; cursor:pointer; transition:.2s; }
+#companyPreviewModal .cpv-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; padding:15px 16px 0; }
+#companyPreviewModal .cpv-act { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:12px 4px; border-radius:15px; text-decoration:none; font-size:10px; font-weight:800; border:1px solid #E7EDF5; background:#fff; color:#334155; cursor:pointer; transition:.2s; min-width:0; }
 #companyPreviewModal .cpv-act:hover { transform:translateY(-2px); box-shadow:0 8px 18px rgba(14,45,85,.12); }
 #companyPreviewModal .cpv-act span.i { font-size:17px; }
 #companyPreviewModal .cpv-body { padding:14px 16px; background:#F6F8FC; max-height:44vh; overflow-y:auto; }
-#companyPreviewModal .cpv-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
-#companyPreviewModal .cpv-tile { background:#fff; border:1px solid #E7EDF5; border-radius:14px; padding:10px 11px; min-width:0; display:flex; gap:9px; align-items:flex-start; }
+#companyPreviewModal .cpv-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#companyPreviewModal .cpv-tile { background:#fff; border:1px solid #E4EBF5; border-radius:14px; padding:11px 12px; min-width:0; display:flex; gap:10px; align-items:flex-start; }
 #companyPreviewModal .cpv-ico { width:26px; height:26px; border-radius:9px; background:#EFF6FF; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
 #companyPreviewModal .cpv-k { font-size:9px; font-weight:900; color:#94A3B8; text-transform:uppercase; letter-spacing:.5px; }
 #companyPreviewModal .cpv-v { font-size:12.5px; font-weight:800; color:#0F172A; margin-top:2px; word-break:break-word; }
 #companyPreviewModal .cpv-wide { grid-column:1 / -1; }
 #companyPreviewModal .cpv-sig { background:#fff; border:1px solid #E7EDF5; border-radius:14px; padding:10px 11px; margin-top:9px; }
-#companyPreviewModal .cp-dc-box.in-preview { margin:12px 0 0; }
+/* ── Digital Visiting Card block inside the preview ── */
+.cp-dc-box { margin:12px 0 0; background:#fff; border:1px solid #E7EDF5; border-radius:16px; padding:13px; }
+.cp-dc-head { display:flex; align-items:center; gap:11px; }
+.cp-dc-ico { width:38px; height:38px; border-radius:12px; background:#EEF4FE; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.cp-dc-tx { flex:1; min-width:0; }
+.cp-dc-t { font-size:13px; font-weight:900; color:#0B1220; }
+.cp-dc-s { font-size:11px; font-weight:700; color:#7A8AA0; margin-top:2px; line-height:1.4; }
+.cp-dc-sw { position:relative; display:inline-block; width:46px; height:26px; flex-shrink:0; cursor:pointer; }
+.cp-dc-sw input { opacity:0; width:0; height:0; position:absolute; }
+.cp-dc-sl { position:absolute; inset:0; background:#CBD5E1; border-radius:26px; transition:.25s; }
+.cp-dc-sl:before { content:''; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.25s; box-shadow:0 2px 5px rgba(0,0,0,.2); }
+.cp-dc-sw input:checked + .cp-dc-sl { background:#25D366; }
+.cp-dc-sw input:checked + .cp-dc-sl:before { transform:translateX(20px); }
+.cp-dc-link { margin-top:11px; background:#F6F9FD; border:1px solid #E4EBF5; border-radius:12px; padding:10px 12px; }
+.cp-dc-link .u { font-size:11.5px; font-weight:800; color:#1D4ED8; word-break:break-all; line-height:1.45; }
+.cp-dc-link .u.empty { color:#A9B6C8; font-weight:600; }
+.cp-dc-copy { margin-top:8px; width:100%; background:#0E2D55; color:#fff; border:none; border-radius:11px; padding:10px; font-size:12px; font-weight:900; cursor:pointer; }
+.cp-dc-manage { width:100%; margin-top:9px; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#0E2D55; border:none; border-radius:12px; padding:12px; font-size:12.5px; font-weight:900; cursor:pointer; box-shadow:0 8px 18px rgba(237,111,31,.26); }
+#companyPreviewModal .cpv-foot .cpv-edit, #companyPreviewModal .cpv-foot .cpv-close { padding:14px; font-size:13px; border-radius:14px; }
+#companyPreviewModal .cpv-foot .cpv-close { flex:0 0 92px; }
 #companyPreviewModal .cpv-sig img { max-height:50px; display:block; margin-top:6px; }
 #companyPreviewModal .cpv-foot { display:flex; gap:10px; align-items:stretch; padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background:#fff; border-top:1px solid #E7EDF5; }
 #companyPreviewModal .cpv-edit { flex:1; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#0E2D55; border:none; border-radius:14px; padding:13px; font-size:13.5px; font-weight:900; cursor:pointer; }
@@ -6547,11 +6567,11 @@ body:not(.on-home) #nexa-fab { display: none !important; }
                     </div>
                     <label class="cp-dc-sw"><input type="checkbox" id="cp_dc_toggle" onchange="dcToggleChanged(this.checked)"><span class="cp-dc-sl"></span></label>
                 </div>
-                <div class="cp-dc-row">
-                    <input type="text" id="cp_dc_link" readonly placeholder="Turn the card on to get your link">
-                    <button type="button" onclick="dcCopyLink()">Copy</button>
+                <div class="cp-dc-link">
+                    <div class="u empty" id="cp_dc_link">Turn the card on to get your link</div>
+                    <button type="button" class="cp-dc-copy" onclick="dcCopyLink()">&#128203; Copy link</button>
                 </div>
-                <button type="button" class="cp-dc-manage" onclick="openDigitalCard()">&#9881;&#65039; Manage card - username, links &amp; catalogue</button>
+                <button type="button" class="cp-dc-manage" onclick="openDigitalCard()">&#9881;&#65039; Manage card</button>
             </div>
         </div>
         <div class="cpv-foot">
@@ -6795,7 +6815,10 @@ body:not(.on-home) #nexa-fab { display: none !important; }
       ? 'Set a username to get your shareable link'
       : (p.enabled ? 'Live at utsavhq.com/card/?u=' + p.username : 'Off — turn it on to publish your card');
     var l = el('cp_dc_link');
-    if (l) l.value = p.username ? ('https://utsavhq.com/card/?u=' + p.username) : '';
+    if (l) {
+      if (p.username) { l.textContent = 'https://utsavhq.com/card/?u=' + p.username; l.classList.remove('empty'); }
+      else { l.textContent = 'Turn the card on to get your link'; l.classList.add('empty'); }
+    }
   }
 
   /* Publish the on/off state to the PUBLIC card document.
