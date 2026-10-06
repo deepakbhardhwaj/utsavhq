@@ -751,3 +751,63 @@ function wtCloseLevel(k) {
   else if (k === "poiv") closePOItemViewPanel();
   else closePBItemViewPanel();
 }
+
+/* ============================================================
+   MINI ITEM FORM . "Add More" button (appended)
+
+   Owner request: the mini item form must show TWO buttons -
+     "Add More" : saves the current item, clears the fields and
+                  KEEPS the mini form open with focus back on
+                  the item name, so the next item can be typed
+                  straight away (wtSaveItem(k, true)).
+     "Save"     : saves the item and returns to the list form
+                  (wtSaveItem(k, false)) - unchanged.
+
+   Status on master: the effective wtMiniFormHtml (the last
+   appended pass) ships a SINGLE "Save" button; the "Add More"
+   button is absent, so it is re-asserted here. This override
+   reproduces the current four-row mini-form layout exactly and
+   only re-adds the button, wired to the existing wtSaveItem
+   "save and continue" mode (second argument already exists).
+
+   Applies to all four popups (quotation qiv, invoice iiv,
+   purchase order poiv, purchase bill pbiv) because they share
+   the wt* helpers. The stored data field stays named
+   "category"; only the UI wording says "Work Type".
+   No totals / print / save / report logic is changed here.
+   Idempotent: re-running simply re-defines the same markup.
+   ============================================================ */
+wtMiniFormHtml = function (k, t) {
+  var cfg = wtCfg(k), st = wtUIState[k];
+  var it = (st.editIndex !== null && cfg.items[st.editIndex]) ? cfg.items[st.editIndex] : null;
+  var name = it ? it.name : "";
+  var qty = it ? it.qty : 1;
+  var rate = it ? it.rate : 0;
+  var unit = it ? (it.unit || "Pcs") : "Pcs";
+  var remark = it ? (it.desc || "") : "";
+  var h = "";
+  h += '<div class="wt-mini-form" style="border:1px solid #E4EBF5; border-radius:16px; background:#fff; padding:14px; margin-bottom:14px;">';
+  h += '<div style="margin-bottom:12px; font-size:13px; font-weight:900; color:#0E2D55;">' + (st.editIndex !== null ? 'Edit Item' : 'Add Item') + ' &middot; <span style="color:#ED6F1F;">' + sanitize(st.openType) + '</span></div>';
+  h += '<input type="hidden" id="' + k + '_category" value="' + wtEscAttr(st.openType) + '">';
+  /* Row 1: item name, full width */
+  h += '<div class="form-group"><label class="form-label">Item Name</label><input type="text" id="' + k + '_name" class="form-input" value="' + wtEscAttr(name) + '" placeholder="Enter item name"></div>';
+  /* Row 2: quantity + unit side by side */
+  h += '<div class="form-row wt-mini-row">';
+  h += '<div class="form-group"><label class="form-label">Quantity</label><input type="number" id="' + k + '_qty" class="form-input" value="' + qty + '" oninput="wtUpdateTotal(' + wtJsStr(k) + ')"></div>';
+  h += '<div class="form-group"><label class="form-label">Unit</label><select id="' + k + '_unit" class="form-select" onchange="handleUnitChange(this)">' + getUnitOptions(unit) + '</select></div>';
+  h += '</div>';
+  /* Row 3: rate + item gross total side by side */
+  h += '<div class="form-row wt-mini-row">';
+  h += '<div class="form-group"><label class="form-label">Rate</label><input type="number" id="' + k + '_rate" class="form-input" value="' + rate + '" oninput="wtUpdateTotal(' + wtJsStr(k) + ')"></div>';
+  h += '<div class="form-group"><label class="form-label">Item Gross Total</label><div id="' + k + '_gross" class="wt-gross-box">&#8377;' + ((qty * rate) || 0).toLocaleString("en-IN") + '</div></div>';
+  h += '</div>';
+  /* Row 4: remark */
+  h += '<div class="form-group"><label class="form-label">Remark</label><input type="text" id="' + k + '_desc" class="form-input" value="' + wtEscAttr(remark) + '" placeholder="Remark / specification (optional)"></div>';
+  /* two buttons: "Add More" (save and continue) and "Save" (save and return) */
+  h += '<div style="display:flex; gap:10px; margin-top:4px;">';
+  h += '<button type="button" onclick="wtSaveItem(' + wtJsStr(k) + ',true)" style="flex:1; background:#fff; color:#0E2D55; border:1.5px solid #0E2D55; border-radius:13px; padding:13px 16px; font-size:13px; font-weight:900; cursor:pointer;">Add More</button>';
+  h += '<button type="button" onclick="wtSaveItem(' + wtJsStr(k) + ',false)" style="flex:1; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#fff; border:none; border-radius:13px; padding:13px 16px; font-size:13px; font-weight:900; cursor:pointer;">Save</button>';
+  h += '</div>';
+  h += '</div>';
+  return h;
+};
