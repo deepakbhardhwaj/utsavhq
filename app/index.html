@@ -7887,6 +7887,27 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 }
 </style>
+<style>
+/* ============================================================================
+   UTSAVhq - desktop nav display FIX (scoped, >=1024px only).
+   ----------------------------------------------------------------------------
+   ROOT CAUSE of "features open nahi ho rahe": the Phase-1 shell styles the
+   dashboard with `#home.ud-dash { display: grid }`.  An id+class selector
+   (specificity 1-1-0) beats the app's own `.section { display: none }`
+   (0-1-0), so once the shell added `.ud-dash` to #home the Home dashboard
+   could NEVER be hidden - every other module still became `.active-section`
+   but rendered *behind / below* the dashboard, so clicking a rail item looked
+   like it did nothing.
+
+   Fix: the grid layout applies only while Home is the ACTIVE tab; when Home
+   is not active the app's normal `.section { display: none }` wins again.
+   Below 1024px this block is inert, so mobile is untouched.
+   ============================================================================ */
+@media (min-width: 1024px) {
+  #home.ud-dash { display: none; }
+  #home.ud-dash.active-section { display: grid !important; }
+}
+</style>
 </body>
 
 </html>
