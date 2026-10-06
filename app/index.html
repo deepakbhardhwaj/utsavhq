@@ -6828,6 +6828,27 @@ body:not(.on-home) #nexa-fab { display: none !important; }
 }
 </style>
 
+<!-- ==========================================================================
+     WORK TYPE MINI FORM - compact layout
+     The mini item form now uses two side-by-side rows (Quantity+Unit and
+     Rate+Item Gross Total). The generic .form-row is stacked on small
+     screens by the earlier stylesheets, so these rules force the two rows
+     to stay on one line on a phone as well. Nothing here changes behaviour.
+     ========================================================================== -->
+<style>
+/* the two compact rows: always side by side, even on a phone */
+.item-popup-overlay .form-row.wt-mini-row { flex-direction:row !important; flex-wrap:nowrap !important; gap:12px !important; margin-bottom:14px !important; }
+.item-popup-overlay .form-row.wt-mini-row > .form-group { flex:1 1 0 !important; min-width:0 !important; margin-bottom:0 !important; }
+
+/* the read-only Item Gross Total sits level with the Rate field */
+.item-popup-overlay .wt-gross-box { display:flex; align-items:center; justify-content:flex-end; width:100%; box-sizing:border-box; padding:13px 14px; border:1.5px solid #E2E9F3; border-radius:14px; font-size:15px; font-weight:900; color:#0E2D55; background:#F8FAFF; min-height:47px; }
+
+/* the work-type dropdown keeps the app's field look */
+.item-popup-overlay #qiv_wt_select, .item-popup-overlay #iiv_wt_select,
+.item-popup-overlay #poiv_wt_select, .item-popup-overlay #pbiv_wt_select { font-size:13px; font-weight:700; }
+</style>
+
+
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    DIGITAL VISITING CARD — app side
