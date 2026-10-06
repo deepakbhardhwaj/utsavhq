@@ -7450,121 +7450,79 @@ body:not(.on-home) #nexa-fab { display: none !important; }
 </script>
 <style id="desktop-phase1-css">
 /* ============================================================================
-   UTSAVhq - Desktop TOP navigation (wide screens >= 1024px ONLY).
-   Replaces the rejected LEFT-RAIL shell. The app's existing nav buttons
-   (#btn-crm / #btn-events / #btn-home / #btn-tasks / #btn-erp, class .nav-btn)
-   are shown as a row of PLAIN TEXT tabs inside the top bar (.header) - NO icons.
-   The off-canvas sidebar (mySidebar / openNav() / closeNav()) keeps working on
-   every screen: the hamburger (.menu-btn) stays visible and clickable here.
-   Everything is scoped to >=1024px, so the mobile layout (<1024px) is unchanged.
-   Palette: navy #0E2D55, orange #ED6F1F / #F2892F, white cards.
+   UTSAVhq - Desktop shell + dashboard, Phase 1  (wide screens >= 1024px ONLY)
+   ----------------------------------------------------------------------------
+   A SaasAble-style admin shell written in plain CSS (no framework, no build).
+   Structure: fixed LEFT SIDEBAR (grouped modules with sub-items, collapsible to
+   an icon-only rail), a top HEADER (global search, financial-year selector,
+   notifications, profile dropdown), a KPI card row + card grid DASHBOARD and a
+   data-table treatment for the list views.
+
+   Everything visible here is scoped to `@media (min-width: 1024px)` (plus the
+   body classes `ud-has-rail` / `ud-rail-mini`, which are themselves only acted
+   on inside that media query).  Below 1024px this block does nothing, so the
+   mobile bottom tab bar, cards and hamburger behave exactly as before.
+
+   Palette: the app's own navy #0E2D55 and orange #ED6F1F / #F2892F.
+   WhatsApp stays green #25D366.  No purple/indigo anywhere.
    ============================================================================ */
 
-/* Controls the previous shell could (re)create are never shown. */
+/* ---- design tokens (used only by the rules below) ------------------------ */
+:root {
+  --ud-navy: #0E2D55;
+  --ud-navy-2: #1B4A85;
+  --ud-orange: #ED6F1F;
+  --ud-orange-2: #F2892F;
+  --ud-orange-soft: #FEF3E7;
+  --ud-orange-soft2: #FFF3EA;
+  --ud-wa: #25D366;
+  --ud-surface: #FFFFFF;
+  --ud-bg: #F4F7FB;
+  --ud-border: #E6EBF2;
+  --ud-border-2: #EDF1F6;
+  --ud-text: #0F172A;
+  --ud-muted: #64748B;
+  --ud-muted-2: #94A3B8;
+  --ud-rail-w: 254px;
+  --ud-rail-mini: 78px;
+  --ud-card-radius: 16px;
+  --ud-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --ud-hover: #F7F9FC;
+}
+
+/* The old shell's controls are never part of the left-rail design. */
 .rail-collapse-btn,
 .desk-density-btn,
 .topbar-search { display: none !important; }
 
+/* The rail element itself only exists on wide screens. */
+.ud-rail { display: none; }
+
+/* Every element the desktop shell injects is hidden by default, so that on
+   phones (< 1024px) they can never show up as unstyled markup.  Each one is
+   re-enabled inside the media query below. */
+.ud-hdr-search,
+.ud-thead,
+.ud-kpi-row,
+.ud-profile-menu,
+.ud-prof-caret { display: none; }
+
 @media (min-width: 1024px) {
 
-  /* -------------------------------------------------- 1. THE TOP BAR ------ */
-  /* The existing .header becomes one full-width sticky top bar holding the
-     hamburger, the brand, the text nav tabs and the profile/notification
-     cluster. The brand + tabs are moved here from #master-nav-bar by JS. */
-  .header {
-    position: sticky;
-    top: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-    gap: 6px;
-    width: 100%;
-    height: 60px;
-    margin-left: 0;
-    padding: 0 18px !important;          /* overrides the inline padding */
-    box-sizing: border-box;
-    background: #FFFFFF !important;
-    border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 1px 3px rgba(15,23,42,.06);
-    z-index: 1000;
-  }
+  /* ================================================================
+     1. NEUTRALISE THE REJECTED TOP-NAV SHELL
+     ================================================================ */
 
-  /* the hamburger must keep working on desktop - never hide it */
-  .header .header-left { display: flex; align-items: center; gap: 12px; }
-  .header .menu-btn { display: inline-flex; color: #0E2D55; }
+  /* The previous shell moves the app's five .nav-btn buttons into the
+     header and renders them as text tabs.  The left rail supersedes them,
+     so hide those tabs (they are re-shown on mobile by the shell's own
+     unmount, untouched here). */
+  .header .nav-btn { display: none !important; }
 
-  /* push the profile / notification cluster to the far right */
-  .header > *:last-child { margin-left: auto; }
-
-  /* brand - the SAME top_logo_img / top_company_text nodes, moved here by JS */
-  .header .nav-brand {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
-    padding: 0;
-    margin: 0 12px 0 0;
-    border: none;
-    min-width: 0;
-  }
-  .header .nav-brand img { max-height: 32px; max-width: 150px; object-fit: contain; display: block; }
-  .header .nav-brand span {
-    font-size: 16px;
-    font-weight: 900;
-    color: #0E2D55;
-    letter-spacing: -.3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 180px;
-  }
-
-  /* ------------------------------------- 2. TEXT NAV TABS - NO ICONS ------ */
-  .header .nav-btn {
-    display: inline-flex;
-    flex: 0 0 auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    height: 36px;
-    width: auto;
-    padding: 0 12px;
-    border: none;
-    border-radius: 9px;
-    background: transparent;
-    color: #0E2D55;
-    font: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0;
-    cursor: pointer;
-    white-space: nowrap;
-    box-shadow: inset 0 -2px 0 transparent;   /* reserved for the accent */
-    transition: color .15s ease, background .15s ease, box-shadow .15s ease;
-  }
-  .header .nav-btn svg { display: none !important; }   /* NO icons on desktop */
-  .header .nav-btn span {
-    position: static;
-    opacity: 1 !important;
-    transform: none !important;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0;
-  }
-  .header .nav-btn::before { display: none !important; }
-  .header .nav-btn:hover { background: #F1F5F9; color: #0E2D55; }
-  .header .nav-btn.active-btn {
-    color: #ED6F1F;
-    background: #FEF3E7;
-    box-shadow: inset 0 -2px 0 #ED6F1F;      /* orange accent on the active tab */
-  }
-
-  /* ------------------------- 3. THE BOTTOM TAB BAR IS EMPTY ON DESKTOP ----- */
-  /* Its buttons were moved into the top bar by JS. The app forces this element
-     visible on desktop (showNavAndFabs), so make the empty shell invisible
-     instead of relying on display. */
+  /* The bottom tab bar is mobile chrome.  showNavAndFabs() forces it to
+     `display:flex !important` inline on desktop, so it cannot be switched
+     off with `display`; collapse it to zero size instead. */
+  #master-nav-bar,
   .nav-bar#master-nav-bar {
     width: 0 !important;
     max-width: 0 !important;
@@ -7581,23 +7539,352 @@ body:not(.on-home) #nexa-fab { display: none !important; }
     pointer-events: none !important;
   }
 
-  /* ------------------------------------------- 4. CONTENT / LAYOUT -------- */
-  #main-app { padding-left: 0 !important; }        /* no left rail any more */
+  /* The off-canvas drawer keeps working (hamburger -> openNav); just make
+     sure it opens flush against the left edge. */
+  .sidebar { left: 0 !important; }
+
+  /* Nexa launcher lives bottom-right, clear of the rail. */
+  #nexa-fab { left: auto !important; right: 24px !important; bottom: 24px !important; }
+
+  /* ================================================================
+     2. LAYOUT OFFSET FOR THE FIXED RAIL
+     ================================================================ */
+  body.ud-has-rail #main-app { padding-left: var(--ud-rail-w); }
+  body.ud-has-rail.ud-rail-mini #main-app { padding-left: var(--ud-rail-mini); }
+
   .content {
     margin-left: auto;
     margin-right: auto;
-    padding: 24px 32px 40px;
+    padding: 24px 32px 48px;
     box-sizing: border-box;
   }
   #reports-hub.active-section { height: calc(100vh - 60px); }
 
-  /* the off-canvas sidebar sits flush left again (the old rail pushed it to
-     left:220px, which is why the hamburger appeared broken) */
-  .sidebar { left: 0; }
-  .modal-overlay { padding-left: 0; }
+  /* ================================================================
+     3. THE LEFT SIDEBAR
+     ================================================================ */
+  .ud-rail {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: var(--ud-rail-w);
+    box-sizing: border-box;
+    background: var(--ud-surface);
+    border-right: 1px solid var(--ud-border);
+    z-index: 1100;
+    transition: width 0.2s ease;
+    overflow: hidden;
+  }
+  body.ud-rail-mini .ud-rail { width: var(--ud-rail-mini); }
 
-  /* keep the Nexa launcher at the bottom-right, clear of content */
-  #nexa-fab { left: auto !important; right: 24px; }
+  /* ---- brand block (top) ---- */
+  .ud-rail-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 16px 14px;
+    min-height: 68px;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--ud-border);
+  }
+  .ud-rail .ud-brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+  /* the app's own .nav-brand node is moved in here; force it visible */
+  .ud-rail .nav-brand { display: flex !important; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+  .ud-rail .nav-brand img { max-height: 30px; max-width: 132px; object-fit: contain; display: block; }
+  .ud-rail .nav-brand span {
+    font-size: 16px; font-weight: 900; color: var(--ud-navy);
+    letter-spacing: -0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ud-rail-toggle {
+    flex: none; width: 34px; height: 34px; border-radius: 9px;
+    border: 1px solid var(--ud-border); background: #fff; color: var(--ud-navy);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .ud-rail-toggle:hover { background: var(--ud-orange-soft); border-color: #F6D3B4; color: var(--ud-orange); }
+  .ud-rail-toggle svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* ---- scrolling nav area ---- */
+  .ud-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 10px 16px; }
+  .ud-nav::-webkit-scrollbar { width: 8px; }
+  .ud-nav::-webkit-scrollbar-thumb { background: #DCE3EC; border-radius: 8px; border: 2px solid #fff; }
+
+  .ud-group { margin-bottom: 2px; }
+  .ud-group + .ud-group { border-top: 1px solid var(--ud-border-2); padding-top: 8px; margin-top: 8px; }
+
+  .ud-caption {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+    color: var(--ud-muted-2); padding: 8px 12px 6px;
+  }
+
+  /* ---- a nav row (group parent or single item) ---- */
+  .ud-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 10px; margin: 2px 0; border: none; background: transparent;
+    border-radius: 9px; cursor: pointer; text-align: left; font-family: inherit;
+    color: var(--ud-text); font-size: 13.5px; font-weight: 600;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .ud-item:hover { background: var(--ud-hover); }
+  .ud-item .ud-ico { flex: none; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: var(--ud-navy); }
+  .ud-item .ud-ico svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .ud-item .ud-lbl { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ud-item .ud-caret { flex: none; width: 16px; height: 16px; color: var(--ud-muted-2); transition: transform 0.18s ease; }
+  .ud-item .ud-caret svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .ud-item.open .ud-caret { transform: rotate(90deg); }
+
+  /* active (current module) */
+  .ud-item.ud-active,
+  .ud-item.ud-active:hover {
+    background: var(--ud-orange-soft);
+    color: var(--ud-orange);
+    box-shadow: inset 3px 0 0 var(--ud-orange);
+  }
+  .ud-item.ud-active .ud-ico { color: var(--ud-orange); }
+  .ud-item.ud-active .ud-lbl { font-weight: 800; }
+
+  /* ---- sub-items ---- */
+  .ud-sub { display: none; margin: 0 0 6px 0; padding-left: 22px; position: relative; }
+  .ud-sub.open { display: block; }
+  .ud-sub::before {
+    content: ''; position: absolute; left: 20px; top: 2px; bottom: 2px;
+    width: 1px; background: var(--ud-border);
+  }
+  .ud-subitem {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; margin: 1px 0; border-radius: 7px; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; color: var(--ud-muted); text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .ud-subitem:hover { background: var(--ud-hover); color: var(--ud-navy); }
+  .ud-subitem.ud-active { color: var(--ud-orange); background: var(--ud-orange-soft2); font-weight: 800; }
+  .ud-subitem .ud-dot { flex: none; width: 5px; height: 5px; border-radius: 50%; background: #CBD5E1; }
+  .ud-subitem.ud-active .ud-dot { background: var(--ud-orange); }
+
+  /* ---- icon-only (mini) rail ---- */
+  body.ud-rail-mini .ud-rail .ud-brand span,
+  body.ud-rail-mini .ud-caption,
+  body.ud-rail-mini .ud-item .ud-lbl,
+  body.ud-rail-mini .ud-item .ud-caret,
+  body.ud-rail-mini .ud-sub,
+  body.ud-rail-mini .ud-user-tx { display: none !important; }
+  body.ud-rail-mini .ud-item { justify-content: center; padding: 11px 0; }
+  body.ud-rail-mini .ud-item.ud-active { box-shadow: inset 3px 0 0 var(--ud-orange); }
+  body.ud-rail-mini .ud-rail-head { justify-content: center; padding: 16px 8px 14px; }
+  body.ud-rail-mini .ud-rail .nav-brand img { max-width: 40px; }
+  body.ud-rail-mini .ud-group + .ud-group { margin-top: 6px; padding-top: 6px; }
+  body.ud-rail-mini .ud-user { justify-content: center; }
+
+  /* ---- user block (bottom) ---- */
+  .ud-rail-foot { border-top: 1px solid var(--ud-border); padding: 12px 10px; }
+  .ud-user {
+    display: flex; align-items: center; gap: 10px; padding: 8px 8px; border-radius: 10px;
+    cursor: pointer; transition: background 0.15s ease;
+  }
+  .ud-user:hover { background: var(--ud-hover); }
+  .ud-user-av {
+    flex: none; width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--ud-navy), var(--ud-navy-2));
+    color: #fff; font-weight: 900; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(14, 45, 85, 0.25);
+  }
+  .ud-user-tx { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+  .ud-user-name { font-size: 13px; font-weight: 800; color: var(--ud-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ud-user-role { font-size: 11px; font-weight: 600; color: var(--ud-muted-2); }
+
+  /* ================================================================
+     4. HEADER (search / FY / notifications / profile dropdown)
+     ================================================================ */
+  .header {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    padding: 0 24px !important;
+    height: 64px !important;
+    min-height: 64px !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-bottom: 1px solid var(--ud-border) !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  }
+  .header .header-left { display: flex; align-items: center; gap: 10px; }
+  .header .menu-btn { display: inline-flex !important; color: var(--ud-navy); }
+
+  /* the search box grows; the FY/notif/profile cluster is pushed right */
+  .ud-hdr-search {
+    display: block;
+    flex: 1 1 auto; max-width: 520px; position: relative; margin-left: 8px;
+  }
+  .ud-hdr-search svg {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px; stroke: var(--ud-muted-2); fill: none; stroke-width: 2;
+  }
+  .ud-hdr-search input {
+    width: 100%; box-sizing: border-box; height: 40px;
+    padding: 0 14px 0 36px; border-radius: 10px;
+    border: 1px solid var(--ud-border); background: #F4F7FB;
+    font-size: 13px; font-weight: 500; color: var(--ud-text); outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .ud-hdr-search input::placeholder { color: var(--ud-muted-2); }
+  .ud-hdr-search input:focus {
+    background: #fff; border-color: var(--ud-orange);
+    box-shadow: 0 0 0 3px rgba(237, 111, 31, 0.14);
+  }
+  .header > div:last-child { margin-left: auto; }
+
+  /* profile dropdown */
+  .header .user-profile {
+    position: relative; display: flex !important; align-items: center; gap: 6px;
+    background: #F4F7FB !important; border: 1px solid var(--ud-border) !important;
+    border-radius: 10px !important; padding: 6px 10px !important; cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .header .user-profile:hover { background: var(--ud-orange-soft) !important; border-color: #F6D3B4 !important; }
+  .header .user-profile .ud-prof-caret { display: flex; width: 14px; height: 14px; color: var(--ud-muted-2); }
+  .header .user-profile .ud-prof-caret svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .header .user-name { font-size: 12.5px !important; color: var(--ud-navy) !important; font-weight: 800; }
+
+  .ud-profile-menu {
+    display: none; position: absolute; top: calc(100% + 8px); right: 0;
+    min-width: 218px; background: #fff; border: 1px solid var(--ud-border);
+    border-radius: 12px; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+    padding: 6px; z-index: 1300;
+  }
+  .ud-profile-menu.show { display: block; }
+  .ud-profile-menu .ud-pm-head {
+    padding: 10px 12px 8px; border-bottom: 1px solid var(--ud-border-2); margin-bottom: 6px;
+  }
+  .ud-profile-menu .ud-pm-head b { display: block; font-size: 13px; color: var(--ud-text); }
+  .ud-profile-menu .ud-pm-head span { font-size: 11px; color: var(--ud-muted-2); }
+  .ud-profile-menu button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 12px; border: none; background: transparent; border-radius: 8px;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ud-text);
+    cursor: pointer; text-align: left;
+  }
+  .ud-profile-menu button:hover { background: var(--ud-hover); color: var(--ud-navy); }
+  .ud-profile-menu button.ud-danger:hover { background: #FEF2F2; color: #DC2626; }
+  .ud-profile-menu .ud-pm-sep { height: 1px; background: var(--ud-border-2); margin: 6px 4px; }
+
+  /* ================================================================
+     5. DASHBOARD (KPI row + card grid)
+     ================================================================ */
+  #home.ud-dash {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  #home.ud-dash > * { margin-bottom: 0 !important; }
+  .ud-dash-title { grid-column: 1 / -1; }
+
+  .ud-kpi-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .ud-kpi {
+    background: var(--ud-surface); border: 1px solid var(--ud-border);
+    border-radius: var(--ud-card-radius); box-shadow: var(--ud-card-shadow);
+    padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  }
+  .ud-kpi-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ud-kpi-label { font-size: 12.5px; font-weight: 700; color: var(--ud-muted); }
+  .ud-kpi-badge {
+    font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 999px;
+    background: var(--ud-orange-soft); color: var(--ud-orange);
+  }
+  .ud-kpi-badge.good { background: #ECFDF5; color: #059669; }
+  .ud-kpi-badge.bad { background: #FEF2F2; color: #DC2626; }
+  .ud-kpi-value { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: var(--ud-text); line-height: 1.1; }
+  .ud-kpi-value.navy { color: var(--ud-navy); }
+  .ud-kpi-value.orange { color: var(--ud-orange); }
+  .ud-kpi-value.green { color: #059669; }
+  .ud-kpi-value.red { color: #DC2626; }
+  .ud-kpi-foot { font-size: 11px; font-weight: 600; color: var(--ud-muted-2); }
+  .ud-kpi-ico {
+    width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    background: var(--ud-orange-soft2); color: var(--ud-orange);
+  }
+  .ud-kpi-ico svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.9; }
+
+  .ud-dash-perf { grid-column: span 7; }
+  .ud-dash-prem { grid-column: span 5; }
+  .ud-dash-leads { grid-column: span 7; }
+  .ud-dash-cal { grid-column: span 5; }
+
+  /* the dark "Business Performance" tile reads as a SaasAble card */
+  .ud-dash-perf { border-radius: var(--ud-card-radius) !important; }
+  /* cards keep the SaasAble surface look */
+  .ud-dash-prem > div, .ud-dash-leads, .ud-dash-cal { border-radius: var(--ud-card-radius) !important; }
+  .ud-dash-prem { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: start; }
+
+  /* ================================================================
+     6. DATA TABLES
+     ================================================================ */
+  .ud-table {
+    background: var(--ud-surface);
+    border: 1px solid var(--ud-border);
+    border-radius: var(--ud-card-radius);
+    box-shadow: var(--ud-card-shadow);
+    overflow: hidden;
+  }
+  .ud-thead {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 16px; background: #F7F9FC; border-bottom: 1px solid var(--ud-border);
+    position: sticky; top: 0; z-index: 2;
+  }
+  .ud-th {
+    font-size: 10.5px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--ud-muted); display: flex; align-items: center; gap: 5px;
+  }
+  .ud-th:first-child { flex: 1 1 auto; min-width: 0; }
+  .ud-th:not(:first-child) { flex: none; width: 110px; justify-content: flex-end; }
+  .ud-th .ud-sort { width: 12px; height: 12px; color: #C3CCD8; }
+  .ud-th .ud-sort svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .ud-th.sortable { cursor: pointer; }
+  .ud-th.sortable:hover { color: var(--ud-orange); }
+  .ud-th.sortable:hover .ud-sort { color: var(--ud-orange); }
+
+  /* rows: give every direct child a table-row feel */
+  .ud-table > div:not(.ud-thead),
+  .ud-table > .ud-row {
+    border-bottom: 1px solid var(--ud-border-2);
+    transition: background 0.12s ease;
+  }
+  .ud-table > div:not(.ud-thead):hover,
+  .ud-table > .ud-row:hover { background: var(--ud-hover) !important; }
+  .ud-table > div:last-child { border-bottom: none; }
+
+  /* filter / search bar above a list */
+  .ud-filterbar {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .ud-filterbar .search-container { flex: 1 1 320px; margin: 0 !important; max-width: 520px; }
+  .ud-filterbar .search-input {
+    border-radius: 10px !important; background: #fff !important;
+    border: 1px solid var(--ud-border) !important;
+  }
+  .ud-filter-chip {
+    display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px;
+    border-radius: 10px; border: 1px solid var(--ud-border); background: #fff;
+    font-size: 12.5px; font-weight: 700; color: var(--ud-navy); cursor: pointer;
+  }
+  .ud-filter-chip:hover { border-color: #F6D3B4; background: var(--ud-orange-soft); color: var(--ud-orange); }
+  .ud-filter-chip svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* segmented tab look for the app's existing pill filters */
+  .ud-seg { display: inline-flex; border-radius: 10px; overflow: hidden; border: 1px solid var(--ud-border); }
+  .ud-seg > * { border-radius: 0 !important; border: none !important; border-right: 1px solid var(--ud-border) !important; }
+  .ud-seg > *:last-child { border-right: none !important; }
+
+  /* ================================================================
+     7. MISC DESKTOP POLISH
+     ================================================================ */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 }
 </style>
 </body>
