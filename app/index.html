@@ -8007,6 +8007,119 @@ body:not(.on-home) #nexa-fab { display: none !important; }
 }
 </style>
 
+<style id="desktop-batch2-css">
+/* ============================================================================
+   UTSAVhq - Desktop batch 2 (wide screens >= 1024px ONLY).
+   ----------------------------------------------------------------------------
+   Companion to js/app.js (appended at EOF).  It styles only what that script
+   builds / reorders and every rule is scoped to `@media (min-width: 1024px)`
+   except the two base rules that keep the new elements hidden on phones.
+   Below 1024px this block does nothing, so the mobile bottom tab bar, the
+   cards and the hamburger behave exactly as before.
+
+   Palette: the app's own navy #0E2D55 and orange #ED6F1F / #F2892F. No purple.
+   ============================================================================ */
+
+/* Desktop-only elements: hidden on phones so the mobile dashboard is unchanged. */
+.ud-dash-priority,
+.ud-rail-menu { display: none; }
+
+@media (min-width: 1024px) {
+
+  /* ---- 6. remove the hamburger from the desktop header (mobile keeps it) -- */
+  .header .menu-btn { display: none !important; }
+
+  /* ---- 5. the profile dropdown renders as a normal, correctly sized menu -- */
+  .ud-profile-menu { max-height: calc(100vh - 90px); overflow-y: auto; }
+  .ud-profile-menu button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; flex: none; }
+
+  /* ---- 1. dashboard order: title -> KPI -> calendar|priority -> chart ----- */
+  #home.ud-dash .ud-dash-priority {
+    order: 4;
+    grid-column: span 7;
+    display: flex;
+    flex-direction: column;
+    background: var(--ud-surface);
+    border: 1px solid var(--ud-border);
+    border-radius: var(--ud-card-radius);
+    box-shadow: var(--ud-card-shadow);
+    padding: 16px 18px 12px;
+    min-width: 0;
+  }
+  /* the chart is moved further DOWN the page */
+  #home.ud-dash .ud-dash-chart { order: 5; grid-column: 1 / -1; }
+  /* the app's simple "Priority Leads" block is superseded by the advanced one */
+  #home.ud-dash .ud-dash-leads { display: none !important; }
+
+  /* ---- advanced Priority Leads card ------------------------------------- */
+  .ud-prio-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .ud-prio-head h3 {
+    margin: 0; font-size: 14px; font-weight: 800; color: var(--ud-navy); letter-spacing: -0.2px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .ud-prio-head h3 svg { width: 16px; height: 16px; stroke: var(--ud-orange); fill: none; stroke-width: 1.9; }
+  .ud-prio-head .ud-prio-sub { font-size: 11px; font-weight: 600; color: var(--ud-muted-2); }
+  .ud-prio-see {
+    font-size: 11px; font-weight: 800; color: var(--ud-orange);
+    background: var(--ud-orange-soft2); border: none; border-radius: 999px;
+    padding: 5px 12px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+  }
+  .ud-prio-see:hover { background: var(--ud-orange); color: #fff; }
+
+  .ud-prio-list { display: flex; flex-direction: column; }
+  .ud-prio-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 8px; border-top: 1px solid var(--ud-border-2);
+    border-radius: 10px; cursor: pointer; transition: background 0.12s ease;
+  }
+  .ud-prio-row:first-child { border-top: none; }
+  .ud-prio-row:hover { background: var(--ud-hover); }
+  .ud-prio-row:focus-visible { outline: 2px solid var(--ud-orange); outline-offset: 2px; }
+  .ud-prio-rank {
+    flex: none; width: 24px; height: 24px; border-radius: 7px;
+    background: #F1F5F9; color: #475569; font-size: 11px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ud-prio-row:first-child .ud-prio-rank { background: var(--ud-orange-soft); color: var(--ud-orange); }
+  .ud-prio-main { flex: 1 1 auto; min-width: 0; }
+  .ud-prio-name { font-size: 13px; font-weight: 800; color: var(--ud-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ud-prio-func { font-size: 11px; font-weight: 600; color: var(--ud-muted-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ud-prio-val { flex: none; text-align: right; font-size: 13px; font-weight: 900; color: var(--ud-navy); white-space: nowrap; }
+  .ud-prio-chip {
+    flex: none; font-size: 9.5px; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .ud-prio-next {
+    flex: none; width: 152px; font-size: 11.5px; font-weight: 700; color: var(--ud-orange);
+    display: flex; align-items: center; justify-content: flex-end; gap: 6px; text-align: right;
+  }
+  .ud-prio-chev { width: 14px; height: 14px; color: #C3CCD8; display: inline-flex; }
+  .ud-prio-chev svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .ud-prio-empty { padding: 22px 8px; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--ud-muted-2); }
+
+  /* ---- 3 + 4. rail user popover: normal size, anchored to the rail ------- */
+  .ud-rail-foot { position: relative; }
+  .ud-rail-menu {
+    position: absolute; left: 10px; right: 10px; bottom: calc(100% + 6px);
+    display: none; background: #fff; border: 1px solid var(--ud-border);
+    border-radius: 12px; box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+    padding: 6px; z-index: 1400;
+  }
+  .ud-rail-menu.show { display: block; }
+  .ud-rail-menu button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 12px; border: none; background: transparent; border-radius: 8px;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ud-text);
+    cursor: pointer; text-align: left;
+  }
+  .ud-rail-menu button:hover { background: var(--ud-hover); color: var(--ud-navy); }
+  .ud-rail-menu button.ud-danger:hover { background: #FEF2F2; color: #DC2626; }
+  .ud-rail-menu button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; flex: none; }
+  .ud-rail-menu .ud-rm-sep { height: 1px; background: var(--ud-border-2); margin: 6px 4px; }
+  body.ud-rail-mini .ud-rail-menu { left: 8px; right: auto; width: 210px; }
+}
+</style>
+
 </body>
 
 </html>
