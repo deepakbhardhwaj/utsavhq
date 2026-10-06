@@ -2439,3 +2439,412 @@ wtMiniFormHtml = function (k, t) {
     window.saveExpenseData = wrapped;
   } catch (e) {}
 })();
+
+/* ============================================================================
+   UTSAVhq - Desktop batch 2 (wide screens >= 1024px, plus a few safe extras).
+   Appended at EOF; nothing is injected mid-file.
+
+   WHAT THIS BLOCK DOES
+     1. DASHBOARD  - an advanced "Priority Leads" block (ranked list: lead name,
+        budget, status chip, next action; each row opens that lead) is placed
+        where the Revenue-vs-Expense chart used to sit, and the chart is moved
+        further DOWN the page.
+     2. SIDEBAR    - the missing module entries are added (Inventory / Godown,
+        Party Ledger, Order Book) and the hub dropdowns get their missing
+        sub-items (Sales Hub -> Other Income, Purchase Hub -> Fixed Assets).
+     3. DUPLICATE  - the rail caption that repeated a module label is removed
+        ("Reports"/"Reports" and "Settings"/"Settings" no longer repeat).
+     4. USER BLOCK - Switch Workspace and Log Out are reachable from the rail's
+        bottom user block AND from the header profile menu.
+     5. POPOVER    - the user popover renders as a normal, correctly sized menu
+        (the oversized icons are fixed).
+     6. HEADER     - the desktop header hamburger is removed; the mobile
+        hamburger (openNav/closeNav, #mySidebar) is untouched.
+
+   Everything visual is scoped to >= 1024px (companion <style> in app/index.html),
+   so below 1024px the mobile layout is exactly as before.  No business logic,
+   handler, id, total, print / save / report path or Firestore rule is touched.
+   The whole block is wrapped so a cosmetic failure can never break the app.
+   Palette: navy #0E2D55, orange #ED6F1F / #F2892F. No purple.
+   ============================================================================ */
+(function () {
+  'use strict';
+  try {
+
+    /* ---------------------------------------------------------------- utils */
+    function byId(x) { return document.getElementById(x); }
+    function qs(s, r) { return (r || document).querySelector(s); }
+    function qsa(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+    function isDesk() {
+      return !!(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches);
+    }
+    function callN(name) { try { if (typeof window[name] === 'function') window[name](); } catch (e) {} }
+    function dataRef(fn) { try { return fn(); } catch (e) { return null; } }
+    function money(n) { return '\u20B9' + Math.round(Number(n) || 0).toLocaleString('en-IN'); }
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function fmtDate(d) {
+      try {
+        var x = new Date(d);
+        if (isNaN(x.getTime())) return '';
+        return x.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+      } catch (e) { return ''; }
+    }
+
+    /* ---------------------------------------------------------------- icons */
+    var I = {
+      box: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+      ledger: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+      book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+      card: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+      gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+      user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      building: '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="7" x2="9" y2="7"/><line x1="15" y1="7" x2="15" y2="7"/><line x1="9" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="15" y2="12"/><line x1="9" y1="17" x2="15" y2="17"/>',
+      logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+      swap: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+      chev: '<polyline points="9 6 15 12 9 18"/>',
+      fire: '<path d="M12 2s4 5 4 9a4 4 0 0 1-8 0c0-1 .5-2 .5-2S6 12 6 15a6 6 0 0 0 12 0c0-5-6-13-6-13z"/>'
+    };
+    function ic(n) {
+      return '<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">' + (I[n] || I.box) + '</svg>';
+    }
+
+    /* ==================================================================== *
+     *  2 + 3.  SIDEBAR : missing modules, missing sub-items, duplicate     *
+     * ==================================================================== */
+    function udNav() { return byId('ud_nav'); }
+    function itemByLabel(root, label) {
+      if (!root) return null;
+      var it = root.querySelectorAll('.ud-item');
+      for (var i = 0; i < it.length; i++) {
+        var l = it[i].querySelector('.ud-lbl');
+        if (l && l.textContent.trim() === label) return it[i];
+      }
+      return null;
+    }
+    function subWrapOf(item) {
+      var s = item ? item.nextElementSibling : null;
+      return (s && s.classList && s.classList.contains('ud-sub')) ? s : null;
+    }
+    function hasSub(sub, label) {
+      if (!sub) return true;
+      var a = sub.querySelectorAll('.ud-subitem');
+      for (var i = 0; i < a.length; i++) {
+        if (a[i].textContent.trim() === label) return true;
+      }
+      return false;
+    }
+    function addSubItem(item, label, onClick) {
+      var sub = subWrapOf(item);
+      if (!sub || hasSub(sub, label)) return;
+      var a = document.createElement('a');
+      a.className = 'ud-subitem';
+      a.href = 'javascript:void(0);';
+      a.innerHTML = '<span class="ud-dot"></span><span>' + esc(label) + '</span>';
+      a.addEventListener('click', function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        onClick();
+      });
+      sub.appendChild(a);
+    }
+    function addTopItem(groupWrap, label, icon, onClick) {
+      if (!groupWrap || itemByLabel(groupWrap, label)) return;
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'ud-item';
+      row.setAttribute('title', label);
+      row.innerHTML = '<span class="ud-ico">' + ic(icon) + '</span>' +
+                      '<span class="ud-lbl">' + esc(label) + '</span>';
+      row.addEventListener('click', function () { onClick(row); });
+      groupWrap.appendChild(row);
+    }
+    function goTab(tab) { try { if (typeof window.openTab === 'function') window.openTab(tab, null); } catch (e) {} }
+    function markRow(row) {
+      var nav = udNav(); if (!nav) return;
+      qsa('.ud-item', nav).forEach(function (n) { n.classList.remove('ud-active'); });
+      qsa('.ud-subitem', nav).forEach(function (n) { n.classList.remove('ud-active'); });
+      if (row && row.classList) row.classList.add('ud-active');
+    }
+    /* remove the duplicated rail label: a caption that exactly repeats the
+       module label right under it. Renamed to a distinct section name so the
+       label appears exactly once. */
+    function fixDuplicateCaption(nav) {
+      var rename = { 'Reports': 'Insights', 'Settings': 'Administration' };
+      qsa('.ud-caption', nav).forEach(function (c) {
+        var t = c.textContent.trim();
+        if (Object.prototype.hasOwnProperty.call(rename, t)) c.textContent = rename[t];
+      });
+    }
+
+    function buildNavExtras() {
+      var nav = udNav();
+      if (!nav) return;
+
+      /* --- missing sub-items inside the Sales / Purchase dropdowns --- */
+      var sales = itemByLabel(nav, 'Sales Hub');
+      addSubItem(sales, 'Other Income', function () {
+        goTab('sales-hub');
+        try { if (typeof window.setSalesTab === 'function') window.setSalesTab('OtherIncome', null); } catch (e) {}
+      });
+
+      var purch = itemByLabel(nav, 'Purchase Hub');
+      addSubItem(purch, 'Fixed Assets', function () {
+        goTab('purchase-hub');
+        try { if (typeof window.setPurchaseTab === 'function') window.setPurchaseTab('Asset', null); } catch (e) {}
+      });
+
+      /* --- missing top-level modules, grouped with Finance --- */
+      var group = sales && sales.closest ? sales.closest('.ud-group') : null;
+      if (group) {
+        addTopItem(group, 'Inventory / Godown', 'box', function (row) {
+          goTab('inventory-hub'); markRow(row);
+        });
+        addTopItem(group, 'Party Ledger', 'ledger', function (row) {
+          goTab('party-master'); markRow(row);
+        });
+        addTopItem(group, 'Order Book', 'book', function (row) {
+          goTab('inventory-hub');
+          setTimeout(function () {
+            try { if (typeof window.openInvView === 'function') window.openInvView('orderbook', 'Order Book'); } catch (e) {}
+          }, 160);
+          markRow(row);
+        });
+      }
+
+      /* --- duplicate label --- */
+      fixDuplicateCaption(nav);
+    }
+
+    /* ==================================================================== *
+     *  4 + 5.  RAIL USER BLOCK : proper popover + Switch Workspace / Log Out *
+     * ==================================================================== */
+    function hideRailMenu() { var m = byId('ud_rail_menu'); if (m) m.classList.remove('show'); }
+    function doMenuAction(act) {
+      try {
+        if (act === 'myprofile') callN('openMyProfileModal');
+        else if (act === 'company') callN('openCompanyProfile');
+        else if (act === 'switch') callN('openCompanySelector');
+        else if (act === 'settings') goTab('settings-hub');
+        else if (act === 'logout') callN('logoutApp');
+      } catch (e) {}
+    }
+    function ensureRailMenu() {
+      var foot = qs('.ud-rail-foot');
+      if (!foot) return;
+      if (!byId('ud_rail_menu')) {
+        var m = document.createElement('div');
+        m.className = 'ud-rail-menu';
+        m.id = 'ud_rail_menu';
+        m.innerHTML =
+          '<button type="button" data-act="myprofile">' + ic('user') + ' My Profile</button>' +
+          '<button type="button" data-act="company">' + ic('building') + ' Company Profile</button>' +
+          '<button type="button" data-act="switch">' + ic('swap') + ' Switch Workspace</button>' +
+          '<button type="button" data-act="settings">' + ic('gear') + ' Settings</button>' +
+          '<div class="ud-rm-sep"></div>' +
+          '<button type="button" class="ud-danger" data-act="logout">' + ic('logout') + ' Log Out</button>';
+        foot.appendChild(m);
+        m.addEventListener('click', function (e) {
+          var b = e.target && e.target.closest ? e.target.closest('button[data-act]') : null;
+          if (!b) return;
+          if (e.stopPropagation) e.stopPropagation();
+          var act = b.getAttribute('data-act');
+          hideRailMenu();
+          doMenuAction(act);
+        });
+      }
+      var usr = byId('ud_user');
+      if (usr && !usr.__udB2) {
+        usr.__udB2 = true;
+        usr.addEventListener('click', function (e) {
+          if (e && e.stopPropagation) e.stopPropagation();
+          var hm = byId('ud_profile_menu'); if (hm) hm.classList.remove('show');
+          var cur = byId('ud_rail_menu');
+          var show = !(cur && cur.classList.contains('show'));
+          hideRailMenu();
+          if (show && cur) cur.classList.add('show');
+        });
+      }
+    }
+
+    /* header profile menu: add Switch Workspace */
+    function ensureHeaderMenu() {
+      var m = byId('ud_profile_menu');
+      if (!m) return;
+      if (!m.querySelector('button[data-act="switch"]')) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('data-act', 'switch');
+        b.innerHTML = ic('swap') + ' Switch Workspace';
+        var sep = m.querySelector('.ud-pm-sep');
+        if (sep && sep.parentNode === m) m.insertBefore(b, sep); else m.appendChild(b);
+      }
+      if (!m.__udB2) {
+        m.__udB2 = true;
+        m.addEventListener('click', function (e) {
+          var t = e.target && e.target.closest ? e.target.closest('button[data-act="switch"]') : null;
+          if (t) { if (e.stopPropagation) e.stopPropagation(); hideRailMenu(); callN('openCompanySelector'); }
+        });
+      }
+    }
+
+    /* ==================================================================== *
+     *  1.  DASHBOARD : advanced Priority Leads where the chart used to be   *
+     * ==================================================================== */
+    var PRIO_RANK = { 'Hot': 0, 'Meeting Scheduled': 1, 'Meeting Completed': 2, 'New': 3, 'Thinking': 4 };
+    function chipStyle(status) {
+      switch (status) {
+        case 'Hot': return 'background:#FEF2F2;color:#DC2626;';
+        case 'New': return 'background:#EFF6FF;color:#0E2D55;';
+        case 'Meeting Scheduled':
+        case 'Meeting Completed': return 'background:#FFF3EA;color:#ED6F1F;';
+        case 'Thinking': return 'background:#FFFBEB;color:#D97706;';
+        default: return 'background:#F1F5F9;color:#475569;';
+      }
+    }
+    function nextAction(l) {
+      switch (l.status) {
+        case 'Hot': return 'Call now';
+        case 'Meeting Scheduled': return l.meetingDate ? ('Confirm \u00B7 ' + fmtDate(l.meetingDate)) : 'Confirm meeting';
+        case 'Meeting Completed': return 'Send quotation';
+        case 'New': return 'First follow-up';
+        case 'Thinking': return 'Nudge / share offer';
+        default: return 'Follow up';
+      }
+    }
+    function collectPriority() {
+      var L = dataRef(function () { return leadsDB; }) || {};
+      var arr = [];
+      Object.keys(L).forEach(function (k) {
+        var l = L[k];
+        if (!l) return;
+        if (l.status === 'Lost' || l.status === 'Won') return;
+        arr.push(l);
+      });
+      arr.sort(function (a, b) {
+        var ra = (PRIO_RANK[a.status] == null ? 9 : PRIO_RANK[a.status]);
+        var rb = (PRIO_RANK[b.status] == null ? 9 : PRIO_RANK[b.status]);
+        if (ra !== rb) return ra - rb;
+        return (Number(b.budget) || 0) - (Number(a.budget) || 0);
+      });
+      return arr.slice(0, 7);
+    }
+    function openLead(id) {
+      goTab('crm');
+      setTimeout(function () {
+        try { if (typeof window.openLeadDetail === 'function') window.openLeadDetail(id); } catch (e) {}
+      }, 220);
+    }
+    function renderPriority(card) {
+      var leads = collectPriority();
+      var sig = leads.map(function (l) { return l.id + '|' + l.status + '|' + (l.budget || ''); }).join(',');
+      if (card.__sig === sig) return;
+      card.__sig = sig;
+
+      var rows = '';
+      leads.forEach(function (l, i) {
+        var val = Number(l.budget) ? money(l.budget) : 'No budget';
+        rows +=
+          '<div class="ud-prio-row" data-lead="' + esc(l.id) + '" role="button" tabindex="0">' +
+            '<div class="ud-prio-rank">' + (i + 1) + '</div>' +
+            '<div class="ud-prio-main">' +
+              '<div class="ud-prio-name">' + esc(l.name || 'Unnamed lead') + '</div>' +
+              '<div class="ud-prio-func">' + esc(l.func || l.eventTitle || '') + '</div>' +
+            '</div>' +
+            '<div class="ud-prio-val">' + esc(val) + '</div>' +
+            '<div class="ud-prio-chip" style="' + chipStyle(l.status) + '">' + esc(l.status || 'Lead') + '</div>' +
+            '<div class="ud-prio-next">' + esc(nextAction(l)) +
+              '<span class="ud-prio-chev">' + ic('chev') + '</span></div>' +
+          '</div>';
+      });
+      if (!rows) {
+        rows = '<div class="ud-prio-empty">No leads need attention right now. \uD83D\uDC4D</div>';
+      }
+
+      card.innerHTML =
+        '<div class="ud-prio-head">' +
+          '<h3>' + ic('fire') + ' Priority Leads <span class="ud-prio-sub">needs attention</span></h3>' +
+          '<button type="button" class="ud-prio-see" data-act="see">See All</button>' +
+        '</div>' +
+        '<div class="ud-prio-list">' + rows + '</div>';
+
+      card.querySelectorAll('.ud-prio-row').forEach(function (r) {
+        var id = r.getAttribute('data-lead');
+        r.addEventListener('click', function () { openLead(id); });
+        r.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { if (e.preventDefault) e.preventDefault(); openLead(id); }
+        });
+      });
+      var see = card.querySelector('.ud-prio-see');
+      if (see) see.addEventListener('click', function (e) { if (e.stopPropagation) e.stopPropagation(); goTab('crm'); });
+    }
+    function buildPriority() {
+      var home = byId('home');
+      if (!home || !isDesk()) return;
+      var card = byId('ud_priority_card');
+      if (!card) {
+        card = document.createElement('div');
+        card.className = 'ud-dash-priority';
+        card.id = 'ud_priority_card';
+        home.appendChild(card);
+      }
+      renderPriority(card);
+    }
+
+    /* ==================================================================== *
+     *  orchestration                                                        *
+     * ==================================================================== */
+    function tick() {
+      try { buildNavExtras(); } catch (e) {}
+      try { ensureRailMenu(); } catch (e) {}
+      try { ensureHeaderMenu(); } catch (e) {}
+      try { buildPriority(); } catch (e) {}
+    }
+
+    function onReady(fn) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+      else fn();
+    }
+    onReady(tick);
+    window.addEventListener('load', tick);
+    [500, 1200, 2000, 3000, 4200, 5600, 7000, 9000].forEach(function (t) { setTimeout(tick, t); });
+    window.addEventListener('resize', function () { setTimeout(tick, 220); });
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(min-width: 1024px)');
+      if (mq.addEventListener) mq.addEventListener('change', function () { setTimeout(tick, 120); });
+      else if (mq.addListener) mq.addListener(function () { setTimeout(tick, 120); });
+    }
+
+    /* re-apply the rail extras if the shell ever rebuilds the nav */
+    try {
+      if (window.MutationObserver) {
+        var nav = udNav();
+        if (nav) {
+          var pend = null;
+          new MutationObserver(function () {
+            if (pend) clearTimeout(pend);
+            pend = setTimeout(function () { pend = null; try { buildNavExtras(); } catch (e) {} }, 160);
+          }).observe(nav, { childList: true, subtree: true, characterData: true });
+        }
+      }
+    } catch (e) {}
+
+    /* re-render Priority Leads whenever the app refreshes its data */
+    try {
+      var origUpdate = window.updateDataAndUI;
+      if (typeof origUpdate === 'function' && !origUpdate.__udB2) {
+        var wrapped = function () {
+          var r = origUpdate.apply(this, arguments);
+          try { buildPriority(); } catch (e) {}
+          return r;
+        };
+        wrapped.__udB2 = true;
+        window.updateDataAndUI = wrapped;
+      }
+    } catch (e) {}
+
+    window.__udB2 = { tick: tick, buildNavExtras: buildNavExtras, buildPriority: buildPriority };
+  } catch (e) { /* never break the app for a cosmetic shell */ }
+})();
