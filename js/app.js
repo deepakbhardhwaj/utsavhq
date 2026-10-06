@@ -941,3 +941,81 @@ wtMiniFormHtml = function (k, t) {
     window.addEventListener('load', buildShell); /* survive a late header re-render */
   } catch (e) { /* never break the app for a cosmetic shell */ }
 })();
+
+/* ============================================================================
+   UTSAVhq - Desktop TOP navigation fix (wide screens >= 1024px only).
+   Appended at EOF. Replaces the rejected LEFT-RAIL shell: the app's existing
+   nav buttons are shown as a row of PLAIN TEXT tabs inside the top bar
+   (.header) instead of a fixed left sidebar, and the hamburger / off-canvas
+   sidebar (mySidebar / openNav() / closeNav()) is left working on every screen.
+   Nothing here runs below 1024px, so the mobile layout is unchanged. No
+   business logic, handler, total, print / save / report code or Firestore rule
+   is touched. The whole block is wrapped so any error is swallowed.
+   ============================================================================ */
+(function () {
+  try {
+    var mq = (window.matchMedia ? window.matchMedia('(min-width: 1024px)') : null);
+
+    function headerEl() { return document.querySelector('.header'); }
+    function navEl() { return document.getElementById('master-nav-bar'); }
+
+    /* The previous shell could (re)create these controls. They are not part of
+       the top bar design, so drop them if present. */
+    function dropShellChrome() {
+      var ids = ['railCollapseBtn', 'deskDensityBtn', 'deskTopSearch'];
+      for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      }
+      document.body.classList.remove('desk-rail-collapsed');
+      document.body.classList.remove('desk-density-compact');
+    }
+
+    /* Desktop: place the brand just after the hamburger and the five nav
+       buttons just before the profile / notification cluster, so the top bar
+       reads: [hamburger] [brand] [tabs] [cluster]. */
+    function mount() {
+      var h = headerEl(), nav = navEl();
+      if (!h || !nav) return;
+      var cluster = h.lastElementChild;
+      if (cluster && cluster.classList && cluster.classList.contains('nav-btn')) cluster = null;
+      var brand = nav.querySelector('.nav-brand') || h.querySelector('.nav-brand');
+      if (brand) {
+        var hl = h.querySelector('.header-left');
+        if (brand.previousSibling !== hl) h.insertBefore(brand, hl ? hl.nextSibling : h.firstChild);
+      }
+      var btns = nav.querySelectorAll('.nav-btn');
+      for (var i = 0; i < btns.length; i++) h.insertBefore(btns[i], cluster);
+    }
+
+    /* Mobile: put the brand back as the first child of the bottom tab bar and
+       the nav buttons after it, restoring the original DOM order. */
+    function unmount() {
+      var h = headerEl(), nav = navEl();
+      if (!h || !nav) return;
+      var brand = h.querySelector('.nav-brand');
+      var btns = h.querySelectorAll('.nav-btn');
+      if (brand) nav.insertBefore(brand, nav.firstChild);
+      for (var i = 0; i < btns.length; i++) nav.appendChild(btns[i]);
+    }
+
+    function sync() {
+      try {
+        dropShellChrome();
+        if (mq && mq.matches) mount(); else unmount();
+      } catch (e) {}
+    }
+
+    function onReady(fn) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+      else fn();
+    }
+
+    onReady(sync);
+    window.addEventListener('load', sync);
+    if (mq) {
+      if (mq.addEventListener) mq.addEventListener('change', sync);
+      else if (mq.addListener) mq.addListener(sync);
+    }
+  } catch (e) { /* never break the app for a cosmetic shell */ }
+})();
