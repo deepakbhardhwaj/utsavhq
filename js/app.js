@@ -1811,3 +1811,631 @@ wtMiniFormHtml = function (k, t) {
     }
   } catch (e) { /* never break the app for a nav fix */ }
 })();
+
+/* ============================================================================
+   UTSAVhq - Desktop dashboard v2 + grouped sidebar v2 + Event-Expense guard.
+   Appended at EOF; nothing injected mid-file.
+   ----------------------------------------------------------------------------
+   PART A  dashboard: the four KPI boxes (Total Leads, Active Events, Revenue,
+           Pending Tasks) become the headline row and are clickable; the
+           duplicate "Business Performance" and "Active Events / Total Leads"
+           cards are detached on desktop; a calendar (left) + an advanced
+           Revenue-vs-Expense chart (right) sit below them.
+   PART B  sidebar: Overview (direct tabs) / Finance (dropdowns) / Reports /
+           Utility / Settings, plus user + company blocks at the bottom.
+   PART C  expense rule: an Event Expense must carry a linked event or it will
+           not save.  Implemented by wrapping the app's own saveExpenseData();
+           the original body is untouched and every other expense type is
+           unaffected.  This part applies on ALL widths.
+
+   Everything visual is scoped to >= 1024px (companion <style> in app/index.html
+   plus the isDesk() guards below), so below 1024px the mobile layout is exactly
+   as before.  The whole block is wrapped so a cosmetic failure can never break
+   the app.
+   ============================================================================ */
+(function () {
+  'use strict';
+  try {
+
+    /* ---------------------------------------------------------------- utils */
+    function byId(x) { return document.getElementById(x); }
+    function qs(s, r) { return (r || document).querySelector(s); }
+    function qsa(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+    function isDesk() {
+      return !!(window.matchMedia && window.matchMedia('(min-width: 1024px)').matches);
+    }
+    function callN(name) { try { if (typeof window[name] === 'function') window[name](); } catch (e) {} }
+    /* read an app global that may be declared with var OR let, without throwing */
+    function dataRef(fn) { try { return fn(); } catch (e) { return null; } }
+    function money(n) { return '\u20B9' + Math.round(Number(n) || 0).toLocaleString('en-IN'); }
+
+    /* ---------------------------------------------------------------- icons */
+    var I = {
+      home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+      users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="20 6 9 17 4 12"/>',
+      grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+      sales: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+      cart: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>',
+      wallet: '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+      bank: '<line x1="3" y1="21" x2="21" y2="21"/><path d="M5 21V10l7-6 7 6v11"/><line x1="9" y1="21" x2="9" y2="14"/><line x1="15" y1="21" x2="15" y2="14"/>',
+      chart: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+      team: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>',
+      trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
+      card: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+      gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+      building: '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="7" x2="9" y2="7"/><line x1="15" y1="7" x2="15" y2="7"/><line x1="9" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="15" y2="12"/><line x1="9" y1="17" x2="15" y2="17"/>',
+      chev: '<polyline points="9 6 15 12 9 18"/>',
+      arrow: '<line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>'
+    };
+    function ic(n) {
+      return '<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">' + (I[n] || I.home) + '</svg>';
+    }
+
+    /* ============================================================ PART B nav */
+    /* Overview items open their tab DIRECTLY (no dropdown); only Finance uses
+       dropdowns.  Hub sub-items call the app's own setSalesTab / setPurchaseTab
+       / setExpenseFilter - no invented routes. */
+    var NAV = [
+      { caption: 'Overview', items: [
+        { label: 'Dashboard', tab: 'home', icon: 'home' },
+        { label: 'CRM', tab: 'crm', icon: 'users' },
+        { label: 'Events', tab: 'events', icon: 'cal' },
+        { label: 'Task', tab: 'tasks', icon: 'check' },
+        { label: 'ERP', tab: 'erp', icon: 'grid' }
+      ] },
+      { caption: 'Finance', items: [
+        { label: 'Sales Hub', tab: 'sales-hub', icon: 'sales', sub: [
+          { label: 'Quotation / Estimate', sales: 'Quotation' },
+          { label: 'Invoice', sales: 'Invoice' },
+          { label: 'Payment Receive', sales: 'Receipt' }
+        ] },
+        { label: 'Purchase Hub', tab: 'purchase-hub', icon: 'cart', sub: [
+          { label: 'Purchase Order', purch: 'PO' },
+          { label: 'Purchase / Vendor Bill', purch: 'PB' },
+          { label: 'Make Payment', purch: 'PaymentOut' }
+        ] },
+        { label: 'Expense', tab: 'expense-hub', icon: 'wallet', sub: [
+          { label: 'Event All Expense', expFilter: 'Event' },
+          { label: 'General Expense', expFilter: 'General' },
+          { label: 'Event Expense', expNew: true }
+        ] },
+        { label: 'Bank & Cash', tab: 'bank-hub', icon: 'bank', sub: [
+          { label: 'Bank', bank: 'bank' },
+          { label: 'Cash', bank: 'cash' },
+          { label: 'Loan', bank: 'loan' }
+        ] }
+      ] },
+      { caption: 'Reports', items: [
+        { label: 'Reports', tab: 'reports-hub', icon: 'chart' }
+      ] },
+      { caption: 'Utility', items: [
+        { label: 'Team Management', tab: 'settings-hub', icon: 'team', fn: 'openTeamModal' },
+        { label: 'Recycle Bin', icon: 'trash', fn: 'openRecycleBin' },
+        { label: 'Digital Visiting Card', icon: 'card', fn: 'openDigitalCard' }
+      ] },
+      { caption: 'Settings', items: [
+        { label: 'Settings', tab: 'settings-hub', icon: 'gear' }
+      ] }
+    ];
+
+    function go(tab) {
+      if (!tab) return;
+      try { if (typeof window.openTab === 'function') window.openTab(tab, null); } catch (e) {}
+    }
+
+    function markActive(tab, el) {
+      var nav = byId('ud_nav');
+      if (!nav) return;
+      qsa('.ud-item', nav).forEach(function (n) { n.classList.remove('ud-active'); });
+      qsa('.ud-subitem', nav).forEach(function (n) { n.classList.remove('ud-active'); });
+      window.__udv2ActiveEl = el || null;
+      if (el && el.classList && el.classList.contains('ud-subitem')) {
+        el.classList.add('ud-active');
+        var sub = el.closest ? el.closest('.ud-sub') : null;
+        var par = sub ? sub.previousElementSibling : null;
+        if (par && par.classList && par.classList.contains('ud-item')) {
+          par.classList.add('ud-active'); par.classList.add('open');
+          sub.classList.add('open');
+        }
+        return;
+      }
+      var target = null;
+      if (el && el.classList && el.classList.contains('ud-item')) target = el;
+      else {
+        var items = qsa('.ud-item', nav);
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].getAttribute('data-tab') === tab) { target = items[i]; break; }
+        }
+      }
+      if (target) {
+        target.classList.add('ud-active');
+        var s2 = target.nextElementSibling;
+        if (s2 && s2.classList && s2.classList.contains('ud-sub')) { s2.classList.add('open'); target.classList.add('open'); }
+      }
+    }
+
+    /* the expense-hub filter box that matches a kind ("General" | "Event") */
+    function expBox(kind) {
+      var boxes = qsa('#expense-hub .filter-box');
+      for (var i = 0; i < boxes.length; i++) {
+        var lb = boxes[i].querySelector('.data-card-label');
+        if (lb && (lb.textContent || '').trim().toLowerCase().indexOf(String(kind).toLowerCase()) === 0) return boxes[i];
+      }
+      return boxes[kind === 'Event' ? 1 : 0] || null;
+    }
+
+    function subAction(parent, s, el) {
+      go(parent.tab);
+      if (s.sales) { try { if (typeof window.setSalesTab === 'function') window.setSalesTab(s.sales, null); } catch (e) {} }
+      else if (s.purch) { try { if (typeof window.setPurchaseTab === 'function') window.setPurchaseTab(s.purch, null); } catch (e) {} }
+      else if (s.expFilter) { try { if (typeof window.setExpenseFilter === 'function') window.setExpenseFilter(s.expFilter, expBox(s.expFilter)); } catch (e) {} }
+      else if (s.expNew) {
+        /* "Event Expense" opens the recorder preset to an Event Expense, which
+           is exactly the type PART C refuses to save without a linked event. */
+        setTimeout(function () {
+          callN('openExpenseModal');
+          var sel = byId('exp_type');
+          if (sel) sel.value = 'Event';
+        }, 260);
+      }
+      else if (s.bank && s.bank === 'loan') { setTimeout(function () { callN('openLoanModal'); }, 220); }
+      markActive(parent.tab, el);
+      if (parent.tab === 'home') setTimeout(function () { try { renderChart(true); } catch (e) {} }, 80);
+    }
+
+    function buildGroupV2(g) {
+      var wrap = document.createElement('div');
+      wrap.className = 'ud-group';
+      if (g.caption) {
+        var cap = document.createElement('div');
+        cap.className = 'ud-caption';
+        cap.textContent = g.caption;
+        wrap.appendChild(cap);
+      }
+      g.items.forEach(function (it) {
+        var hasSub = !!(it.sub && it.sub.length);
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'ud-item' + (hasSub ? ' ud-parent' : '');
+        row.setAttribute('data-tab', it.tab || '');
+        row.setAttribute('title', it.label);
+        row.innerHTML = '<span class="ud-ico">' + ic(it.icon) + '</span>' +
+                        '<span class="ud-lbl">' + it.label + '</span>' +
+                        (hasSub ? '<span class="ud-caret">' + ic('chev') + '</span>' : '');
+        if (hasSub) {
+          var subWrap = document.createElement('div');
+          subWrap.className = 'ud-sub';
+          it.sub.forEach(function (s) {
+            var a = document.createElement('a');
+            a.className = 'ud-subitem';
+            a.href = 'javascript:void(0);';
+            a.setAttribute('data-tab', it.tab || '');
+            a.setAttribute('data-label', s.label);
+            a.innerHTML = '<span class="ud-dot"></span><span>' + s.label + '</span>';
+            a.addEventListener('click', function (e) {
+              if (e && e.preventDefault) e.preventDefault();
+              subAction(it, s, a);
+            });
+            subWrap.appendChild(a);
+          });
+          row.addEventListener('click', function () {
+            var open = subWrap.classList.contains('open');
+            go(it.tab);
+            if (open) { subWrap.classList.remove('open'); row.classList.remove('open'); }
+            else { subWrap.classList.add('open'); row.classList.add('open'); }
+            markActive(it.tab, row);
+          });
+          wrap.appendChild(row);
+          wrap.appendChild(subWrap);
+        } else {
+          row.addEventListener('click', function () {
+            go(it.tab);
+            if (it.fn) callN(it.fn);
+            markActive(it.tab, row);
+          });
+          wrap.appendChild(row);
+        }
+      });
+      return wrap;
+    }
+
+    function buildNavV2() {
+      var nav = byId('ud_nav');
+      if (!nav) return;
+      if (nav.getAttribute('data-udv2') === '1') return;
+      nav.setAttribute('data-udv2', '1');
+      while (nav.firstChild) nav.removeChild(nav.firstChild);
+      NAV.forEach(function (g) { nav.appendChild(buildGroupV2(g)); });
+    }
+
+    /* rail footer: user row already exists; add a company row under it */
+    function syncCompany() {
+      var t = byId('top_company_text');
+      var name = t && t.textContent ? t.textContent.trim() : '';
+      var el = byId('ud_company_name');
+      if (el) el.textContent = name || 'Company';
+    }
+    function ensureRailFoot() {
+      var foot = qs('.ud-rail-foot');
+      if (!foot) return;
+      if (!byId('ud_company')) {
+        var c = document.createElement('div');
+        c.className = 'ud-company';
+        c.id = 'ud_company';
+        c.setAttribute('title', 'Company details');
+        c.innerHTML = '<div class="ud-company-ic">' + ic('building') + '</div>' +
+          '<div class="ud-company-tx"><span class="ud-company-name" id="ud_company_name">Company</span>' +
+          '<span class="ud-company-sub">Company details</span></div>';
+        c.addEventListener('click', function (e) {
+          if (e && e.stopPropagation) e.stopPropagation();
+          callN('openCompanyProfile');
+        });
+        foot.appendChild(c);
+      }
+      syncCompany();
+    }
+
+    /* ======================================================== PART A dash */
+    function findPerf(home) {
+      var k = home.children;
+      for (var i = 0; i < k.length; i++) {
+        if (k[i].classList && k[i].classList.contains('ud-dash-perf')) return k[i];
+        if (/business\s*performance/i.test(k[i].textContent || '')) return k[i];
+      }
+      return null;
+    }
+    function findPrem(home) {
+      var k = home.children;
+      for (var i = 0; i < k.length; i++) {
+        if (k[i].classList && k[i].classList.contains('ud-dash-prem')) return k[i];
+        if (k[i].querySelector && k[i].querySelector('.premium-erp-card') &&
+            k[i].id !== 'ud_kpi_row' && !(k[i].classList && k[i].classList.contains('ud-dash-title'))) return k[i];
+      }
+      return null;
+    }
+    function findCal(home) {
+      var k = home.children;
+      for (var i = 0; i < k.length; i++) {
+        if (k[i].classList && k[i].classList.contains('ud-dash-cal')) return k[i];
+        if (k[i].querySelector && k[i].querySelector('#cal-grid-body')) return k[i];
+      }
+      return null;
+    }
+
+    function computeKpis() {
+      var leads = 0, events = 0, tasks = 0, revenue = 0;
+      var L = dataRef(function () { return leadsDB; });
+      if (L) {
+        Object.keys(L).forEach(function (k) {
+          leads++;
+          var l = L[k];
+          if (l && l.status === 'Won' && l.eventStatus !== 'Completed' && l.eventStatus !== 'Cancelled') events++;
+        });
+      }
+      var T = dataRef(function () { return globalTasksDB; });
+      if (T) Object.keys(T).forEach(function (k) { if (!T[k].done) tasks++; });
+      var S = dataRef(function () { return salesDB; });
+      if (S) Object.keys(S).forEach(function (k) {
+        var r = S[k]; if (!r) return;
+        if (r.type === 'Invoice') revenue += Number(r.finalTotal) || 0;
+        else if (r.type === 'OtherIncome' && !r.isFundAdd) revenue += Number(r.amount) || 0;
+      });
+      return { leads: leads, events: events, revenue: revenue, tasks: tasks };
+    }
+
+    function kpiCard(key, label, val, color, icon, tab, foot) {
+      return '<div class="ud-kpi ud-kpi-click" data-tab="' + tab + '" tabindex="0" role="button" aria-label="' + label + '">' +
+        '<div class="ud-kpi-top"><span class="ud-kpi-label">' + label + '</span>' +
+        '<span class="ud-kpi-ico">' + ic(icon) + '</span></div>' +
+        '<div class="ud-kpi-value ' + color + '" id="udv2_kpi_' + key + '">' + val + '</div>' +
+        '<div class="ud-kpi-foot" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+        '<span>' + foot + '</span><span class="ud-kpi-arrow">' + ic('arrow') + '</span></div></div>';
+    }
+
+    function bindKpi(row) {
+      qsa('.ud-kpi-click', row).forEach(function (c) {
+        var tab = c.getAttribute('data-tab');
+        c.addEventListener('click', function () { go(tab); markActive(tab, null); });
+        c.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { if (e.preventDefault) e.preventDefault(); go(tab); markActive(tab, null); }
+        });
+      });
+    }
+
+    function ensureKpiRow(home) {
+      var row = byId('ud_kpi_row');
+      if (!row) {
+        row = document.createElement('div');
+        row.className = 'ud-kpi-row';
+        row.id = 'ud_kpi_row';
+        var title = qs('.ud-dash-title', home) || home.firstElementChild;
+        if (title && title.nextSibling) home.insertBefore(row, title.nextSibling);
+        else home.appendChild(row);
+      }
+      var v = computeKpis();
+      var html =
+        kpiCard('leads', 'Total Leads', String(v.leads), 'navy', 'users', 'crm', 'All leads') +
+        kpiCard('events', 'Active Events', String(v.events), 'orange', 'cal', 'events', 'Upcoming / ongoing') +
+        kpiCard('revenue', 'Revenue', money(v.revenue), 'green', 'sales', 'reports-hub', 'Invoiced sales') +
+        kpiCard('tasks', 'Pending Tasks', String(v.tasks), 'navy', 'check', 'tasks', 'Open tasks');
+      if (row.__udv2html !== html) { row.__udv2html = html; row.innerHTML = html; bindKpi(row); }
+    }
+
+    /* ---- chart data: revenue vs expense, last 6 months ------------------- */
+    function collectChart() {
+      var S = dataRef(function () { return salesDB; }) || {};
+      var E = dataRef(function () { return expenseDB; }) || {};
+      var P = dataRef(function () { return purchaseDB; }) || {};
+      var now = new Date(), labels = [], keys = [];
+      for (var i = 5; i >= 0; i--) {
+        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        var mm = String(d.getMonth() + 1); if (mm.length < 2) mm = '0' + mm;
+        keys.push(d.getFullYear() + '-' + mm);
+        labels.push(d.toLocaleString('en-IN', { month: 'short' }) + " '" + String(d.getFullYear()).slice(2));
+      }
+      var rev = {}, exp = {};
+      keys.forEach(function (k) { rev[k] = 0; exp[k] = 0; });
+      Object.keys(S).forEach(function (k) {
+        var r = S[k]; if (!r || !r.date) return;
+        var ym = String(r.date).slice(0, 7); if (!(ym in rev)) return;
+        if (r.type === 'Invoice') rev[ym] += Number(r.finalTotal) || 0;
+        else if (r.type === 'OtherIncome' && !r.isFundAdd) rev[ym] += Number(r.amount) || 0;
+      });
+      Object.keys(E).forEach(function (k) {
+        var r = E[k]; if (!r || !r.date) return;
+        var ym = String(r.date).slice(0, 7); if (!(ym in exp)) return;
+        exp[ym] += Number(r.amount) || 0;
+      });
+      Object.keys(P).forEach(function (k) {
+        var r = P[k]; if (!r || !r.date || r.type !== 'PB') return;
+        var ym = String(r.date).slice(0, 7); if (!(ym in exp)) return;
+        exp[ym] += Number(r.finalTotal) || 0;
+      });
+      var revArr = [], expArr = [];
+      keys.forEach(function (k) { revArr.push(rev[k]); expArr.push(exp[k]); });
+      return { labels: labels, rev: revArr, exp: expArr };
+    }
+
+    function ensureChartLib(cb) {
+      if (window.Chart) { cb(true); return; }
+      if (window.__udv2ChartLoading) { (window.__udv2ChartCbs = window.__udv2ChartCbs || []).push(cb); return; }
+      window.__udv2ChartLoading = true;
+      window.__udv2ChartCbs = [cb];
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+      s.onload = function () {
+        var cbs = window.__udv2ChartCbs || []; window.__udv2ChartLoading = false;
+        cbs.forEach(function (f) { try { f(!!window.Chart); } catch (e) {} });
+      };
+      s.onerror = function () {
+        var cbs = window.__udv2ChartCbs || []; window.__udv2ChartLoading = false;
+        cbs.forEach(function (f) { try { f(false); } catch (e) {} });
+      };
+      document.head.appendChild(s);
+    }
+
+    function buildChartJs(host, data) {
+      if (host.__chart) { try { host.__chart.destroy(); } catch (e) {} host.__chart = null; }
+      host.innerHTML = '<canvas id="udv2_chart_canvas"></canvas>';
+      var cv = byId('udv2_chart_canvas');
+      if (!cv) return;
+      try {
+        host.__chart = new window.Chart(cv.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: [
+              { label: 'Revenue', data: data.rev, backgroundColor: '#0E2D55', borderRadius: 6, maxBarThickness: 28 },
+              { label: 'Expense', data: data.exp, backgroundColor: '#ED6F1F', borderRadius: 6, maxBarThickness: 28 }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, animation: { duration: 450 },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (c) { return c.dataset.label + ': \u20B9' + Math.round(c.parsed.y).toLocaleString('en-IN'); }
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#64748B', font: { size: 11, weight: '600' } } },
+              y: {
+                beginAtZero: true, grid: { color: '#EDF1F6' },
+                ticks: { color: '#94A3B8', font: { size: 11 }, callback: function (v) { return '\u20B9' + Number(v).toLocaleString('en-IN'); } }
+              }
+            }
+          }
+        });
+      } catch (e) { fallbackChart(host, data); }
+    }
+
+    /* dependency-free grouped-bar renderer, used only if Chart.js is missing */
+    function fallbackChart(host, data) {
+      host.innerHTML = '<canvas id="udv2_chart_canvas"></canvas>';
+      var cv = byId('udv2_chart_canvas');
+      if (!cv) return;
+      var dpr = window.devicePixelRatio || 1;
+      var w = host.clientWidth || 620, h = host.clientHeight || 272;
+      cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + 'px'; cv.style.height = h + 'px';
+      var g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, w, h);
+      var padL = 54, padR = 12, padT = 14, padB = 30;
+      var plotW = Math.max(10, w - padL - padR), plotH = Math.max(10, h - padT - padB);
+      var maxV = Math.max.apply(null, data.rev.concat(data.exp).concat([1]));
+      var steps = 4;
+      g.font = '11px -apple-system,Segoe UI,Roboto,sans-serif'; g.textBaseline = 'middle';
+      for (var s = 0; s <= steps; s++) {
+        var y = padT + plotH - (plotH * s / steps);
+        g.strokeStyle = '#EDF1F6'; g.beginPath(); g.moveTo(padL, y); g.lineTo(padL + plotW, y); g.stroke();
+        g.fillStyle = '#94A3B8'; g.textAlign = 'right';
+        g.fillText('\u20B9' + Math.round(maxV * s / steps).toLocaleString('en-IN'), padL - 8, y);
+      }
+      var n = data.labels.length, slot = plotW / n, bw = Math.min(20, slot * 0.32);
+      g.textAlign = 'center';
+      for (var i = 0; i < n; i++) {
+        var cx = padL + slot * i + slot / 2;
+        var rH = plotH * (data.rev[i] / maxV), eH = plotH * (data.exp[i] / maxV);
+        g.fillStyle = '#0E2D55';
+        g.fillRect(cx - bw - 2, padT + plotH - rH, bw, rH);
+        g.fillStyle = '#ED6F1F';
+        g.fillRect(cx + 2, padT + plotH - eH, bw, eH);
+        g.fillStyle = '#64748B';
+        g.fillText(data.labels[i], cx, padT + plotH + 16);
+      }
+    }
+
+    function renderChart(force) {
+      var host = byId('udv2_chart_host');
+      if (!host || !isDesk()) return;
+      var data = collectChart();
+      var sum = data.rev.concat(data.exp).reduce(function (a, b) { return a + b; }, 0);
+      var sig = JSON.stringify(data);
+      if (!force && host.__sig === sig && host.__rendered) return;
+      host.__sig = sig; host.__rendered = true;
+      if (sum <= 0) {
+        if (host.__chart) { try { host.__chart.destroy(); } catch (e) {} host.__chart = null; }
+        host.innerHTML = '<div class="ud-chart-empty"><div class="ic">' + ic('chart') + '</div>' +
+          '<div>No revenue or expense recorded yet.<br>Add an invoice or an expense to see this chart.</div></div>';
+        return;
+      }
+      if (window.Chart) { buildChartJs(host, data); return; }
+      ensureChartLib(function (ok) {
+        var h2 = byId('udv2_chart_host'); if (!h2) return;
+        if (ok && window.Chart) buildChartJs(h2, data); else fallbackChart(h2, data);
+      });
+    }
+
+    function ensureChartCard(home, cal) {
+      var card = byId('ud_chart_card');
+      if (!card) {
+        card = document.createElement('div');
+        card.className = 'ud-dash-chart';
+        card.id = 'ud_chart_card';
+        card.innerHTML = '<div class="ud-chart-head"><h3>Revenue vs Expense</h3><span class="ud-chart-sub">Last 6 months</span></div>' +
+          '<div class="ud-chart-body" id="udv2_chart_host"></div>' +
+          '<div class="ud-chart-legend"><span><i style="background:#0E2D55"></i>Revenue</span>' +
+          '<span><i style="background:#ED6F1F"></i>Expense</span></div>';
+        if (cal && cal.parentNode === home) home.insertBefore(card, cal.nextSibling);
+        else {
+          var row = byId('ud_kpi_row');
+          if (row && row.parentNode === home) home.insertBefore(card, row.nextSibling);
+          else home.appendChild(card);
+        }
+      }
+      if (isDesk()) renderChart(false);
+    }
+
+    function ensureDash() {
+      var home = byId('home');
+      if (!home) return;
+      if (home.classList) home.classList.add('ud-dash');
+      var refs = home.__udv2Refs;
+      if (!refs) {
+        refs = home.__udv2Refs = {
+          perf: findPerf(home), prem: findPrem(home), cal: findCal(home)
+        };
+        refs.anchor = refs.prem ? refs.prem.nextElementSibling : (refs.perf ? refs.perf.nextElementSibling : null);
+      }
+      var desk = isDesk();
+      if (desk) {
+        /* remove the duplicate cards on desktop only (mobile keeps them) */
+        if (refs.perf && refs.perf.parentNode) refs.perf.parentNode.removeChild(refs.perf);
+        if (refs.prem && refs.prem.parentNode) refs.prem.parentNode.removeChild(refs.prem);
+      } else {
+        /* restore them, in order, before their original anchor */
+        [refs.perf, refs.prem].forEach(function (n) {
+          if (n && !n.parentNode) {
+            if (refs.anchor && refs.anchor.parentNode === home) home.insertBefore(n, refs.anchor);
+            else home.appendChild(n);
+          }
+        });
+      }
+      ensureKpiRow(home);
+      ensureChartCard(home, refs.cal);
+    }
+
+    /* keep the sub-item highlight from being reset by the shell's own sync */
+    function reassertActive() {
+      var el = window.__udv2ActiveEl;
+      if (!el || !el.isConnected) return;
+      if (el.classList.contains('ud-active')) return;
+      var tab = el.getAttribute('data-tab');
+      var sec = qs('.section.active-section');
+      if (!tab || (sec && sec.id === tab)) markActive(tab, el);
+    }
+
+    /* --------------------------------------------------------- orchestration */
+    var lastTick = 0;
+    function tick() {
+      var now = Date.now();
+      lastTick = now;
+      try { buildNavV2(); } catch (e) {}
+      try { ensureRailFoot(); } catch (e) {}
+      try { ensureDash(); } catch (e) {}
+      try { reassertActive(); } catch (e) {}
+    }
+    var pending = null;
+    function scheduleTick(delay) {
+      if (pending) clearTimeout(pending);
+      pending = setTimeout(function () { pending = null; tick(); }, delay || 250);
+    }
+
+    function boot() { tick(); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+    window.addEventListener('load', tick);
+    [400, 900, 1600, 2400, 3400, 4600, 6000, 8000].forEach(function (t) { setTimeout(tick, t); });
+    window.addEventListener('resize', function () { scheduleTick(220); });
+
+    try {
+      if (window.MutationObserver) {
+        var mo = new MutationObserver(function () { scheduleTick(300); });
+        mo.observe(document.body, { childList: true, subtree: true });
+      }
+    } catch (e) {}
+
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(min-width: 1024px)');
+      if (mq.addEventListener) mq.addEventListener('change', tick);
+      else if (mq.addListener) mq.addListener(tick);
+    }
+
+    window.__udv2 = { tick: tick, renderChart: renderChart };
+  } catch (e) { /* never break the app for a cosmetic shell */ }
+})();
+
+/* ============================================================================
+   PART C - Event Expense must carry a linked event or it will not save.
+   ----------------------------------------------------------------------------
+   The app's own saveExpenseData() is wrapped (its body is untouched), so the
+   rule lives entirely inside the existing expense save path.  It applies on ALL
+   widths.  "General Expense" and "Event All Expense" are unaffected: only a
+   record whose Expense Type is "Event Expense" is blocked without a link.
+   ============================================================================ */
+(function () {
+  'use strict';
+  try {
+    var orig = window.saveExpenseData;
+    if (typeof orig !== 'function') return;
+    if (orig.__udEventGuard) return;
+    var wrapped = function () {
+      try {
+        var sel = document.getElementById('exp_type');
+        var link = document.getElementById('exp_event_link');
+        var isEventExpense = !!(sel && sel.value === 'Event');
+        var hasEvent = !!(link && link.value);
+        if (isEventExpense && !hasEvent) {
+          alert('Event Expense requires a linked event.\n\nPlease pick an event under "Link to Event", or switch the Expense Type back to "General Expense". The expense was NOT saved.');
+          return;
+        }
+      } catch (e) { /* if the guard cannot read the form, fall through to the original save */ }
+      return orig.apply(this, arguments);
+    };
+    wrapped.__udEventGuard = true;
+    window.saveExpenseData = wrapped;
+  } catch (e) {}
+})();
