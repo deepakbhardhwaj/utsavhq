@@ -344,3 +344,245 @@ function wtDeleteItem(k, gi) {
   cfg.render();
   cfg.sync();
 }
+
+/* ============================================================
+   WORK TYPE -> ITEMS  ·  refinement pass (appended)
+
+   Changes requested by the owner:
+     1. Compact the mini item form into four rows.
+     2. Remove the reference-photo section from the mini form
+        (photos stay in the parent / list form only).
+     3. A real work-type dropdown of work types already saved in
+        the app, while still allowing a brand-new one to be typed.
+     4. A work type that holds no items is discarded on save.
+
+   The stored data field is still named "category" everywhere;
+   only the user-facing wording says "Work Type".
+   No totals / print / save / report logic is changed here.
+   ============================================================ */
+
+/* Every work type already used across the app's saved data and
+   settings: the saved category list, the built-in defaults and the
+   categories present on items of all four document types. */
+function wtAllCategories() {
+  var out = [];
+  function add(c) {
+    c = (c == null ? "" : String(c)).trim();
+    if (c && out.indexOf(c) < 0) out.push(c);
+  }
+  try {
+    (appSettings.savedCategories || []).forEach(add);
+    (getDefaultItemCategories() || []).forEach(add);
+    [quoteItemsData, invItemsData, poItemsData, pbItemsData].forEach(function (arr) {
+      (arr || []).forEach(function (it) { add(it && it.category); });
+    });
+  } catch (e) { /* keep whatever was collected so far */ }
+  return out;
+}
+
+/* The dropdown is a shortcut: picking an existing work type fills
+   the text box, picking "Add a new work type..." clears it so a
+   fresh name can be typed. */
+function wtPickWorkType(k, v) {
+  var el = document.getElementById(k + "_wt_input");
+  if (!el) return;
+  if (v === "__new__" || v === "") {
+    el.value = "";
+    el.focus();
+  } else {
+    el.value = v;
+  }
+}
+
+/* Drop any work type that has a name but holds no items. */
+function wtPruneEmptyWorkTypes(k) {
+  var cfg = wtCfg(k), st = wtUIState[k];
+  if (!cfg || !st || !st.pending) return;
+  var ev = cfg.events[cfg.idx()];
+  var evName = ev ? ev.name : null;
+  st.pending = st.pending.filter(function (c) {
+    return cfg.items.some(function (it) {
+      return wtCatOf(it) === c && (evName == null || it.event === evName);
+    });
+  });
+}
+
+/* --- the list form, rebuilt with a real work-type dropdown --- */
+wtListHtml = function (k, t, items) {
+  var cfg = wtCfg(k), st = wtUIState[k];
+  var cats = cfg.getCats(t.name).slice();
+  st.pending.forEach(function (c) { if (c && cats.indexOf(c) < 0) cats.push(c); });
+  var h = "";
+  h += '<div id="' + cfg.listId + '" style="max-height:340px; overflow-y:auto; border:1px solid #E4EBF5; border-radius:16px; background:#fff; margin-bottom:14px; padding:10px;">';
+  h += '<div style="font-size:11.5px; font-weight:900; color:#0E2D55; text-transform:uppercase; letter-spacing:.4px; padding:2px 2px 10px;">Work Types</div>';
+  if (!cats.length) {
+    h += '<p style="font-size:12px; color:#5A6B82; text-align:center; padding:14px 0; margin:0;">No work types yet &mdash; add one below.</p>';
+  }
+  cats.forEach(function (cat) {
+    var cItems = items.filter(function (it) { return wtCatOf(it) === cat; });
+    var total = cfg.disp(t, cat, cItems);
+    h += '<div style="border:1px solid #E4EBF5; border-radius:14px; overflow:hidden; margin-bottom:10px; background:#fff;">';
+    h += '<div style="display:flex; justify-content:space-between; align-items:center; gap:10px; background:#EFF6FF; border-left:4px solid #0E2D55; padding:10px 12px;">';
+    h += '<div style="font-size:12.5px; font-weight:900; color:#0E2D55; letter-spacing:.2px;">' + sanitize(cat) + ' <span style="font-size:10px; color:#3B82F6; font-weight:700;">(' + cItems.length + ' item' + (cItems.length === 1 ? '' : 's') + ')</span></div>';
+    h += '<button type="button" onclick="wtOpenMiniForm(' + wtJsStr(k) + ',' + wtJsStr(cat) + ')" style="flex-shrink:0; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#fff; border:none; border-radius:10px; padding:8px 13px; font-size:11.5px; font-weight:900; cursor:pointer; white-space:nowrap;">+ Add Item</button>';
+    h += '</div>';
+    if (cItems.length) {
+      h += '<table style="width:100%; border-collapse:collapse; font-size:11.5px;">';
+      cItems.forEach(function (it) {
+        var gi = cfg.items.indexOf(it);
+        h += '<tr onclick="wtEditItem(' + wtJsStr(k) + ',' + gi + ')" style="cursor:pointer; border-bottom:1px solid #EEF2F8;">';
+        h += '<td style="padding:8px 10px;"><strong style="color:#0B1220;">' + sanitize(it.name) + '</strong>' + (it.desc ? '<div style="font-size:9.5px; color:#5A6B82;">' + sanitize(it.desc) + '</div>' : '') + '</td>';
+        h += '<td style="padding:8px 6px; text-align:center; color:#5A6B82; white-space:nowrap;">' + it.qty + ' ' + sanitize(it.unit || "Pcs") + '</td>';
+        h += '<td style="padding:8px 6px; text-align:right; color:#5A6B82; white-space:nowrap;">&#8377;' + (it.rate || 0).toLocaleString("en-IN") + '</td>';
+        h += '<td style="padding:8px 6px; text-align:right; font-weight:800; color:#0B1220; white-space:nowrap;">&#8377;' + (it.amount || 0).toLocaleString("en-IN") + '</td>';
+        h += '<td style="padding:4px 8px; text-align:center;"><button type="button" onclick="event.stopPropagation();wtDeleteItem(' + wtJsStr(k) + ',' + gi + ')" style="background:#FEF2F2; border:1px solid #FECACA; color:#DC2626; border-radius:50%; width:22px; height:22px; padding:0; font-size:14px; line-height:1; cursor:pointer;">&times;</button></td>';
+        h += '</tr>';
+      });
+      h += '<tr style="background:#F8FAFF;"><td colspan="3" style="padding:7px 10px; text-align:right; font-size:10.5px; font-weight:800; color:#5A6B82;">Subtotal</td>';
+      h += '<td style="padding:7px 6px; text-align:right;"><input type="number" value="' + (total > 0 ? total : '') + '" placeholder="Amount" oninput="' + cfg.upd + '(' + cfg.idx() + ',' + wtJsStr(cat) + ',this.value)" style="width:96px; padding:4px 6px; font-size:11.5px; font-weight:800; color:#0E2D55; background:#fff; border:1px solid #BFDBFE; border-radius:6px; text-align:right;"></td>';
+      h += '<td></td></tr>';
+      h += '</table>';
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+  var opts = wtAllCategories();
+  cats.forEach(function (c) { if (c && opts.indexOf(c) < 0) opts.push(c); });
+  st.pending.forEach(function (c) { if (c && opts.indexOf(c) < 0) opts.push(c); });
+  h += '<div style="border:1px solid #E4EBF5; border-radius:14px; padding:12px; background:#F8FAFF; margin-bottom:14px;">';
+  h += '<div style="font-size:11px; font-weight:900; color:#0E2D55; text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px;">Add Work Type</div>';
+  h += '<select id="' + k + '_wt_select" class="form-select" onchange="wtPickWorkType(' + wtJsStr(k) + ', this.value)" style="margin-bottom:8px;">';
+  h += '<option value="">Select an existing work type&hellip;</option>';
+  h += opts.map(function (c) { return '<option value="' + wtEscAttr(c) + '">' + sanitize(c) + '</option>'; }).join('');
+  h += '<option value="__new__">+ Add a new work type&hellip;</option>';
+  h += '</select>';
+  h += '<div style="display:flex; gap:8px; align-items:stretch;">';
+  h += '<input type="text" id="' + k + '_wt_input" class="form-input" list="' + k + '_wt_datalist" placeholder="Type or pick a work type..." style="flex:1; min-width:0;">';
+  h += '<button type="button" onclick="wtAddWorkType(' + wtJsStr(k) + ')" style="flex-shrink:0; background:#0E2D55; color:#fff; border:none; border-radius:12px; padding:0 16px; font-size:12px; font-weight:900; cursor:pointer; white-space:nowrap;">+ Add Work Type</button>';
+  h += '</div>';
+  h += '<datalist id="' + k + '_wt_datalist">' + opts.map(function (c) { return '<option value="' + wtEscAttr(c) + '"></option>'; }).join('') + '</datalist>';
+  h += '</div>';
+  return h;
+};
+
+/* --- the mini item form, compacted into four rows ---
+   Row 1: Item Name (full width).
+   Row 2: Quantity + Unit on one line.
+   Row 3: Rate + Item Gross Total on one line.
+   Row 4: Remark on one line.
+   The two buttons are unchanged. */
+wtMiniFormHtml = function (k, t) {
+  var cfg = wtCfg(k), st = wtUIState[k];
+  var it = (st.editIndex !== null && cfg.items[st.editIndex]) ? cfg.items[st.editIndex] : null;
+  var name = it ? it.name : "";
+  var qty = it ? it.qty : 1;
+  var rate = it ? it.rate : 0;
+  var unit = it ? (it.unit || "Pcs") : "Pcs";
+  var remark = it ? (it.desc || "") : "";
+  var h = "";
+  h += '<div class="wt-mini-form" style="border:1px solid #E4EBF5; border-radius:16px; background:#fff; padding:14px; margin-bottom:14px;">';
+  h += '<div style="margin-bottom:12px; font-size:13px; font-weight:900; color:#0E2D55;">' + (st.editIndex !== null ? 'Edit Item' : 'Add Item') + ' &middot; <span style="color:#ED6F1F;">' + sanitize(st.openType) + '</span></div>';
+  h += '<input type="hidden" id="' + k + '_category" value="' + wtEscAttr(st.openType) + '">';
+  /* Row 1: item name, full width */
+  h += '<div class="form-group"><label class="form-label">Item Name</label><input type="text" id="' + k + '_name" class="form-input" value="' + wtEscAttr(name) + '" placeholder="Enter item name"></div>';
+  /* Row 2: quantity + unit side by side */
+  h += '<div class="form-row wt-mini-row">';
+  h += '<div class="form-group"><label class="form-label">Quantity</label><input type="number" id="' + k + '_qty" class="form-input" value="' + qty + '" oninput="wtUpdateTotal(' + wtJsStr(k) + ')"></div>';
+  h += '<div class="form-group"><label class="form-label">Unit</label><select id="' + k + '_unit" class="form-select" onchange="handleUnitChange(this)">' + getUnitOptions(unit) + '</select></div>';
+  h += '</div>';
+  /* Row 3: rate + item gross total side by side */
+  h += '<div class="form-row wt-mini-row">';
+  h += '<div class="form-group"><label class="form-label">Rate</label><input type="number" id="' + k + '_rate" class="form-input" value="' + rate + '" oninput="wtUpdateTotal(' + wtJsStr(k) + ')"></div>';
+  h += '<div class="form-group"><label class="form-label">Item Gross Total</label><div id="' + k + '_gross" class="wt-gross-box">&#8377;' + ((qty * rate) || 0).toLocaleString("en-IN") + '</div></div>';
+  h += '</div>';
+  /* Row 4: remark */
+  h += '<div class="form-group"><label class="form-label">Remark</label><input type="text" id="' + k + '_desc" class="form-input" value="' + wtEscAttr(remark) + '" placeholder="Remark / specification (optional)"></div>';
+  /* the two buttons are unchanged */
+  h += '<div style="display:flex; gap:10px; margin-top:4px;">';
+  h += '<button type="button" onclick="wtSaveItem(' + wtJsStr(k) + ',true)" style="flex:1; background:#fff; color:#0E2D55; border:1.5px solid #0E2D55; border-radius:13px; padding:13px 16px; font-size:13px; font-weight:900; cursor:pointer;">Add More</button>';
+  h += '<button type="button" onclick="wtSaveItem(' + wtJsStr(k) + ',false)" style="flex:1; background:linear-gradient(135deg,#F2892F,#ED6F1F); color:#fff; border:none; border-radius:13px; padding:13px 16px; font-size:13px; font-weight:900; cursor:pointer;">Save</button>';
+  h += '</div>';
+  h += '</div>';
+  return h;
+};
+
+/* --- save: drop empty work types, then keep existing behaviour --- */
+wtSaveItem = function (k, addMore) {
+  var cfg = wtCfg(k), st = wtUIState[k];
+  var ev = cfg.events[cfg.idx()];
+  if (!ev) return;
+  var nameEl = document.getElementById(k + "_name");
+  var name = nameEl ? nameEl.value.trim() : "";
+  if (!name) { alert("Please enter item name!"); return; }
+  var qtyEl = document.getElementById(k + "_qty");
+  var rateEl = document.getElementById(k + "_rate");
+  var unitEl = document.getElementById(k + "_unit");
+  var descEl = document.getElementById(k + "_desc");
+  var qty = parseFloat(qtyEl ? qtyEl.value : "") || 0;
+  var rate = parseFloat(rateEl ? rateEl.value : "") || 0;
+  var unit = unitEl ? unitEl.value : "Pcs";
+  var desc = descEl ? descEl.value.trim() : "";
+  var cat = st.openType || "General";
+  if (st.editIndex !== null && cfg.items[st.editIndex]) {
+    var it = cfg.items[st.editIndex];
+    it.name = name; it.desc = desc; it.unit = unit; it.qty = qty;
+    it.rate = rate; it.amount = qty * rate; it.event = ev.name; it.category = cat;
+  } else {
+    cfg.items.push({
+      name: name, desc: desc, unit: unit, qty: qty,
+      rate: rate, amount: qty * rate, event: ev.name, category: cat
+    });
+  }
+  appSettings.savedCategories || (appSettings.savedCategories = []);
+  if (cat && appSettings.savedCategories.indexOf(cat) < 0) {
+    appSettings.savedCategories.push(cat);
+    saveDataLocally();
+  }
+  /* discard any work type row that ended up with no items */
+  wtPruneEmptyWorkTypes(k);
+  if (addMore) {
+    st.editIndex = null;
+    if (nameEl) nameEl.value = "";
+    if (qtyEl) qtyEl.value = "1";
+    if (rateEl) rateEl.value = "0";
+    if (descEl) descEl.value = "";
+    cfg.gross();
+    cfg.sync();
+    if (nameEl) nameEl.focus();
+  } else {
+    st.openType = null;
+    st.editIndex = null;
+    cfg.render();
+    cfg.sync();
+  }
+};
+
+/* --- keep the reference-photo section out of the mini form ---
+   Each render function appends its photo block after the shared
+   flow. While the mini form is open we remove that block from the
+   DOM; in the parent (list) form nothing is touched, so photo
+   upload / listing / deletion there work exactly as before. */
+(function () {
+  var original = {
+    qiv: renderQuoteItemView,
+    iiv: renderInvItemView,
+    poiv: renderPOItemPopup,
+    pbiv: renderPBItemPopup
+  };
+  function wrap(k, fn) {
+    return function (e) {
+      fn(e);
+      var st = wtUIState[k];
+      if (st && st.openType !== null && st.openType !== undefined) {
+        var grid = document.getElementById(k + "_photos_grid");
+        if (grid && grid.parentElement && grid.parentElement.parentNode) {
+          grid.parentElement.parentNode.removeChild(grid.parentElement);
+        }
+      }
+    };
+  }
+  renderQuoteItemView = wrap("qiv", original.qiv);
+  renderInvItemView = wrap("iiv", original.iiv);
+  renderPOItemPopup = wrap("poiv", original.poiv);
+  renderPBItemPopup = wrap("pbiv", original.pbiv);
+})();
