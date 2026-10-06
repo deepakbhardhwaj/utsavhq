@@ -1019,3 +1019,610 @@ wtMiniFormHtml = function (k, t) {
     }
   } catch (e) { /* never break the app for a cosmetic shell */ }
 })();
+
+/* ============================================================================
+   UTSAVhq - Desktop shell + dashboard, Phase 1 (wide screens >= 1024px only).
+   Appended at EOF; never injected mid-file.  Supersedes the earlier desktop
+   shells: it removes their header chrome and installs a SaasAble-style LEFT
+   SIDEBAR (grouped modules with sub-items, collapsible to an icon-only rail,
+   brand block at the top, user block at the bottom), a header search box and
+   profile dropdown, a KPI dashboard row + card grid, and a data-table skin for
+   the list views.
+
+   Everything here is additive and cosmetic.  It never changes business logic,
+   handlers, element ids, totals, print / save / report paths, Firestore rules
+   or the Work Type flow.  All visual effects are scoped to >= 1024px by the
+   stylesheet, so the mobile layout is untouched.  The whole block is wrapped so
+   any error is swallowed and can never break the app.
+   ============================================================================ */
+(function () {
+  'use strict';
+  try {
+    var MQ = window.matchMedia ? window.matchMedia('(min-width: 1024px)') : null;
+    var LS_MINI = 'utsavhq_ud_rail_mini';
+    var RAIL_ID = 'utsavDeskRail';
+
+    function isDesktop() {
+      return window.__isDesktop ? window.__isDesktop() : !!(MQ && MQ.matches);
+    }
+    function byId(x) { return document.getElementById(x); }
+    function qs(s, r) { return (r || document).querySelector(s); }
+    function qsa(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+
+    /* ---- tiny inline line-icon set (SaasAble-style outline icons) ---------- */
+    var I = {
+      home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+      users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="20 6 9 17 4 12"/>',
+      sales: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+      cart: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>',
+      box: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+      ledger: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+      bank: '<line x1="3" y1="21" x2="21" y2="21"/><path d="M5 21V10l7-6 7 6v11"/><line x1="9" y1="21" x2="9" y2="14"/><line x1="15" y1="21" x2="15" y2="14"/>',
+      wallet: '<path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+      book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+      chart: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+      team: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>',
+      gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+      card: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+      chev: '<polyline points="9 6 15 12 9 18"/>',
+      down: '<polyline points="6 9 12 15 18 9"/>',
+      sort: '<polyline points="8 6 12 2 16 6"/><polyline points="16 18 12 22 8 18"/>',
+      search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+      panel: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>',
+      user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+      building: '<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="6" x2="9" y2="6"/><line x1="15" y1="6" x2="15" y2="6"/><line x1="9" y1="10" x2="9" y2="10"/><line x1="15" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="9" y2="14"/><line x1="15" y1="14" x2="15" y2="14"/>'
+    };
+    function ic(name) {
+      return '<svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">' + (I[name] || I.home) + '</svg>';
+    }
+
+    /* ---- the app's real modules, grouped SaasAble-style ------------------- */
+    var MODULES = [
+      { caption: 'Overview', items: [
+        { label: 'Dashboard', tab: 'home', icon: 'home' }
+      ] },
+      { caption: 'Sales & CRM', items: [
+        { label: 'CRM / Leads', tab: 'crm', icon: 'users', sub: [
+          { label: 'All Leads', tab: 'crm' },
+          { label: 'Add Lead', tab: 'crm', fn: 'openLeadModal' },
+          { label: 'Bulk Import', tab: 'crm', fn: 'udBulkImport' },
+          { label: 'Lead Sources', tab: 'crm', fn: 'openManageSourceModal' }
+        ] },
+        { label: 'Events', tab: 'events', icon: 'cal', sub: [
+          { label: 'All Events', tab: 'events' },
+          { label: 'Add Event', tab: 'events', fn: 'openDirectEventModal' },
+          { label: 'Multi-date Event', tab: 'events', fn: 'openMultiDateModal' }
+        ] },
+        { label: 'Tasks', tab: 'tasks', icon: 'check', sub: [
+          { label: 'Task Board', tab: 'tasks' },
+          { label: 'Add Task', tab: 'tasks', fn: 'openQuickTaskModal' },
+          { label: 'Schedule Meeting', tab: 'tasks', fn: 'openQuickMeetingModal' }
+        ] }
+      ] },
+      { caption: 'Finance', items: [
+        { label: 'Sales Hub', tab: 'sales-hub', icon: 'sales', sub: [
+          { label: 'Invoices', tab: 'sales-hub', fn: 'openDirectInvoiceModal' },
+          { label: 'Quotations', tab: 'sales-hub', fn: 'openQuotationModal' },
+          { label: 'Rental Invoices', tab: 'sales-hub', fn: 'openRentInvoice' },
+          { label: 'Receive Payment', tab: 'sales-hub', fn: 'openPaymentModal' }
+        ] },
+        { label: 'Purchase Hub', tab: 'purchase-hub', icon: 'cart', sub: [
+          { label: 'Purchase Orders', tab: 'purchase-hub', fn: 'openPurchaseOrderModal' },
+          { label: 'Purchase Bills', tab: 'purchase-hub', fn: 'openPurchaseBillModal' },
+          { label: 'Asset Purchases', tab: 'purchase-hub', fn: 'openAssetModal' },
+          { label: 'Vendor Payments', tab: 'purchase-hub', fn: 'openPaymentOutModal' }
+        ] },
+        { label: 'Inventory / Godown', tab: 'inventory-hub', icon: 'box', sub: [
+          { label: 'Item Master', tab: 'inventory-hub', fn: 'openItemMasterModal' },
+          { label: 'Stock Transfer', tab: 'inventory-hub', fn: 'openStockTransferModal' },
+          { label: 'Outward Challans', tab: 'inventory-hub', fn: 'openOutwardChallanModal' },
+          { label: 'Stock Audit Log', tab: 'inventory-hub', fn: 'openStockAuditModal' }
+        ] },
+        { label: 'Party Ledger', tab: 'party-master', icon: 'ledger', sub: [
+          { label: 'All Parties', tab: 'party-master' },
+          { label: 'Add Party', tab: 'party-master', fn: 'openPartyModal' }
+        ] },
+        { label: 'Bank & Cash', tab: 'bank-hub', icon: 'bank', sub: [
+          { label: 'Accounts', tab: 'bank-hub' },
+          { label: 'Add Account', tab: 'bank-hub', fn: 'openAddBankModal' },
+          { label: 'Other Income', tab: 'bank-hub', fn: 'openOtherIncomeModal' },
+          { label: 'Loans', tab: 'bank-hub', fn: 'openLoanModal' }
+        ] },
+        { label: 'Expenses', tab: 'expense-hub', icon: 'wallet', sub: [
+          { label: 'All Expenses', tab: 'expense-hub' },
+          { label: 'Add Expense', tab: 'expense-hub', fn: 'openExpenseModal' },
+          { label: 'Categories', tab: 'expense-hub', fn: 'openManageCatModal' }
+        ] },
+        { label: 'Order Book', tab: 'erp', icon: 'book', sub: [
+          { label: 'Order Book', tab: 'erp' },
+          { label: 'New Order', tab: 'erp', fn: 'openOrderBookModal' }
+        ] }
+      ] },
+      { caption: 'Insights', items: [
+        { label: 'Reports', tab: 'reports-hub', icon: 'chart', sub: [
+          { label: 'Reports Dashboard', tab: 'reports-hub' },
+          { label: 'Recycle Bin', tab: 'reports-hub', fn: 'openRecycleBin' }
+        ] }
+      ] },
+      { caption: 'Administration', items: [
+        { label: 'Staff & Permissions', tab: 'settings-hub', icon: 'team', sub: [
+          { label: 'Team', tab: 'settings-hub', fn: 'openTeamModal' },
+          { label: 'Permissions', tab: 'settings-hub', fn: 'openPermissionSetup' }
+        ] },
+        { label: 'Settings', tab: 'settings-hub', icon: 'gear', sub: [
+          { label: 'App Settings', tab: 'settings-hub' },
+          { label: 'Company Profile', tab: 'settings-hub', fn: 'openCompanyProfile' }
+        ] },
+        { label: 'Digital Card', tab: 'settings-hub', icon: 'card', fn: 'openDigitalCard' }
+      ] }
+    ];
+
+    /* ---- supersede the earlier shells ------------------------------------- */
+    function killLegacyChrome() {
+      var dead = ['railCollapseBtn', 'deskDensityBtn', 'deskTopSearch'];
+      for (var i = 0; i < dead.length; i++) {
+        var n = byId(dead[i]);
+        if (n && n.parentNode) n.parentNode.removeChild(n);
+      }
+      if (document.body.classList) {
+        document.body.classList.remove('desk-rail-collapsed');
+        document.body.classList.remove('desk-density-compact');
+      }
+    }
+
+    /* ---- rail state (icon-only vs full) ----------------------------------- */
+    function applyMini(mini) {
+      if (document.body.classList) document.body.classList.toggle('ud-rail-mini', !!mini);
+      var b = byId('ud_rail_toggle');
+      if (b) {
+        b.setAttribute('aria-label', mini ? 'Expand sidebar' : 'Collapse sidebar');
+        b.setAttribute('title', mini ? 'Expand sidebar' : 'Collapse sidebar');
+      }
+    }
+    function setMini(mini) {
+      try { localStorage.setItem(LS_MINI, mini ? '1' : '0'); } catch (e) {}
+      applyMini(mini);
+    }
+
+    /* ---- navigation ------------------------------------------------------- */
+    function runFn(fn) {
+      if (!fn) return;
+      setTimeout(function () {
+        try {
+          if (fn === 'udBulkImport') { var f = byId('crm_csv_upload'); if (f) f.click(); return; }
+          if (typeof window[fn] === 'function') window[fn]();
+        } catch (e) {}
+      }, 200);
+    }
+    function go(tab, el) {
+      if (!tab) return;
+      try { if (typeof window.openTab === 'function') window.openTab(tab, el || null); } catch (e) {}
+      setActive(tab, el);
+    }
+
+    /* ---- active-item highlight ------------------------------------------- */
+    function setActive(tab, activeEl) {
+      var nav = byId('ud_nav');
+      if (!nav) return;
+      qsa('.ud-item', nav).forEach(function (n) { n.classList.remove('ud-active'); });
+      qsa('.ud-subitem', nav).forEach(function (n) { n.classList.remove('ud-active'); });
+
+      if (activeEl && activeEl.classList && activeEl.classList.contains('ud-subitem')) {
+        activeEl.classList.add('ud-active');
+        var sub = activeEl.closest ? activeEl.closest('.ud-sub') : null;
+        var par = sub ? sub.previousElementSibling : null;
+        if (par && par.classList && par.classList.contains('ud-item')) {
+          par.classList.add('ud-active'); par.classList.add('open');
+          sub.classList.add('open');
+        }
+        return;
+      }
+      var target = (activeEl && activeEl.classList && activeEl.classList.contains('ud-item')) ? activeEl : null;
+      if (!target) {
+        var items = qsa('.ud-item', nav);
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].getAttribute('data-tab') === tab) { target = items[i]; break; }
+        }
+      }
+      if (target) {
+        target.classList.add('ud-active');
+        var s2 = target.nextElementSibling;
+        if (s2 && s2.classList && s2.classList.contains('ud-sub')) {
+          s2.classList.add('open'); target.classList.add('open');
+        }
+      }
+    }
+    function syncActiveFromDOM() {
+      var a = qs('.section.active-section');
+      setActive(a ? a.id : 'home', null);
+    }
+
+    /* ---- build the sidebar ------------------------------------------------ */
+    function buildGroup(g) {
+      var wrap = document.createElement('div');
+      wrap.className = 'ud-group';
+      if (g.caption) {
+        var cap = document.createElement('div');
+        cap.className = 'ud-caption';
+        cap.textContent = g.caption;
+        wrap.appendChild(cap);
+      }
+      g.items.forEach(function (it) {
+        var hasSub = !!(it.sub && it.sub.length);
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'ud-item' + (hasSub ? ' ud-parent' : '');
+        row.setAttribute('data-tab', it.tab || '');
+        row.setAttribute('title', it.label);
+        row.innerHTML = '<span class="ud-ico">' + ic(it.icon) + '</span>' +
+                        '<span class="ud-lbl">' + it.label + '</span>' +
+                        (hasSub ? '<span class="ud-caret">' + ic('chev') + '</span>' : '');
+
+        if (hasSub) {
+          var subWrap = document.createElement('div');
+          subWrap.className = 'ud-sub';
+          it.sub.forEach(function (s) {
+            var a = document.createElement('a');
+            a.className = 'ud-subitem';
+            a.href = 'javascript:void(0);';
+            a.setAttribute('data-tab', s.tab || it.tab || '');
+            a.innerHTML = '<span class="ud-dot"></span><span>' + s.label + '</span>';
+            a.addEventListener('click', function (e) {
+              if (e && e.preventDefault) e.preventDefault();
+              go(s.tab || it.tab, null);
+              setActive(null, a);
+              runFn(s.fn);
+            });
+            subWrap.appendChild(a);
+          });
+          row.addEventListener('click', function () {
+            var isOpen = subWrap.classList.contains('open');
+            go(it.tab, row);
+            if (isOpen) { subWrap.classList.remove('open'); row.classList.remove('open'); }
+            else { subWrap.classList.add('open'); row.classList.add('open'); }
+          });
+          wrap.appendChild(row);
+          wrap.appendChild(subWrap);
+        } else {
+          row.addEventListener('click', function () { go(it.tab, row); runFn(it.fn); });
+          wrap.appendChild(row);
+        }
+      });
+      return wrap;
+    }
+
+    function buildRail() {
+      var rail = byId(RAIL_ID);
+      if (rail) return rail;
+      rail = document.createElement('aside');
+      rail.id = RAIL_ID;
+      rail.className = 'ud-rail';
+      rail.setAttribute('aria-label', 'Main navigation');
+
+      var head = document.createElement('div');
+      head.className = 'ud-rail-head';
+      head.innerHTML = '<div class="ud-brand" id="ud_brand_slot"></div>' +
+        '<button type="button" class="ud-rail-toggle" id="ud_rail_toggle" title="Collapse sidebar" aria-label="Collapse sidebar">' + ic('panel') + '</button>';
+
+      var nav = document.createElement('nav');
+      nav.className = 'ud-nav';
+      nav.id = 'ud_nav';
+      MODULES.forEach(function (g) { nav.appendChild(buildGroup(g)); });
+
+      var foot = document.createElement('div');
+      foot.className = 'ud-rail-foot';
+      foot.innerHTML = '<div class="ud-user" id="ud_user" title="Account">' +
+        '<div class="ud-user-av" id="ud_user_av">U</div>' +
+        '<div class="ud-user-tx"><span class="ud-user-name" id="ud_user_name">User</span>' +
+        '<span class="ud-user-role" id="ud_user_role">Owner</span></div></div>';
+
+      rail.appendChild(head);
+      rail.appendChild(nav);
+      rail.appendChild(foot);
+      document.body.appendChild(rail);
+
+      var tg = byId('ud_rail_toggle');
+      if (tg) tg.addEventListener('click', function () { setMini(!document.body.classList.contains('ud-rail-mini')); });
+      var usr = byId('ud_user');
+      if (usr) usr.addEventListener('click', function (e) { if (e && e.stopPropagation) e.stopPropagation(); openProfileMenu(); });
+
+      if (document.body.classList) document.body.classList.add('ud-has-rail');
+      var mini = false;
+      try { mini = localStorage.getItem(LS_MINI) === '1'; } catch (e) {}
+      applyMini(mini);
+      return rail;
+    }
+
+    /* move the app's own brand node into the rail (same nodes, kept live) */
+    function placeBrand() {
+      var slot = byId('ud_brand_slot');
+      if (!slot) return;
+      var brand = qs('.nav-brand');
+      if (brand && brand.parentNode !== slot) slot.appendChild(brand);
+      syncUser();
+    }
+
+    function syncUser() {
+      var nameEl = byId('top_user_name');
+      var n = nameEl && nameEl.textContent ? nameEl.textContent.trim() : '';
+      var un = byId('ud_user_name'), av = byId('ud_user_av');
+      if (un) un.textContent = n || 'User';
+      if (av) av.textContent = (n && n.charAt(0) ? n.charAt(0) : 'U').toUpperCase();
+      var role = byId('ud_user_role');
+      if (role) {
+        var owner = true;
+        try { owner = !!(window.isCurrentUserOwner && window.isCurrentUserOwner()); } catch (e) {}
+        role.textContent = owner ? 'Owner' : 'Staff';
+      }
+      var pn = byId('ud_pm_name');
+      if (pn) pn.textContent = n || 'User';
+    }
+
+    /* ---- header: search box + profile dropdown --------------------------- */
+    function openProfileMenu() {
+      var m = byId('ud_profile_menu');
+      if (m) m.classList.add('show');
+    }
+    function closeProfileMenu() {
+      var m = byId('ud_profile_menu');
+      if (m) m.classList.remove('show');
+    }
+    function toggleProfileMenu() {
+      var m = byId('ud_profile_menu');
+      if (m) m.classList.toggle('show');
+    }
+
+    function buildHeaderExtras() {
+      var header = qs('.header');
+      if (!header) return;
+      var cluster = header.lastElementChild;
+
+      if (!byId('ud_hdr_search')) {
+        var box = document.createElement('div');
+        box.className = 'ud-hdr-search';
+        box.id = 'ud_hdr_search';
+        box.innerHTML = ic('search') + '<input type="text" id="ud_hdr_search_input" placeholder="Search in the current tab..." autocomplete="off">';
+        if (cluster) header.insertBefore(box, cluster); else header.appendChild(box);
+        var inp = box.querySelector('input');
+        if (inp) inp.addEventListener('input', function () {
+          try {
+            var active = qs('.active-section');
+            if (!active) return;
+            var t = active.querySelector('.search-input');
+            if (!t || t === inp) return;
+            t.value = inp.value;
+            t.dispatchEvent(new Event('input', { bubbles: true }));
+          } catch (e) {}
+        });
+      }
+
+      var prof = header.querySelector('.user-profile');
+      if (prof && !byId('ud_profile_menu')) {
+        if (!prof.querySelector('.ud-prof-caret')) {
+          var c = document.createElement('span');
+          c.className = 'ud-prof-caret';
+          c.innerHTML = ic('down');
+          prof.appendChild(c);
+        }
+        var menu = document.createElement('div');
+        menu.className = 'ud-profile-menu';
+        menu.id = 'ud_profile_menu';
+        menu.innerHTML =
+          '<div class="ud-pm-head"><b id="ud_pm_name">User</b><span>Signed in</span></div>' +
+          '<button type="button" data-act="myprofile">' + ic('user') + ' My Profile</button>' +
+          '<button type="button" data-act="company">' + ic('building') + ' Company Profile</button>' +
+          '<button type="button" data-act="card">' + ic('card') + ' Digital Card</button>' +
+          '<button type="button" data-act="settings">' + ic('gear') + ' Settings</button>' +
+          '<div class="ud-pm-sep"></div>' +
+          '<button type="button" class="ud-danger" data-act="logout">' + ic('logout') + ' Log out</button>';
+        prof.appendChild(menu);
+
+        prof.addEventListener('click', function (e) {
+          if (e && e.stopPropagation) e.stopPropagation();
+          toggleProfileMenu();
+        });
+        menu.addEventListener('click', function (e) {
+          var b = e.target && e.target.closest ? e.target.closest('button[data-act]') : null;
+          if (!b) return;
+          if (e.stopPropagation) e.stopPropagation();
+          var a = b.getAttribute('data-act');
+          closeProfileMenu();
+          try {
+            if (a === 'myprofile' && typeof window.openMyProfileModal === 'function') window.openMyProfileModal();
+            else if (a === 'company' && typeof window.openCompanyProfile === 'function') window.openCompanyProfile();
+            else if (a === 'card' && typeof window.openDigitalCard === 'function') window.openDigitalCard();
+            else if (a === 'settings' && typeof window.openTab === 'function') window.openTab('settings-hub', null);
+            else if (a === 'logout' && typeof window.logoutApp === 'function') window.logoutApp();
+          } catch (err) {}
+        });
+        document.addEventListener('click', closeProfileMenu);
+      }
+      syncUser();
+    }
+
+    /* ---- dashboard: KPI row + card-grid tags ----------------------------- */
+    function kpiCard(key, label, color, icon) {
+      return '<div class="ud-kpi">' +
+        '<div class="ud-kpi-top"><span class="ud-kpi-label">' + label + '</span>' +
+        '<span class="ud-kpi-ico">' + ic(icon) + '</span></div>' +
+        '<div class="ud-kpi-value ' + color + '" id="ud_kpi_' + key + '">&#8377;0</div>' +
+        '<div class="ud-kpi-foot">Live from your books</div></div>';
+    }
+
+    function buildDash() {
+      var home = byId('home');
+      if (!home) return;
+      home.classList.add('ud-dash');
+
+      var kids = home.children, perf = null, prem = null, leads = null, cal = null;
+      var title = kids[0];
+      if (title) title.classList.add('ud-dash-title');
+
+      for (var i = 0; i < kids.length; i++) {
+        var k = kids[i];
+        if (k.id === 'ud_kpi_row' || (k.classList && k.classList.contains('ud-dash-title'))) continue;
+        var txt = k.textContent || '';
+        if (!perf && /business\s*performance/i.test(txt)) perf = k;
+        else if (!prem && k.querySelector && k.querySelector('.premium-erp-card')) prem = k;
+        else if (!leads && k.querySelector && k.querySelector('#home-hot-leads')) leads = k;
+        else if (!cal && k.querySelector && k.querySelector('#cal-grid-body')) cal = k;
+      }
+      if (perf) perf.classList.add('ud-dash-perf');
+      if (prem) prem.classList.add('ud-dash-prem');
+      if (leads) leads.classList.add('ud-dash-leads');
+      if (cal) cal.classList.add('ud-dash-cal');
+
+      if (!byId('ud_kpi_row')) {
+        var row = document.createElement('div');
+        row.className = 'ud-kpi-row';
+        row.id = 'ud_kpi_row';
+        row.innerHTML =
+          kpiCard('revenue', 'Revenue', 'navy', 'sales') +
+          kpiCard('expenses', 'Expenses', 'red', 'wallet') +
+          kpiCard('profit', 'Net Profit', 'green', 'chart') +
+          kpiCard('events', 'Active Events', 'orange', 'cal');
+        if (title && title.nextSibling) home.insertBefore(row, title.nextSibling);
+        else if (title) home.appendChild(row);
+        else home.insertBefore(row, home.firstChild);
+      }
+      syncKpi();
+    }
+
+    function setTxt(idn, v) {
+      var e = byId(idn);
+      if (e && v != null && v !== '') e.textContent = v;
+    }
+    function syncKpi() {
+      var home = byId('home');
+      if (!home || !byId('ud_kpi_row')) return;
+      var rev = null, exp = null, prof = null;
+      qsa('.data-card', home).forEach(function (c) {
+        var lblEl = c.querySelector('div');
+        var vEl = c.querySelector('.data-card-value');
+        if (!lblEl || !vEl) return;
+        var t = (lblEl.textContent || '').trim().toUpperCase();
+        if (t.indexOf('REVENUE') === 0) rev = vEl.textContent;
+        else if (t.indexOf('EXPENSES') === 0) exp = vEl.textContent;
+        else if (t.indexOf('NET') === 0) prof = vEl.textContent;
+      });
+      setTxt('ud_kpi_revenue', rev);
+      setTxt('ud_kpi_expenses', exp);
+      setTxt('ud_kpi_profit', prof);
+      var ae = byId('dash-active-events'); if (ae) setTxt('ud_kpi_events', ae.textContent);
+    }
+    function observeHome() {
+      var home = byId('home');
+      if (!home || home.__udObs || !window.MutationObserver) return;
+      var t = null;
+      var mo = new MutationObserver(function () {
+        if (t) clearTimeout(t);
+        t = setTimeout(syncKpi, 200);
+      });
+      mo.observe(home, { childList: true, subtree: true, characterData: true });
+      home.__udObs = mo;
+    }
+
+    /* ---- data-table skin for the list views ------------------------------ */
+    var TABLES = [
+      { sel: '#sales-list-container', labels: ['Date / Reference', 'Party', 'Amount', 'Status'] },
+      { sel: '#purchase-list-container', labels: ['Date / Reference', 'Vendor', 'Amount', 'Status'] },
+      { sel: '#party-list-container', labels: ['Party', 'Type', 'Balance', 'Actions'] },
+      { sel: '#bank-list-container', labels: ['Account', 'Type', 'Balance', 'Actions'] },
+      { sel: '#expense-list-container', labels: ['Date', 'Category', 'Type', 'Amount'] },
+      { sel: '#orderbook-list-container', labels: ['Order', 'Party', 'Qty', 'Amount'] },
+      { sel: '#item-master-list-container', labels: ['Item', 'Category', 'Stock', 'Rate'] },
+      { sel: '#inventory-list-container', labels: ['Item', 'Godown', 'Qty', 'Value'] }
+    ];
+
+    function tableHead(labels) {
+      var head = document.createElement('div');
+      head.className = 'ud-thead';
+      var html = '';
+      for (var i = 0; i < labels.length; i++) {
+        html += '<div class="ud-th' + (i > 0 ? ' sortable' : '') + '">' + labels[i] +
+                (i > 0 ? '<span class="ud-sort">' + ic('sort') + '</span>' : '') + '</div>';
+      }
+      head.innerHTML = html;
+      return head;
+    }
+    function ensureTableHead(c, labels) {
+      var first = c.firstElementChild;
+      if (first && first.classList && first.classList.contains('ud-thead')) return;
+      c.insertBefore(tableHead(labels), c.firstChild);
+    }
+    function skinTables() {
+      TABLES.forEach(function (t) {
+        var c = qs(t.sel);
+        if (!c) return;
+        c.classList.add('ud-table');
+        ensureTableHead(c, t.labels);
+        if (!c.__udTObs && window.MutationObserver) {
+          var mo = new MutationObserver(function () { ensureTableHead(c, t.labels); });
+          mo.observe(c, { childList: true });
+          c.__udTObs = mo;
+        }
+      });
+    }
+
+    /* ---- keep the active highlight in sync with the app's openTab -------- */
+    function wrapOpenTab() {
+      if (window.__udOpenTabWrapped) return;
+      var orig = window.openTab;
+      if (typeof orig !== 'function') return;
+      window.openTab = function (t, btn) {
+        var r = orig.apply(this, arguments);
+        try { setActive(t, null); } catch (e) {}
+        return r;
+      };
+      window.__udOpenTabWrapped = true;
+    }
+
+    /* ---- orchestration --------------------------------------------------- */
+    function build() {
+      killLegacyChrome();
+      buildRail();
+      placeBrand();
+      buildHeaderExtras();
+      buildDash();
+      observeHome();
+      skinTables();
+      wrapOpenTab();
+      syncActiveFromDOM();
+    }
+
+    function onReady(fn) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+      else fn();
+    }
+
+    /* watch the header / nav bar for late re-renders by the app or the old
+       shell, and re-assert the shell (all builders are idempotent). */
+    function observeChrome() {
+      if (!window.MutationObserver) return;
+      var watch = [qs('.header'), byId('master-nav-bar')];
+      watch.forEach(function (n) {
+        if (!n || n.__udCObs) return;
+        var t = null;
+        var mo = new MutationObserver(function () {
+          if (t) clearTimeout(t);
+          t = setTimeout(function () { killLegacyChrome(); placeBrand(); buildHeaderExtras(); syncActiveFromDOM(); }, 120);
+        });
+        mo.observe(n, { childList: true, subtree: true });
+        n.__udCObs = mo;
+      });
+    }
+
+    onReady(function () { build(); observeChrome(); });
+    window.addEventListener('load', function () { build(); observeChrome(); });
+    setTimeout(function () { build(); observeChrome(); }, 600);
+    setTimeout(function () { build(); observeChrome(); }, 1800);
+    setTimeout(function () { build(); observeChrome(); }, 3600);
+    if (MQ) {
+      if (MQ.addEventListener) MQ.addEventListener('change', function () { try { build(); } catch (e) {} });
+      else if (MQ.addListener) MQ.addListener(function () { try { build(); } catch (e) {} });
+    }
+  } catch (e) { /* never break the app for a cosmetic shell */ }
+})();
