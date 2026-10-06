@@ -1626,3 +1626,188 @@ wtMiniFormHtml = function (k, t) {
     }
   } catch (e) { /* never break the app for a cosmetic shell */ }
 })();
+
+/* ============================================================================
+   UTSAVhq — Desktop nav WIRING FIX (appended at EOF; nothing injected mid-file).
+   ----------------------------------------------------------------------------
+   WHY: the Phase-1 SaasAble rail (built above) created its rows as plain
+   buttons and the Sales/Purchase sub-items only called openTab(parentTab),
+   so (a) the hub sub-views never switched and (b) — the real breakage — the
+   shell's `#home.ud-dash{display:grid}` rule out-specified `.section{display:
+   none}`, so the Home dashboard NEVER hid and every module opened *behind /
+   below* it.  The display fix itself lives in a scoped <style> override in
+   app/index.html; this block handles the behaviour.
+
+   WHAT THIS BLOCK DOES
+     1. Wires the Sales Hub / Purchase Hub rail sub-items to setSalesTab() /
+        setPurchaseTab() (no invented routes).
+     2. Keeps the rail's active highlight in sync with openTab() from ANY
+        route (bottom nav, in-app links, deep links), and highlights the exact
+        sub-item when a hub sub-view is chosen.
+     3. Guarantees the hamburger drawer (openNav/closeNav, #mySidebar) sits
+        above the fixed rail on desktop.
+     4. Restores the .nav-brand node to the bottom bar on mobile, since the
+        rail that hosts it is desktop-only.
+
+   Everything is wrapped so a cosmetic failure can never break the app, and
+   the only part that acts below 1024px is (4), which restores the pre-existing
+   mobile markup.
+   ============================================================================ */
+(function () {
+  try {
+    var RAIL_ID = 'utsavDeskRail';
+    var MQ = window.matchMedia ? window.matchMedia('(min-width: 1024px)') : null;
+    function isDesktop() { return MQ ? MQ.matches : true; }
+    function byId(x) { return document.getElementById(x); }
+
+    /* rail sub-item label  ->  Sales/Purchase sub-view id
+       (the ids setSalesTab/setPurchaseTab already understand) */
+    var SALES_SUB = {
+      'Invoices': 'Invoice',
+      'Quotations': 'Quotation',
+      'Rental Invoices': 'Invoice',
+      'Receive Payment': 'Receipt'
+    };
+    var PURCH_SUB = {
+      'Purchase Orders': 'PO',
+      'Purchase Bills': 'PB',
+      'Asset Purchases': 'Asset',
+      'Vendor Payments': 'PaymentOut'
+    };
+
+    function railEl() { return byId(RAIL_ID); }
+
+    function subLabel(subItem) {
+      var spans = subItem.querySelectorAll ? subItem.querySelectorAll('span') : [];
+      var t = '';
+      for (var i = 0; i < spans.length; i++) {
+        var tx = (spans[i].textContent || '').trim();
+        if (tx) t = tx;                       /* last non-empty span = the label */
+      }
+      return t || (subItem.textContent || '').trim();
+    }
+
+    function parentTabOf(subItem) {
+      var sub = subItem.closest ? subItem.closest('.ud-sub') : null;
+      var par = sub ? sub.previousElementSibling : null;
+      return (par && par.classList && par.classList.contains('ud-item'))
+        ? (par.getAttribute('data-tab') || '') : '';
+    }
+
+    /* mirror openTab()'s own highlight so the rail always reflects reality */
+    function activate(tab, activeEl) {
+      var rail = railEl();
+      if (!rail) return;
+      var i, items = rail.querySelectorAll('.ud-item');
+      for (i = 0; i < items.length; i++) items[i].classList.remove('ud-active');
+      var subs = rail.querySelectorAll('.ud-subitem');
+      for (i = 0; i < subs.length; i++) subs[i].classList.remove('ud-active');
+
+      if (activeEl && activeEl.classList && activeEl.classList.contains('ud-subitem')) {
+        activeEl.classList.add('ud-active');
+        var sub = activeEl.closest ? activeEl.closest('.ud-sub') : null;
+        var par = sub ? sub.previousElementSibling : null;
+        if (par && par.classList && par.classList.contains('ud-item')) {
+          par.classList.add('ud-active'); par.classList.add('open');
+          sub.classList.add('open');
+        }
+        return;
+      }
+      for (i = 0; i < items.length; i++) {
+        if (items[i].getAttribute('data-tab') === tab) {
+          items[i].classList.add('ud-active');
+          var s2 = items[i].nextElementSibling;
+          if (s2 && s2.classList && s2.classList.contains('ud-sub')) {
+            s2.classList.add('open'); items[i].classList.add('open');
+          }
+          break;
+        }
+      }
+    }
+
+    /* 1) hub sub-items -> real sub-view switch.  Capture phase so the shell's
+          original handler (which popped an unrelated "new record" modal) is
+          skipped for these rows only. */
+    function onSubClick(e) {
+      var s = e.target && e.target.closest ? e.target.closest('.ud-subitem') : null;
+      if (!s) return;
+      var ptab = parentTabOf(s);
+      var lbl = subLabel(s);
+      var handled = false;
+      try {
+        if (ptab === 'sales-hub' && Object.prototype.hasOwnProperty.call(SALES_SUB, lbl)) {
+          if (e.preventDefault) e.preventDefault();
+          if (e.stopPropagation) e.stopPropagation();
+          if (typeof window.openTab === 'function') window.openTab('sales-hub', null);
+          if (typeof window.setSalesTab === 'function') window.setSalesTab(SALES_SUB[lbl], null);
+          else if (typeof window.openSalesListView === 'function') window.openSalesListView(SALES_SUB[lbl], lbl);
+          handled = true;
+        } else if (ptab === 'purchase-hub' && Object.prototype.hasOwnProperty.call(PURCH_SUB, lbl)) {
+          if (e.preventDefault) e.preventDefault();
+          if (e.stopPropagation) e.stopPropagation();
+          if (typeof window.openTab === 'function') window.openTab('purchase-hub', null);
+          if (typeof window.setPurchaseTab === 'function') window.setPurchaseTab(PURCH_SUB[lbl], null);
+          else if (typeof window.openPurchaseListView === 'function') window.openPurchaseListView(PURCH_SUB[lbl], lbl);
+          handled = true;
+        }
+      } catch (err) { /* fall through to the shell's own handler */ }
+      if (handled) activate(ptab, s);
+    }
+
+    /* 2) keep the rail highlight synced with every openTab() call */
+    function wrapOpenTab() {
+      if (window.__udNavFixWrapped) return;
+      var cur = window.openTab;
+      if (typeof cur !== 'function') return;
+      var wrapped = function (t, btn) {
+        var r = cur.apply(this, arguments);
+        try { activate(t, null); } catch (e) {}
+        return r;
+      };
+      wrapped.__udNavFix = true;
+      window.openTab = wrapped;
+      window.__udNavFixWrapped = true;
+    }
+
+    /* 3) hamburger drawer must clear the fixed rail on desktop */
+    function ensureDrawer() {
+      var sb = byId('mySidebar');
+      if (sb && isDesktop()) sb.style.zIndex = '2100';
+    }
+
+    /* 4) mobile: the rail (which hosts .nav-brand) does not exist below
+          1024px, so put the brand node back in the bottom bar. */
+    function restoreMobileBrand() {
+      if (isDesktop()) return;
+      var nav = byId('master-nav-bar');
+      var slot = byId('ud_brand_slot');
+      var brand = document.querySelector('.nav-brand');
+      if (nav && brand && brand.parentNode === slot) nav.insertBefore(brand, nav.firstChild);
+    }
+
+    function bind() {
+      var rail = railEl();
+      if (rail && !rail.__udNavBound) {
+        rail.addEventListener('click', onSubClick, true);
+        rail.__udNavBound = true;
+      }
+      wrapOpenTab();
+      ensureDrawer();
+      restoreMobileBrand();
+    }
+
+    function onReady(fn) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+      else fn();
+    }
+    onReady(bind);
+    window.addEventListener('load', bind);
+    setTimeout(bind, 800);
+    setTimeout(bind, 2000);
+    setTimeout(bind, 4000);
+    if (MQ) {
+      if (MQ.addEventListener) MQ.addEventListener('change', bind);
+      else if (MQ.addListener) MQ.addListener(bind);
+    }
+  } catch (e) { /* never break the app for a nav fix */ }
+})();
