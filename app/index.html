@@ -4877,6 +4877,7 @@
                     <button class="modal-close" onclick="closePOItemViewPanel()">&times;</button>
                 </div>
                 <div id="poItemViewBody" style="padding:0 0 12px 0;"></div>
+                <button onclick="closePOItemViewPanel()" class="btn-main" style="font-size:12px;">Done</button>
                 
             </div>
         </div>
@@ -4888,6 +4889,7 @@
                     <button class="modal-close" onclick="closePBItemViewPanel()">&times;</button>
                 </div>
                 <div id="pbItemViewBody" style="padding:0 0 12px 0;"></div>
+                <button onclick="closePBItemViewPanel()" class="btn-main" style="font-size:12px;">Done</button>
             </div>
         </div>
         <div id="poPreviewModal" class="modal-overlay item-popup-overlay" style="display:none;">
@@ -6276,6 +6278,20 @@ window.addEventListener('load', window.renderRailBrand);
 }
 /* the Appearance font-size setting uses a root zoom — never let it change the printed bill */
 @media print { html { zoom: 1 !important; } }
+
+/* ---------- Work Type -> Items flow ---------- */
+.item-popup-overlay .wt-mini-form { background:#fff; }
+.item-popup-overlay #qiv_wt_input, .item-popup-overlay #iiv_wt_input,
+.item-popup-overlay #poiv_wt_input, .item-popup-overlay #pbiv_wt_input {
+  font-size:13px; font-weight:700; letter-spacing:.1px;
+}
+.item-popup-overlay datalist { display:none; }
+.item-popup-overlay button[onclick*="wtOpenMiniForm"] { box-shadow:0 5px 12px rgba(237,111,31,.30); transition:transform .12s; }
+.item-popup-overlay button[onclick*="wtOpenMiniForm"]:active { transform:scale(.96); }
+.item-popup-overlay button[onclick*="wtAddWorkType"] { box-shadow:0 5px 12px rgba(14,45,85,.22); transition:transform .12s; }
+.item-popup-overlay button[onclick*="wtAddWorkType"]:active { transform:scale(.96); }
+.item-popup-overlay button[onclick*="wtSaveItem"] { transition:transform .12s; }
+.item-popup-overlay button[onclick*="wtSaveItem"]:active { transform:scale(.96); }
 </style>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════════
