@@ -22,7 +22,7 @@
 // automatically delete ho jaata hai.
 // ==========================================================
 
-const CACHE_VERSION = 'v48';
+const CACHE_VERSION = 'v49';
 const CACHE_NAME = `utsavhq-static-${CACHE_VERSION}`;
 
 // App shell — ye files offline bhi chalti hain
