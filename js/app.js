@@ -811,3 +811,133 @@ wtMiniFormHtml = function (k, t) {
   h += '</div>';
   return h;
 };
+
+/* ============================================================================
+   UTSAVhq — Desktop Phase 1 shell (wide screens >= 1024px only).
+   Appended at EOF. Additive and cosmetic ONLY: it never changes business
+   logic, handlers, totals, print/save/report code or Firestore rules.
+   It (a) moves the existing brand nodes into the top bar, (b) adds a global
+   search box, (c) adds a sidebar collapse toggle and (d) a density toggle.
+   All visual effects are scoped to >=1024px in the CSS, so the mobile layout
+   is unchanged. The whole block is wrapped so any error is swallowed.
+   ============================================================================ */
+(function () {
+  try {
+    var LS_RAIL    = 'utsavhq_desktop_rail_collapsed'; /* '1' | '0' */
+    var LS_DENSITY = 'utsavhq_desktop_density';        /* 'compact' | 'comfortable' */
+
+    function onReady(fn) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+      else fn();
+    }
+
+    /* --- apply persisted state as body classes (CSS scopes the visible effect
+           to desktop, so this is a no-op visually on mobile) --- */
+    function applyState() {
+      try {
+        var rail  = localStorage.getItem(LS_RAIL) === '1';
+        var dens  = localStorage.getItem(LS_DENSITY) === 'compact';
+        document.body.classList.toggle('desk-rail-collapsed', rail);
+        document.body.classList.toggle('desk-density-compact', dens);
+      } catch (e) {}
+    }
+
+    function setRail(collapsed) {
+      document.body.classList.toggle('desk-rail-collapsed', collapsed);
+      try { localStorage.setItem(LS_RAIL, collapsed ? '1' : '0'); } catch (e) {}
+      var b = document.getElementById('railCollapseBtn');
+      if (b) {
+        b.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        var lbl = b.querySelector('.rc-label');
+        if (lbl) lbl.textContent = collapsed ? 'Expand' : 'Collapse';
+      }
+    }
+
+    function setDensity(compact) {
+      document.body.classList.toggle('desk-density-compact', compact);
+      try { localStorage.setItem(LS_DENSITY, compact ? 'compact' : 'comfortable'); } catch (e) {}
+      var b = document.getElementById('deskDensityBtn');
+      if (b) {
+        var l = b.querySelector('.dd-label');
+        if (l) l.textContent = compact ? 'Compact' : 'Comfortable';
+      }
+    }
+
+    function buildShell() {
+      var nav    = document.getElementById('master-nav-bar');
+      var header = document.querySelector('.header');
+      if (!nav || !header) return;
+      var cluster = header.lastElementChild; /* the FY / notification / profile group */
+
+      /* 1) move the existing brand into the top bar (same nodes, no duplicates) */
+      var brand = nav.querySelector('.nav-brand');
+      if (brand && brand.parentNode !== header) header.insertBefore(brand, header.firstChild);
+
+      /* 2) global search box — mirrors typing into the active tab's own search
+            input so the EXISTING filtering logic runs; it adds no new logic. */
+      if (!document.getElementById('deskTopSearch')) {
+        var box = document.createElement('div');
+        box.className = 'topbar-search';
+        box.id = 'deskTopSearch';
+        box.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+          '<circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>' +
+          '<input type="text" id="deskTopSearchInput" placeholder="Search current tab..." autocomplete="off">';
+        if (cluster) header.insertBefore(box, cluster); else header.appendChild(box);
+        var inp = box.querySelector('input');
+        inp.addEventListener('input', function () {
+          try {
+            var active = document.querySelector('.active-section');
+            if (!active) return;
+            var target = active.querySelector('.search-input');
+            if (!target || target === inp) return;
+            target.value = inp.value;
+            target.dispatchEvent(new Event('input', { bubbles: true }));
+          } catch (e) {}
+        });
+      }
+
+      /* 3) density toggle in the top bar */
+      if (!document.getElementById('deskDensityBtn')) {
+        var db = document.createElement('button');
+        db.type = 'button';
+        db.id = 'deskDensityBtn';
+        db.className = 'desk-density-btn';
+        db.title = 'Toggle row density';
+        db.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+          '<line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line>' +
+          '<line x1="3" y1="18" x2="21" y2="18"></line></svg><span class="dd-label">Comfortable</span>';
+        if (cluster) header.insertBefore(db, cluster); else header.appendChild(db);
+        db.addEventListener('click', function () {
+          setDensity(!document.body.classList.contains('desk-density-compact'));
+        });
+      }
+
+      /* 4) sidebar collapse toggle, pinned to the bottom of the rail */
+      if (!document.getElementById('railCollapseBtn')) {
+        var rb = document.createElement('button');
+        rb.type = 'button';
+        rb.id = 'railCollapseBtn';
+        rb.className = 'rail-collapse-btn';   /* NOT .nav-btn — openTab() must ignore it */
+        rb.title = 'Collapse / expand sidebar';
+        rb.setAttribute('aria-label', 'Collapse sidebar');
+        rb.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+          '<polyline points="15 18 9 12 15 6"></polyline></svg><span class="rc-label">Collapse</span>';
+        nav.appendChild(rb);
+        rb.addEventListener('click', function () {
+          setRail(!document.body.classList.contains('desk-rail-collapsed'));
+        });
+      }
+
+      /* reflect the current state in the freshly built controls */
+      setDensity(document.body.classList.contains('desk-density-compact'));
+      setRail(document.body.classList.contains('desk-rail-collapsed'));
+    }
+
+    applyState();
+    onReady(buildShell);
+    window.addEventListener('load', buildShell); /* survive a late header re-render */
+  } catch (e) { /* never break the app for a cosmetic shell */ }
+})();
