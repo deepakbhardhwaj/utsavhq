@@ -5095,6 +5095,14 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">Expense Type</label>
+                        <select id="exp_type" class="form-select">
+                            <option value="General">General Expense</option>
+                            <option value="Event">Event Expense (requires a linked event)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">Link to Event (Optional)</label>
                         <select id="exp_event_link" class="form-select"
                             onchange="handleEventLinkChange('exp')"></select>
@@ -7908,6 +7916,97 @@ body:not(.on-home) #nexa-fab { display: none !important; }
   #home.ud-dash.active-section { display: grid !important; }
 }
 </style>
+<style id="desktop-dashboard-v2-css">
+/* ============================================================================
+   UTSAVhq - Desktop dashboard v2 + grouped sidebar v2  (wide screens ONLY).
+   ----------------------------------------------------------------------------
+   Companion to js/app.js (appended at EOF).  This block only styles what that
+   script builds, and every rule is scoped to `@media (min-width: 1024px)`
+   except the single base rule that keeps the new chart card hidden on phones.
+   Below 1024px this block does nothing, so the mobile bottom tab bar, the
+   cards and the hamburger behave exactly as before.
+
+   Palette: the app's own navy #0E2D55 and orange #ED6F1F / #F2892F. No purple.
+   ============================================================================ */
+
+/* The advanced chart card is a desktop-only element: hide it on phones so the
+   mobile dashboard is byte-for-byte the same as before. */
+.ud-dash-chart { display: none; }
+
+@media (min-width: 1024px) {
+
+  /* The dashboard grid lives in #desktop-phase1-css.  The four KPI boxes are
+     the headline row; the "Business Performance", "Active Events / Total
+     Leads" duplicate cards are detached from the DOM by the script on desktop,
+     and this is a belt-and-braces guard so a late re-render can never flash
+     them back. */
+  #home.ud-dash .ud-dash-perf,
+  #home.ud-dash .ud-dash-prem { display: none !important; }
+
+  /* order the dashboard blocks: title -> KPI row -> calendar|chart -> leads */
+  #home.ud-dash .ud-dash-title { order: 1; }
+  #home.ud-dash .ud-kpi-row    { order: 2; }
+  #home.ud-dash .ud-dash-cal   { order: 3; grid-column: span 5; }
+  #home.ud-dash .ud-dash-chart { order: 4; grid-column: span 7; display: flex; }
+  #home.ud-dash .ud-dash-leads { order: 5; grid-column: 1 / -1; }
+
+  /* ---- clickable KPI boxes --------------------------------------------- */
+  .ud-kpi-click { cursor: pointer; }
+  .ud-kpi-click:hover {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+    transform: translateY(-2px);
+    border-color: #F6D3B4;
+  }
+  .ud-kpi-click:focus-visible { outline: 2px solid var(--ud-orange); outline-offset: 2px; }
+  .ud-kpi-arrow { width: 14px; height: 14px; color: var(--ud-muted-2); }
+  .ud-kpi-arrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .ud-kpi-click:hover .ud-kpi-arrow { color: var(--ud-orange); }
+
+  /* ---- the advanced chart card ----------------------------------------- */
+  .ud-dash-chart {
+    flex-direction: column;
+    background: var(--ud-surface);
+    border: 1px solid var(--ud-border);
+    border-radius: var(--ud-card-radius);
+    box-shadow: var(--ud-card-shadow);
+    padding: 16px 18px 12px;
+    min-width: 0;
+  }
+  .ud-chart-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .ud-chart-head h3 { margin: 0; font-size: 14px; font-weight: 800; color: var(--ud-navy); letter-spacing: -0.2px; }
+  .ud-chart-head .ud-chart-sub { font-size: 11px; font-weight: 600; color: var(--ud-muted-2); white-space: nowrap; }
+  .ud-chart-body { position: relative; width: 100%; height: 272px; }
+  .ud-chart-body canvas { display: block; }
+  .ud-chart-empty {
+    height: 272px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; color: var(--ud-muted-2); font-size: 12.5px; font-weight: 600; text-align: center; line-height: 1.6;
+  }
+  .ud-chart-empty .ic { width: 38px; height: 38px; color: #CBD5E1; }
+  .ud-chart-empty .ic svg { width: 38px; height: 38px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+  .ud-chart-legend { display: flex; gap: 16px; align-items: center; margin-top: 8px; padding-left: 2px; }
+  .ud-chart-legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--ud-muted); }
+  .ud-chart-legend i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  /* ---- rail footer: company row, under the user row -------------------- */
+  .ud-company {
+    display: flex; align-items: center; gap: 10px; padding: 8px 8px; border-radius: 10px;
+    cursor: pointer; margin-top: 2px; transition: background 0.15s ease;
+  }
+  .ud-company:hover { background: var(--ud-hover); }
+  .ud-company-ic {
+    flex: none; width: 36px; height: 36px; border-radius: 10px;
+    background: var(--ud-orange-soft2); color: var(--ud-orange);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ud-company-ic svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .ud-company-tx { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+  .ud-company-name { font-size: 13px; font-weight: 800; color: var(--ud-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ud-company-sub { font-size: 11px; font-weight: 600; color: var(--ud-muted-2); }
+  body.ud-rail-mini .ud-company-tx { display: none !important; }
+  body.ud-rail-mini .ud-company { justify-content: center; }
+}
+</style>
+
 </body>
 
 </html>
