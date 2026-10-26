@@ -2848,3 +2848,457 @@ wtMiniFormHtml = function (k, t) {
     window.__udB2 = { tick: tick, buildNavExtras: buildNavExtras, buildPriority: buildPriority };
   } catch (e) { /* never break the app for a cosmetic shell */ }
 })();
+
+/* ============================================================================
+   STAGE 1 - SCALABILITY FOUNDATION
+   ----------------------------------------------------------------------------
+   Two small, independent things live in this block. Neither one changes the
+   data model, the totals, printing, reports or any screen:
+
+     1. SCHEMA VERSION + MIGRATION SCAFFOLD
+        Every workspace document (workspace_data/{companyId}) now carries a
+        `schemaVersion` number. On load we compare the stored number with
+        CURRENT_SCHEMA_VERSION and run the ordered migration steps that are
+        missing. At version 1 there are no data-shape steps yet - the scaffold
+        only stamps `schemaVersion: 1` on existing workspaces the first time
+        they open the app, so that future shape changes can be rolled out
+        client by client safely.
+
+     2. SILENT DATA SIZE METER
+        The whole workspace still lives in ONE Firestore document, which is
+        capped at 1 MB. This meter measures the serialised size of the loaded
+        data, keeps it on window.utsavDataSize and prints ONE console line plus
+        a console warning once the workspace passes 600 KB. It is console-only
+        on purpose: a customer must never see a limit, a percentage or the
+        word "full". The only optional surface is one neutral, owner-only line
+        in Settings > About ("Workspace usage: 412 KB").
+
+   Safety rules followed here:
+     - appended at the END of js/app.js, nothing injected mid-file;
+     - every entry point is wrapped in try/catch, so a failure inside the
+       migration or the meter can never stop the app from opening;
+     - the migration works on a CLONE of the document, so a broken step
+       leaves the live data untouched.
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  /* ------------------------------------------------------------------ config */
+
+  /* Bump this when the shape of workspace_data changes. Each bump must come
+     with a matching entry in MIGRATIONS below (index = version it upgrades
+     FROM), otherwise the scaffold refuses to run and leaves data untouched. */
+  var CURRENT_SCHEMA_VERSION = 1;
+
+  /* Owner-facing console warning threshold, in KB. Firestore's hard cap for a
+     single document is 1024 KB (1 MB), so 600 KB is the "start planning the
+     move to per-collection storage" line. */
+  var SIZE_WARN_KB = 600;
+
+  /* Ordered migration steps.
+     MIGRATIONS[0] upgrades a document from schemaVersion 0 (i.e. a workspace
+     created before this stage existed - missing field) to version 1.
+     A step receives the cloned document and must return the migrated document
+     (returning nothing keeps the document it was given).
+
+     HOW TO ADD A FUTURE MIGRATION
+       1. add a step object with from: N, to: N + 1 at the end of this array;
+       2. bump CURRENT_SCHEMA_VERSION to N + 1;
+       3. keep the step pure and idempotent - it will also run against
+          workspaces that already have some of the new shape. */
+  var MIGRATIONS = [
+    {
+      from: 0,
+      to: 1,
+      describe: 'stamp schemaVersion 1 (no data shape change)',
+      run: function (data) { return data; }
+    }
+  ];
+
+  /* --------------------------------------------------------------- internal */
+
+  var state = {
+    currentSchemaVersion: CURRENT_SCHEMA_VERSION,
+    storedVersion: null,
+    migratedFrom: null,
+    migratedTo: null,
+    stepsApplied: [],
+    error: null,
+    lastRunAt: null
+  };
+  /* exposed for support / debugging from the console only */
+  window.utsavSchema = state;
+
+  var stampedThisSession = {};
+  var loggedCurrent = false;
+  var sizeLogged = false;
+  var sizeWarned = false;
+  var lastMeasureAt = 0;
+
+  function logInfo(message, extra) {
+    try {
+      if (extra !== undefined) console.log('[UTSAV schema] ' + message, extra);
+      else console.log('[UTSAV schema] ' + message);
+    } catch (e) {}
+  }
+  function logWarn(message, extra) {
+    try {
+      if (extra !== undefined) console.warn('[UTSAV schema] ' + message, extra);
+      else console.warn('[UTSAV schema] ' + message);
+    } catch (e) {}
+  }
+  function currentWorkspaceIdSafe() {
+    try { return currentWorkspaceId || null; } catch (e) { return null; }
+  }
+
+  /* --------------------------------------------------- 1. schema versioning */
+
+  /* A workspace created before this stage has no schemaVersion at all, which
+     means "version 0". Anything unreadable is treated as 0 as well, so an odd
+     value can never block a migration forever. */
+  function readStoredVersion(data) {
+    if (!data || typeof data !== 'object') return 0;
+    var value = data.schemaVersion;
+    if (value === undefined || value === null || value === '') return 0;
+    value = Number(value);
+    if (!isFinite(value) || value <= 0) return 0;
+    return Math.floor(value);
+  }
+
+  /* Write the new version through the SAME document the app already saves to
+     (workspace_data/{companyId}). saveDataLocally() writes that document with
+     .update(), which merges at field level, so the version stamped here is
+     preserved by every later save instead of being overwritten. */
+  function persistSchemaVersion(version, workspaceId) {
+    try {
+      if (!workspaceId) return false;
+      if (typeof db === 'undefined' || !db) return false;
+      if (typeof auth === 'undefined' || !auth || !auth.currentUser) return false;
+      var ref = db.collection('workspace_data').doc(workspaceId);
+      var payload = { schemaVersion: version };
+      var write = ref.update(payload);
+      if (write && typeof write.catch === 'function') {
+        write.catch(function (err) {
+          /* the document may not exist yet - fall back to a merging set */
+          try {
+            var second = ref.set(payload, { merge: true });
+            if (second && typeof second.catch === 'function') {
+              second.catch(function (err2) {
+                logWarn('could not persist schemaVersion (app continues normally):', err2);
+              });
+            }
+          } catch (e) {
+            logWarn('could not persist schemaVersion (app continues normally):', err);
+          }
+        });
+      }
+      return true;
+    } catch (e) {
+      logWarn('could not persist schemaVersion (app continues normally):', e);
+      return false;
+    }
+  }
+
+  /* Compare the stored version with CURRENT_SCHEMA_VERSION and run the missing
+     steps in order. Returns the document to use in memory: the migrated clone
+     on success, the ORIGINAL untouched document on any failure. */
+  function migrateWorkspaceDoc(doc) {
+    state.lastRunAt = new Date().toISOString();
+    if (!doc || typeof doc !== 'object') return doc;
+
+    var stored = readStoredVersion(doc);
+    state.storedVersion = stored;
+
+    if (stored >= CURRENT_SCHEMA_VERSION) {
+      if (!loggedCurrent) {
+        loggedCurrent = true;
+        logInfo('workspace schema version ' + stored + ' is current - no migration needed.');
+      }
+      return doc;
+    }
+
+    var workspaceId = currentWorkspaceIdSafe();
+    var applied = [];
+    try {
+      /* work on a clone: if a step throws, the data the app is using stays
+         exactly as it was loaded */
+      var working = JSON.parse(JSON.stringify(doc));
+
+      for (var version = stored; version < CURRENT_SCHEMA_VERSION; version++) {
+        var step = MIGRATIONS[version];
+        if (!step) {
+          throw new Error('no migration step registered for version ' + version + ' -> ' + (version + 1));
+        }
+        var result = step.run(working);
+        if (result && typeof result === 'object') working = result;
+        applied.push(step.describe || ('v' + version + ' -> v' + (version + 1)));
+      }
+
+      working.schemaVersion = CURRENT_SCHEMA_VERSION;
+
+      /* persist once per workspace per page load */
+      if (workspaceId && !stampedThisSession[workspaceId]) {
+        stampedThisSession[workspaceId] = true;
+        persistSchemaVersion(CURRENT_SCHEMA_VERSION, workspaceId);
+      }
+
+      state.migratedFrom = stored;
+      state.migratedTo = CURRENT_SCHEMA_VERSION;
+      state.stepsApplied = applied;
+      state.error = null;
+
+      logInfo(
+        'migrated workspace ' + (workspaceId || '(unknown)') + ' from schema version ' + stored +
+        ' to ' + CURRENT_SCHEMA_VERSION + ' - ' + applied.length + ' step(s): ' + applied.join('; ') +
+        '. Persisted schemaVersion=' + CURRENT_SCHEMA_VERSION + '.'
+      );
+      return working;
+    } catch (err) {
+      state.error = (err && err.message) ? err.message : String(err);
+      logWarn('migration failed and was skipped - workspace data left untouched, app continues normally.', err);
+      return doc;
+    }
+  }
+
+  /* The app hydrates the workspace document through applyWorkspaceDataToMemory()
+     (Firestore snapshot and the session cache both go through it). Wrapping it
+     lets us migrate BEFORE the data reaches the app globals, without touching
+     the minified body. If the wrap cannot be installed we fall back to a single
+     explicit read of the same document. */
+  function installHydrationHook() {
+    try {
+      if (typeof applyWorkspaceDataToMemory !== 'function') return false;
+      if (applyWorkspaceDataToMemory.__stage1Hook) return true;
+
+      var original = applyWorkspaceDataToMemory;
+      var wrapped = function (doc) {
+        var migrated = doc;
+        try { migrated = migrateWorkspaceDoc(doc); } catch (e) { migrated = doc; }
+        var result = original.apply(this, [migrated]);
+        try { measureDataSize('hydrate'); } catch (e) {}
+        return result;
+      };
+      wrapped.__stage1Hook = true;
+      applyWorkspaceDataToMemory = wrapped;
+      return applyWorkspaceDataToMemory === wrapped;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* Fallback: only used when the hook is missing or never fired, so it costs
+     at most one extra document read, once. */
+  function fallbackMigrateOnce() {
+    try {
+      if (state.storedVersion !== null) return;
+      if (!window.__workspaceHydrated) return;
+      var workspaceId = currentWorkspaceIdSafe();
+      if (!workspaceId) return;
+      if (typeof db === 'undefined' || !db) return;
+      state.storedVersion = -1; /* guard against a second attempt */
+      db.collection('workspace_data').doc(workspaceId).get().then(function (snap) {
+        state.storedVersion = null;
+        if (snap && snap.exists) migrateWorkspaceDoc(snap.data());
+      }).catch(function (err) {
+        state.storedVersion = null;
+        logWarn('could not read the workspace document for migration (app continues normally):', err);
+      });
+    } catch (e) {}
+  }
+
+  /* ----------------------------------------------------- 2. data size meter */
+
+  /* Same keys saveDataLocally() writes into workspace_data, so the breakdown
+     maps 1:1 onto what is actually stored in the document. Read through
+     functions because these are script-scope `let` bindings that must not
+     throw if one of them is ever renamed. */
+  var SECTIONS = [
+    ['leads', function () { return leadsDB; }],
+    ['parties', function () { return partiesDB; }],
+    ['sales', function () { return salesDB; }],
+    ['purchase', function () { return purchaseDB; }],
+    ['expense', function () { return expenseDB; }],
+    ['globalTasks', function () { return globalTasksDB; }],
+    ['bank', function () { return bankDB; }],
+    ['bankTx', function () { return bankTxDB; }],
+    ['loans', function () { return loansDB; }],
+    ['items', function () { return itemsDB; }],
+    ['warehouses', function () { return warehousesDB; }],
+    ['stockMovements', function () { return stockMovementDB; }],
+    ['leadSources', function () { return leadSources; }],
+    ['itemUnits', function () { return itemUnits; }],
+    ['appSettings', function () { return appSettings; }],
+    ['trashDB', function () { return trashDB; }],
+    ['orderBook', function () { return window.orderBookDB; }]
+  ];
+
+  function byteLength(text) {
+    try {
+      if (window.TextEncoder) return new TextEncoder().encode(text).length;
+    } catch (e) {}
+    try { return unescape(encodeURIComponent(text)).length; } catch (e) { return text.length; }
+  }
+
+  function kbOf(bytes) { return Math.round(bytes / 102.4) / 10; }
+
+  /* One neutral owner-only line in Settings > About. It shows no limit, no
+     percentage and no warning - just the number, and only to the owner. */
+  function paintUsageLine(totalKB) {
+    try {
+      var el = document.getElementById('about_workspace_usage');
+      if (!el) return;
+      el.textContent = 'Workspace usage: ' + Math.round(totalKB) + ' KB';
+    } catch (e) {}
+  }
+
+  var summaryTimer = null;
+
+  function scheduleSummaryLog() {
+    try {
+      if (sizeLogged) return;
+      /* debounce: hydration can measure more than once in quick succession,
+         so the line is printed 1.2s after the last measurement */
+      if (summaryTimer) clearTimeout(summaryTimer);
+      summaryTimer = setTimeout(function () {
+        summaryTimer = null;
+        try {
+          if (sizeLogged) return;
+          var info = window.utsavDataSize;
+          if (!info) return;
+          sizeLogged = true;
+          var top3 = info.top.map(function (s) { return s.section + ' ' + s.kb + ' KB'; }).join(', ');
+          console.log('[UTSAV storage] workspace usage: ' + info.totalKB + ' KB in one document - top 3 sections: ' + top3);
+        } catch (e) {}
+      }, 1200);
+    } catch (e) {}
+  }
+
+  /* Last resort: print the line even if measurements keep arriving (the
+     debounce above would otherwise postpone it for ever). */
+  function flushSummaryLog() {
+    try {
+      if (sizeLogged) return;
+      if (summaryTimer) { clearTimeout(summaryTimer); summaryTimer = null; }
+      var info = window.utsavDataSize;
+      if (!info) return;
+      sizeLogged = true;
+      var top3 = info.top.map(function (s) { return s.section + ' ' + s.kb + ' KB'; }).join(', ');
+      console.log('[UTSAV storage] workspace usage: ' + info.totalKB + ' KB in one document - top 3 sections: ' + top3);
+    } catch (e) {}
+  }
+
+  function measureDataSize(reason) {
+    var total = 0;
+    var sections = [];
+    var i;
+
+    for (i = 0; i < SECTIONS.length; i++) {
+      var key = SECTIONS[i][0];
+      var bytes = 0;
+      try {
+        var value = SECTIONS[i][1]();
+        if (value !== undefined && value !== null) bytes = byteLength(JSON.stringify(value));
+      } catch (e) {
+        bytes = 0; /* an unreadable section simply contributes nothing */
+      }
+      total += bytes;
+      sections.push({ section: key, bytes: bytes, kb: kbOf(bytes) });
+    }
+
+    sections.sort(function (a, b) { return b.bytes - a.bytes; });
+
+    var totalKB = kbOf(total);
+    var info = {
+      totalBytes: total,
+      totalKB: totalKB,
+      sections: sections,
+      top: sections.slice(0, 3),
+      warnThresholdKB: SIZE_WARN_KB,
+      overThreshold: totalKB >= SIZE_WARN_KB,
+      workspaceId: currentWorkspaceIdSafe(),
+      computedAt: new Date().toISOString(),
+      reason: reason || 'manual'
+    };
+    window.utsavDataSize = info;
+    lastMeasureAt = Date.now();
+
+    paintUsageLine(totalKB);
+
+    /* The console summary is scheduled a moment after the first measurement:
+       hydration can run more than once (local cache first, then the Firestore
+       snapshot), and the line should show the settled numbers, not a half
+       filled workspace. It is printed exactly once per page load. */
+    scheduleSummaryLog();
+
+    if (info.overThreshold && !sizeWarned) {
+      sizeWarned = true;
+      try {
+        console.warn(
+          '[UTSAV storage] WARNING: this workspace has reached ' + totalKB + ' KB inside the single ' +
+          'workspace_data document. Firestore allows at most 1024 KB (1 MB) per document, so it is time ' +
+          'to move records into per-collection storage (Stage 2). Customers never see this message.'
+        );
+      } catch (e) {}
+    }
+
+    return info;
+  }
+
+  /* Called after a save: keeps the numbers fresh without paying the cost of a
+     full serialisation on every single save (at most once a minute). */
+  function maybeMeasure(reason) {
+    try {
+      if (lastMeasureAt && (Date.now() - lastMeasureAt) < 60000) return window.utsavDataSize;
+      return measureDataSize(reason);
+    } catch (e) { return window.utsavDataSize; }
+  }
+
+  /* Refresh the meter whenever the app saves, so Settings > About and the
+     console are never stale. */
+  function installSaveHook() {
+    try {
+      if (typeof saveDataLocally !== 'function') return false;
+      if (saveDataLocally.__stage1Hook) return true;
+
+      var original = saveDataLocally;
+      var wrapped = function () {
+        var result = original.apply(this, arguments);
+        try { maybeMeasure('save'); } catch (e) {}
+        return result;
+      };
+      wrapped.__stage1Hook = true;
+      saveDataLocally = wrapped;
+      return saveDataLocally === wrapped;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* Manual re-measure from the console (owner / support use only):
+     utsavMeasureDataSize() */
+  window.utsavMeasureDataSize = function () {
+    sizeLogged = false;
+    sizeWarned = false;
+    if (summaryTimer) { clearTimeout(summaryTimer); summaryTimer = null; }
+    return measureDataSize('manual');
+  };
+
+  /* -------------------------------------------------------------- bootstrap */
+
+  var hookInstalled = false;
+  try { hookInstalled = installHydrationHook(); } catch (e) { hookInstalled = false; }
+  try { installSaveHook(); } catch (e) {}
+
+  /* The console line should reflect real data, so it is only printed once the
+     workspace has hydrated. If that never happens (offline, signed out, a
+     different hydration path), measure once anyway so the meter is not empty. */
+  setTimeout(function () {
+    try {
+      /* only worth reporting once a workspace is actually loaded - a signed out
+         login screen has nothing to measure and must stay quiet */
+      if (!sizeLogged && window.__workspaceHydrated) measureDataSize(hookInstalled ? 'fallback' : 'no-hook');
+      flushSummaryLog();
+    } catch (e) {}
+    try { fallbackMigrateOnce(); } catch (e) {}
+  }, 6000);
+})();
