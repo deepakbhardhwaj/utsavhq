@@ -3302,3 +3302,698 @@ wtMiniFormHtml = function (k, t) {
     try { fallbackMigrateOnce(); } catch (e) {}
   }, 6000);
 })();
+
+/* ============================================================================
+   INVOICE FIXES - appended block (nothing above this line is modified)
+   ----------------------------------------------------------------------------
+   1. DUPLICATE INVOICE (data integrity)
+      The direct-invoice save left the "Invoice Preview" modal (#invPreviewModal)
+      open after the record was written. That modal still holds a live
+      "Confirm & Save" button pointing at saveDirectInvoiceData(), and the
+      button keeps DOM focus while the alerts run. The PHOTO REMINDER alert
+      (fired from a 500ms setTimeout inside the save function) is dismissed
+      with Enter/Space, which re-activates that focused button, so the same
+      form is saved a second time - with editingSalesId still null this writes
+      a brand new invoice.
+
+      Fix: the reminder never blocks (it becomes a showToast), the save is
+      wrapped so it can run at most once per opened form, the stale preview is
+      closed, and the saved invoice's preview is opened immediately instead of
+      waiting behind a dialog.
+
+   2. IN-APP PRINT PREVIEW
+      printVoucher() still owns the voucher markup. The preview captures that
+      exact markup by swapping window.open for a stub for the duration of the
+      call, then renders it into an A4 iframe inside a modal-overlay /
+      modal-content dialog. No second renderer, no change to the printed HTML.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  function byId(id) { return document.getElementById(id); }
+
+  function toast(msg, type, ms) {
+    if (typeof window.showToast === 'function') {
+      window.showToast(msg, type || 'info', ms || 4000);
+    }
+  }
+
+  var nativeAlert = window.alert ? window.alert.bind(window) : function () {};
+
+  function invoiceIds() {
+    var out = [];
+    try {
+      Object.keys(salesDB).forEach(function (k) {
+        if (salesDB[k] && salesDB[k].type === 'Invoice') out.push(k);
+      });
+    } catch (e) { /* data layer not ready - treat as empty */ }
+    return out;
+  }
+
+  /* --------------------------------------------------------------------------
+     1a. ALERT GATE
+     The photo reminder is fired by the save function as a blocking alert().
+     It is converted into a non-blocking toast here, so it can never gate the
+     preview and can never sit between the save and the user's next click.
+     Alerts raised while a save is in flight are collected (see 1b) so the
+     success dialog can be replaced by a toast without losing real errors.
+     ------------------------------------------------------------------------ */
+  window.__invAlertSink = null;
+
+  window.alert = function (msg) {
+    var text = String(msg === null || msg === undefined ? '' : msg);
+
+    if (window.__invAlertSink) {
+      window.__invAlertSink.push(text);
+      return;
+    }
+
+    if (/PHOTO REMINDER/i.test(text)) {
+      var names = [];
+      text.replace(/^[\u2022\u25CF*\-]\s*(.+)$/gm, function (m, name) {
+        names.push(String(name).trim());
+        return m;
+      });
+      /* Held back a moment so it lands on top of the invoice preview that the
+         save opens, and never covers the success toast. */
+      setTimeout(function () {
+        toast('No photo uploaded for: ' + (names.length ? names.join(', ') : 'this invoice') +
+          '. Add one from the Event dashboard.', 'warning', 6000);
+      }, 2000);
+      return;
+    }
+
+    nativeAlert(text);
+  };
+
+  /* --------------------------------------------------------------------------
+     1b. SAVE WRAPPER - exactly one record per form, preview right away
+     ------------------------------------------------------------------------ */
+  var invSaveLock = false;
+
+  function unlockInvoiceSave() { invSaveLock = false; }
+
+  var originalSave = window.saveDirectInvoiceData;
+
+  if (typeof originalSave === 'function') {
+    window.saveDirectInvoiceData = function () {
+      if (invSaveLock) {
+        toast('This invoice is already saved.', 'info', 2500);
+        return;
+      }
+
+      var beforeIds = invoiceIds();
+      var editedId = (typeof editingSalesId !== 'undefined' && editingSalesId) ? editingSalesId : null;
+      var sink = [];
+      var result;
+
+      window.__invAlertSink = sink;
+      try {
+        result = originalSave.apply(this, arguments);
+      } finally {
+        window.__invAlertSink = null;
+      }
+
+      var afterIds = invoiceIds();
+      var newId = null;
+      for (var i = 0; i < afterIds.length; i++) {
+        if (beforeIds.indexOf(afterIds[i]) === -1) { newId = afterIds[i]; break; }
+      }
+      var savedId = newId || editedId;
+
+      if (!savedId) {
+        /* Nothing was written: validation stopped the save. Keep the original
+           blocking dialogs so the user cannot miss the message. */
+        for (var k = 0; k < sink.length; k++) nativeAlert(sink[k]);
+        return result;
+      }
+
+      invSaveLock = true;
+
+      /* The pre-save confirmation is the duplicate path - it must not stay
+         on screen once the record exists. */
+      var preview = byId('invPreviewModal');
+      if (preview) preview.style.display = 'none';
+      var form = byId('directInvoiceModal');
+      if (form) form.style.display = 'none';
+
+      toast(newId ? 'Invoice saved.' : 'Invoice updated.', 'success', 3000);
+
+      /* Open the saved invoice preview immediately - never behind a dialog. */
+      setTimeout(function () {
+        try {
+          if (typeof window.viewDetails === 'function') window.viewDetails(savedId, 'sales');
+        } catch (e) {
+          console.warn('Invoice preview could not be opened:', e);
+        }
+      }, 0);
+
+      return result;
+    };
+  }
+
+  /* A fresh preview (or a freshly opened form) is a fresh save intent. */
+  var originalShowInvPreview = window.showInvPreview;
+  if (typeof originalShowInvPreview === 'function') {
+    window.showInvPreview = function () {
+      unlockInvoiceSave();
+      return originalShowInvPreview.apply(this, arguments);
+    };
+  }
+
+  var originalOpenDirectInvoice = window.openDirectInvoiceModal;
+  if (typeof originalOpenDirectInvoice === 'function') {
+    window.openDirectInvoiceModal = function () {
+      unlockInvoiceSave();
+      return originalOpenDirectInvoice.apply(this, arguments);
+    };
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var form = byId('directInvoiceModal');
+    if (!form || typeof MutationObserver === 'undefined') return;
+    new MutationObserver(function () {
+      if (form.style.display === 'flex' || form.style.display === 'block') unlockInvoiceSave();
+    }).observe(form, { attributes: true, attributeFilter: ['style'] });
+  });
+
+  /* --------------------------------------------------------------------------
+     2. IN-APP PRINT PREVIEW
+     ------------------------------------------------------------------------ */
+  var PREVIEW_ID = 'utsavPrintPreviewModal';
+  var PAGE_W = 794;   /* 210mm at 96dpi */
+  var PAGE_H = 1123;  /* 297mm at 96dpi */
+
+  /* The original popup printer. printVoucher() is wrapped further down, so the
+     builder below must call this reference and not window.printVoucher. */
+  var originalPrintVoucher = window.printVoucher;
+
+  /* Run printVoucher() with window.open stubbed out and keep the markup it
+     writes. This is the same string the browser print path uses. */
+  function buildVoucherHtml(id, context) {
+    if (typeof originalPrintVoucher !== 'function') return null;
+
+    var realOpen = window.open;
+    var captured = null;
+    var stub = {
+      document: {
+        open: function () {},
+        write: function (html) { captured = html; },
+        close: function () {}
+      },
+      close: function () {},
+      focus: function () {},
+      print: function () {}
+    };
+
+    window.open = function () { return stub; };
+    try {
+      originalPrintVoucher(id, context);
+    } finally {
+      window.open = realOpen;
+    }
+    return captured;
+  }
+
+  function ensurePreviewModal() {
+    var modal = byId(PREVIEW_ID);
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = PREVIEW_ID;
+    modal.className = 'modal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.style.cssText = 'display:none; align-items:center; justify-content:center; padding:0;';
+    /* .modal-overlay carries z-index:9999!important, and the document preview
+       below it is raised to 20000 the same way - match that, one level higher. */
+    modal.style.setProperty('z-index', '30000', 'important');
+
+    modal.innerHTML =
+      '<div class="modal-content" style="width:96vw; max-width:920px; height:92vh; max-height:92vh; display:flex; flex-direction:column; padding:0; overflow:hidden; border-radius:14px;">' +
+        '<div class="modal-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; background:#0E2D55; border-radius:14px 14px 0 0; flex:0 0 auto;">' +
+          '<h3 style="margin:0; font-size:14px; font-weight:800; color:#FFFFFF;">Print Preview</h3>' +
+          '<div style="display:flex; align-items:center; gap:8px;">' +
+            '<button id="utsavPrintPreviewPrintBtn" type="button" style="background:#ED6F1F; color:#FFFFFF; border:none; border-radius:8px; padding:8px 18px; font-size:12px; font-weight:800; cursor:pointer;">Print</button>' +
+            '<button id="utsavPrintPreviewCloseBtn" type="button" style="background:#F2892F; color:#FFFFFF; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:800; cursor:pointer;">Close</button>' +
+          '</div>' +
+        '</div>' +
+        '<div id="utsavPrintPreviewStage" style="flex:1 1 auto; overflow:auto; background:#E2E8F0; padding:12px; display:flex; justify-content:center; align-items:flex-start;">' +
+          '<div id="utsavPrintPreviewHolder" style="width:' + PAGE_W + 'px; height:' + PAGE_H + 'px; overflow:hidden;">' +
+            '<iframe id="utsavPrintPreviewFrame" title="Print preview" style="width:' + PAGE_W + 'px; height:' + PAGE_H + 'px; border:none; background:#FFFFFF; box-shadow:0 6px 20px rgba(15,23,42,0.18); transform-origin:top left;"></iframe>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(modal);
+
+    byId('utsavPrintPreviewCloseBtn').onclick = function () { closeInvoicePrintPreview(); };
+
+    byId('utsavPrintPreviewPrintBtn').onclick = function () {
+      var frame = byId('utsavPrintPreviewFrame');
+      var win = frame && frame.contentWindow;
+      if (!win) { toast('Print preview is still loading.', 'warning', 2500); return; }
+      try {
+        if (typeof win.__utsavRealPrint === 'function') win.__utsavRealPrint();
+        else { win.focus(); win.print(); }
+      } catch (e) {
+        toast('Printing is not available in this browser.', 'error', 3000);
+      }
+    };
+
+    window.addEventListener('resize', fitInvoicePrintPreview);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.style.display === 'flex') closeInvoicePrintPreview();
+    });
+
+    return modal;
+  }
+
+  function fitInvoicePrintPreview() {
+    var stage = byId('utsavPrintPreviewStage');
+    var holder = byId('utsavPrintPreviewHolder');
+    var frame = byId('utsavPrintPreviewFrame');
+    if (!stage || !holder || !frame) return;
+
+    var available = Math.max(240, stage.clientWidth - 24);
+    var scale = Math.min(1, available / PAGE_W);
+    frame.style.transform = 'scale(' + scale + ')';
+    holder.style.width = Math.round(PAGE_W * scale) + 'px';
+    holder.style.height = Math.round(PAGE_H * scale) + 'px';
+  }
+
+  function renderInvoicePrintPreview(html) {
+    var frame = byId('utsavPrintPreviewFrame');
+    if (!frame) return;
+
+    /* The voucher markup prints itself (paged.js -> window.print()). Inside
+       the preview that must not fire: keep the real print for our button. */
+    var guard = '<script>(function(){var real=window.print;' +
+      'window.__utsavRealPrint=function(){try{real.call(window);}catch(e){}};' +
+      'window.print=function(){};})();<\/script>';
+
+    var doc = html;
+    if (/<head[^>]*>/i.test(doc)) {
+      doc = doc.replace(/<head[^>]*>/i, function (m) { return m + guard; });
+    } else {
+      doc = guard + doc;
+    }
+
+    try {
+      frame.removeAttribute('srcdoc');
+      frame.srcdoc = doc;
+    } catch (e) {
+      var d = frame.contentDocument || frame.contentWindow.document;
+      d.open(); d.write(doc); d.close();
+    }
+  }
+
+  function closeInvoicePrintPreview() {
+    var modal = byId(PREVIEW_ID);
+    if (!modal) return;
+    modal.style.display = 'none';
+    var frame = byId('utsavPrintPreviewFrame');
+    if (frame) { try { frame.removeAttribute('srcdoc'); } catch (e) {} }
+  }
+
+  /* Public entry point used by the print buttons. */
+  window.openInvoicePrintPreview = function (id, context) {
+    context = context || 'sales';
+    var html = buildVoucherHtml(id, context);
+    if (!html) return false;
+
+    ensurePreviewModal();
+    byId(PREVIEW_ID).style.display = 'flex';
+    renderInvoicePrintPreview(html);
+    fitInvoicePrintPreview();
+    return true;
+  };
+
+  window.closeInvoicePrintPreview = closeInvoicePrintPreview;
+
+  /* Every existing print button (onclick="printVoucher(...)") now opens the
+     in-app preview. If the preview cannot be built, the original popup path
+     runs exactly as before. */
+  if (typeof originalPrintVoucher === 'function') {
+    window.printVoucher = function (id, context) {
+      try {
+        if (window.openInvoicePrintPreview(id, context)) return;
+      } catch (e) {
+        console.warn('Print preview failed, falling back to the print window:', e);
+      }
+      return originalPrintVoucher.apply(this, arguments);
+    };
+  }
+})();
+
+/* ============================================================================
+   IN-APP PRINT PREVIEW — ALL VOUCHER TYPES  (appended block, ES5, no deps)
+   ----------------------------------------------------------------------------
+   The browser's print dialog is replaced by an in-app A4 preview for every
+   document the app prints as a voucher: Invoice, Quotation, Receipt,
+   PaymentOut, PO, PB, Asset and General/Expense (all types that flow through
+   printVoucher), plus the PO / PB document printers and — when present in the
+   build — printEventSheet.
+
+   How the capture works (no second renderer, no markup changes):
+     the original print function is executed with window.open() stubbed by a
+     fake window whose document.write() collects the exact string that would
+     have been written into the popup. That string is then placed in an A4
+     iframe (794 x 1123 px) inside the printPreviewModal modal. The printed
+     bytes are therefore identical to what the browser path produced.
+
+   Safety: any failure (capture throws, no HTML captured, modal or iframe
+   missing, print() throws) falls back to the original function, i.e. the
+   previous popup-print behaviour.
+   ============================================================================ */
+(function () {
+  'use strict';
+
+  if (typeof window === 'undefined' || window.__ppAllVouchers) { return; }
+  window.__ppAllVouchers = true;
+
+  var MODAL_ID = 'printPreviewModal';
+  var CONTENT_ID = 'printPreviewContent';
+  var FRAME_ID = 'printPreviewFrame';
+  var BODY_ID = 'printPreviewBody';
+  var SCALE_ID = 'printPreviewScale';
+  var TITLE_ID = 'printPreviewTitle';
+  var SUB_ID = 'printPreviewSub';
+  var BTN_PRINT = 'printPreviewPrintBtn';
+  var BTN_CLOSE = 'printPreviewCloseBtn';
+  var A4_W = 794;
+  var A4_H = 1123;
+  var MIN_HTML = 60; /* below this the capture is treated as failed */
+
+  /* print functions that render a printable voucher document */
+  var TARGETS = ['printVoucher', 'printPODocument', 'printPBDocument'];
+
+  var state = { html: '', title: '', fn: null, args: null, open: false };
+
+  /* ------------------------------------------------------------------ *
+   * 1. Guard injected at the very top of <head> of the captured document
+   *    Neutralises the voucher's own auto window.print() (paged.js after
+   *    hook / the 1s-5s fallback timers) and keeps the real print for the
+   *    Print button, which sets window.__ppAllowPrint = true first.
+   * ------------------------------------------------------------------ */
+  var GUARD =
+    '<scr' + 'ipt>(function(){window.__ppAllowPrint=false;if(window.__ppGuardInstalled){return;}' +
+    'window.__ppGuardInstalled=true;var realPrint=window.print;' +
+    'window.print=function(){if(!window.__ppAllowPrint){return;}window.__ppAllowPrint=false;' +
+    'try{realPrint.apply(window,arguments);}catch(e){}};})();</scr' + 'ipt>';
+
+  /* ------------------------------------------------------------------ *
+   * 2. Capture — run the original print function with window.open stubbed
+   * ------------------------------------------------------------------ */
+  function ppCapture(run) {
+    var realOpen = window.open;
+    var realAlert = window.alert;
+    var chunks = [];
+    var alerts = [];
+
+    function makeFakeWindow() {
+      var doc = {
+        write: function (s) { if (s !== undefined && s !== null) { chunks.push(String(s)); } },
+        writeln: function (s) { if (s !== undefined && s !== null) { chunks.push(String(s) + '\n'); } },
+        open: function () { return doc; },
+        close: function () {},
+        clear: function () { chunks.length = 0; },
+        getElementById: function () { return null; },
+        querySelector: function () { return null; },
+        querySelectorAll: function () { return []; },
+        createElement: function () { return { style: {}, setAttribute: function () {}, appendChild: function () {} }; },
+        addEventListener: function () {},
+        removeEventListener: function () {},
+        body: { innerHTML: '', appendChild: function () {} },
+        head: { appendChild: function () {} },
+        documentElement: { style: {} },
+        readyState: 'complete'
+      };
+      var win = {
+        closed: false,
+        document: doc,
+        focus: function () {},
+        blur: function () {},
+        print: function () {},
+        close: function () { this.closed = true; },
+        addEventListener: function () {},
+        removeEventListener: function () {},
+        setTimeout: function () { return 0; },
+        clearTimeout: function () {},
+        setInterval: function () { return 0; },
+        clearInterval: function () {},
+        postMessage: function () {},
+        alert: function () {},
+        confirm: function () { return false; },
+        location: { href: '', replace: function () {}, assign: function () {} },
+        opener: null
+      };
+      win.window = win;
+      win.self = win;
+      return win;
+    }
+
+    window.open = function () { return makeFakeWindow(); };
+    /* error alerts fired during capture (record not found / popup blocked)
+       are swallowed: the fallback path re-runs the original and alerts once */
+    window.alert = function (m) { alerts.push(String(m)); };
+    try {
+      run();
+    } finally {
+      window.open = realOpen;
+      window.alert = realAlert;
+    }
+    return { html: chunks.join(''), alerts: alerts };
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 3. Helpers
+   * ------------------------------------------------------------------ */
+  function ppDocTitle(html, fallbackName) {
+    var m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    var t = m && m[1] ? String(m[1]).replace(/\s+/g, ' ').trim() : '';
+    if (!t) {
+      t = fallbackName === 'printVoucher' ? 'Voucher' :
+          fallbackName === 'printPODocument' ? 'Purchase Order' :
+          fallbackName === 'printPBDocument' ? 'Purchase Bill' : 'Document';
+    }
+    return t;
+  }
+
+  function ppWithGuard(html) {
+    var m = html.match(/<head[^>]*>/i);
+    if (m && typeof m.index === 'number') {
+      var at = m.index + m[0].length;
+      return html.slice(0, at) + GUARD + html.slice(at);
+    }
+    var h = html.match(/<html[^>]*>/i);
+    if (h && typeof h.index === 'number') {
+      var at2 = h.index + h[0].length;
+      return html.slice(0, at2) + '<head>' + GUARD + '</head>' + html.slice(at2);
+    }
+    return GUARD + html;
+  }
+
+  function ppEl(id) { return document.getElementById(id); }
+
+  /* A4 iframe scaling: fit the 794 px sheet to the available width */
+  function ppFit() {
+    var body = ppEl(BODY_ID);
+    var wrap = ppEl(SCALE_ID);
+    var frame = ppEl(FRAME_ID);
+    if (!body || !wrap || !frame) { return; }
+    var avail = (body.clientWidth || window.innerWidth || A4_W) - 16;
+    var s = avail / A4_W;
+    if (!(s > 0)) { s = 1; }
+    if (s > 1) { s = 1; }
+    if (s < 0.2) { s = 0.2; }
+    wrap.style.width = Math.round(A4_W * s) + 'px';
+    wrap.style.height = Math.round(A4_H * s) + 'px';
+    frame.style.transform = 'scale(' + s + ')';
+    frame.style.webkitTransform = 'scale(' + s + ')';
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 4. Open / close / print
+   * ------------------------------------------------------------------ */
+  function ppOpen(html, title, fn, args) {
+    var modal = ppEl(MODAL_ID);
+    var frame = ppEl(FRAME_ID);
+    if (!modal || !frame) { throw new Error('print preview modal missing'); }
+
+    /* a fresh iframe per preview: a pristine window every time, so the guard is
+       never stacked and no timer / paged.js run from a previous document survives */
+    if (frame.__ppUsed) {
+      var fresh = document.createElement('iframe');
+      fresh.id = FRAME_ID;
+      fresh.title = 'Voucher print preview';
+      fresh.className = frame.className;
+      if (frame.parentNode) { frame.parentNode.replaceChild(fresh, frame); }
+      frame = fresh;
+    }
+    frame.__ppUsed = true;
+
+    var doc = frame.contentDocument || (frame.contentWindow && frame.contentWindow.document);
+    if (!doc) { throw new Error('print preview iframe unavailable'); }
+
+    state.html = html;
+    state.title = title || 'Print Preview';
+    state.fn = fn || null;
+    state.args = args || null;
+
+    doc.open();
+    doc.write(ppWithGuard(html));
+    doc.close();
+
+    var t = ppEl(TITLE_ID);
+    if (t) { t.textContent = state.title; }
+    var sub = ppEl(SUB_ID);
+    if (sub) { sub.textContent = 'A4 in-app preview'; }
+
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('z-index', '30000', 'important');
+    var content = ppEl(CONTENT_ID);
+    if (content) { content.style.setProperty('z-index', '30001', 'important'); }
+
+    state.open = true;
+    ppFit();
+    return true;
+  }
+
+  function ppClose() {
+    var modal = ppEl(MODAL_ID);
+    var frame = ppEl(FRAME_ID);
+    state.open = false;
+    if (modal) { modal.style.setProperty('display', 'none', 'important'); }
+    if (frame) {
+      try {
+        var doc = frame.contentDocument;
+        if (doc) { doc.open(); doc.write(''); doc.close(); }
+      } catch (e) { /* ignore */ }
+    }
+  }
+
+  function ppPrint() {
+    var frame = ppEl(FRAME_ID);
+    var w = frame && frame.contentWindow;
+    try {
+      if (!w || !w.document) { throw new Error('no iframe window'); }
+      w.__ppAllowPrint = true;
+      try { w.focus(); } catch (e) { /* ignore */ }
+      w.print();
+      return true;
+    } catch (err) {
+      /* iframe print failed — fall back to the original popup print */
+      if (state.fn) {
+        try { state.fn.apply(window, state.args || []); return true; } catch (e2) { /* ignore */ }
+      }
+      return false;
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 5. Wrap a print function: capture first, popup only as a fallback
+   * ------------------------------------------------------------------ */
+  function ppWrap(name) {
+    var orig = window[name];
+    if (typeof orig !== 'function' || orig.__ppWrapped) { return false; }
+    var wrapped = function () {
+      var args = Array.prototype.slice.call(arguments);
+      var cap = null;
+      try {
+        cap = ppCapture(function () { orig.apply(window, args); });
+      } catch (e) {
+        cap = null;
+      }
+      if (cap && cap.html && cap.html.replace(/\s+/g, '').length > MIN_HTML) {
+        try {
+          ppOpen(cap.html, ppDocTitle(cap.html, name), orig, args);
+          return;
+        } catch (e2) {
+          /* fall through to the original popup print */
+        }
+      }
+      return orig.apply(window, args);
+    };
+    wrapped.__ppWrapped = true;
+    wrapped.__ppOriginal = orig;
+    try {
+      window[name] = wrapped;
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 6. Wiring
+   * ------------------------------------------------------------------ */
+  function ppBind() {
+    var b = ppEl(BTN_PRINT);
+    if (b && !b.__ppBound) {
+      b.__ppBound = true;
+      b.addEventListener('click', function (e) {
+        if (e && e.preventDefault) { e.preventDefault(); }
+        ppPrint();
+      });
+    }
+    var c = ppEl(BTN_CLOSE);
+    if (c && !c.__ppBound) {
+      c.__ppBound = true;
+      c.addEventListener('click', function (e) {
+        if (e && e.preventDefault) { e.preventDefault(); }
+        ppClose();
+      });
+    }
+    var modal = ppEl(MODAL_ID);
+    if (modal && !modal.__ppBound) {
+      modal.__ppBound = true;
+      /* click on the dark backdrop closes the preview (same as other modals) */
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) { ppClose(); }
+      });
+    }
+    if (!window.__ppKeyBound) {
+      window.__ppKeyBound = true;
+      document.addEventListener('keydown', function (e) {
+        if (e && (e.key === 'Escape' || e.keyCode === 27) && state.open) { ppClose(); }
+      });
+    }
+    if (!window.__ppResizeBound) {
+      window.__ppResizeBound = true;
+      window.addEventListener('resize', function () { if (state.open) { ppFit(); } });
+    }
+  }
+
+  function ppInit() {
+    ppBind();
+    for (var i = 0; i < TARGETS.length; i++) { ppWrap(TARGETS[i]); }
+    ppWrap('printEventSheet');
+  }
+
+  /* public handles (also used by the test harness) */
+  window.__ppAll = {
+    open: ppOpen,
+    close: ppClose,
+    print: ppPrint,
+    capture: ppCapture,
+    wrap: ppWrap,
+    fit: ppFit,
+    guard: GUARD,
+    state: state,
+    init: ppInit
+  };
+  window.openPrintPreview = function (html, title) { return ppOpen(html, title, null, null); };
+  window.closePrintPreview = ppClose;
+
+  ppInit();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ppInit);
+  } else {
+    ppInit();
+  }
+  window.addEventListener('load', ppInit);
+  /* printEventSheet may be defined by a later script — pick it up when it appears */
+  [0, 400, 1200, 3000].forEach(function (t) { setTimeout(ppInit, t); });
+})();
